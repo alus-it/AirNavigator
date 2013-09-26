@@ -1,0 +1,7 @@
+Version|025|
+AppName|AirNavigator.sh|
+AppPath|/mnt/sdcard/AirNavigator/|
+AppIconFile|AirNavigator.bmp|
+AppMainTitle|Air Navigator|
+AppPort|2001|
+COMMAND|CMD||AirNavigator.bmp|Air Navigator|

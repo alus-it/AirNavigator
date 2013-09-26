@@ -1,0 +1,20 @@
+# Ignore binary files
+*.o
+*.a
+*.so
+*.so.*
+
+# Ignore bin folder
+/bin
+
+# Ignore AirNavigator executable file
+/release/AirNavigator/AirNavigator
+
+# Ignore zip files
+*.zip
+
+# Ignore Eclipse project files
+/.project
+/.cproject
+/.settings
+

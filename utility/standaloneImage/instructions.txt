@@ -1,0 +1,29 @@
+This procedure has been tested on Linux, Debian distribution, and it works.
+
+The sources of the utilities ttimgextract and mkttimage are avaliable in ./mkttimage
+
+
+1. Extract the image:
+ 
+	sudo ./ttimgextract ttsystem
+	rm ttsystem
+	sudo chmod a+r ttsystem.0
+	sudo gunzip < ttsystem.0 > ttsystem.cpio
+	sudo rm ttsystem.0
+	sudo mkdir image
+	sudo cd image
+	sudo cpio -idv < ../ttsystem.cpio
+	cd ..
+	rm ttsystem.cpio
+
+
+2. When the image is extracted it is possible to do all the desired modifications inside ./image
+	AirNavigator is automatically started by the script: /etc/rc (./etc-rc.sh is a copy of that script)
+
+
+3. Create the new image:
+
+cd image
+sudo find * | sort | cpio --create --format=newc --quiet | gzip -9 > ../ttsystem.0
+cd ..
+./mkttimage ttsystem.0 ttsystem.1 > ttsystem

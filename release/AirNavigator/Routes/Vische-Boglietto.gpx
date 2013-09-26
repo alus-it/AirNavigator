@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
+<gpx
+version="1.1"
+ creator="FlightPlan - http://www.flightutilities.com"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.topografix.com/GPX/1/1"
+ xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata>
+<time>2012-12-24T14:47:16Z</time>
+<bounds minlat="44.7491666666667" minlon="7.91166666666667" maxlat="45.3455555555556" maxlon="8.185"/>
+</metadata>
+<wpt lat="45.3455555555556" lon="7.91916666666667">
+ <ele>228</ele>
+ <name>Vische</name>
+ <cmt>Departure</cmt>
+ <desc>Departure</desc>
+ <sym>Airport</sym>
+</wpt>
+<wpt lat="45.3386111111111" lon="7.91166666666667">
+ <ele>305</ele>
+ <name>Sopravento destro</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.3075" lon="7.91583333333333">
+ <ele>396</ele>
+ <name>C. Motta</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.1994444444444" lon="7.94138888888889">
+ <ele>396</ele>
+ <name>Castelrosso</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.1719444444444" lon="7.94111111111111">
+ <ele>396</ele>
+ <name>Po</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.1369444444444" lon="7.94472222222222">
+ <ele>518</ele>
+ <name>Casalborgone</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.0955555555556" lon="7.94972222222222">
+ <ele>518</ele>
+ <name>Berzano</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.0452777777778" lon="7.95555555555556">
+ <ele>488</ele>
+ <name>Don Bosco</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.0175" lon="7.96138888888889">
+ <ele>457</ele>
+ <name>ICP</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.7722222222222" lon="8.185">
+ <ele>457</ele>
+ <name>Loreto</name>
+ <cmt>Punto di riporto</cmt>
+ <desc>Punto di riporto</desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.7491666666667" lon="8.1825">
+ <ele>457</ele>
+ <name>Circuito</name>
+ <cmt>Immissione in sottovento</cmt>
+ <desc>Immissione in sottovento</desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.7511111111111" lon="8.16055555555556">
+ <ele>366</ele>
+ <name>Sottovento dx</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.7611111111111" lon="8.15305555555556">
+ <ele>366</ele>
+ <name>Finale</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.7588888888889" lon="8.17888888888889">
+ <ele>192</ele>
+ <name>Boglietto</name>
+ <cmt>Arrival</cmt>
+ <desc>Arrival</desc>
+ <sym>Airport</sym>
+</wpt>
+<rte>
+ <name></name>
+ <desc></desc>
+<rtept lat="45.3455555555556" lon="7.91916666666667">
+ <ele>228</ele>
+ <name>Vische</name>
+ <cmt>Departure</cmt>
+ <desc>Departure</desc>
+ <sym>Airport</sym>
+</rtept>
+<rtept lat="45.3386111111111" lon="7.91166666666667">
+ <ele>305</ele>
+ <name>Sopravento destro</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.3075" lon="7.91583333333333">
+ <ele>396</ele>
+ <name>C. Motta</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.1994444444444" lon="7.94138888888889">
+ <ele>396</ele>
+ <name>Castelrosso</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.1719444444444" lon="7.94111111111111">
+ <ele>396</ele>
+ <name>Po</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.1369444444444" lon="7.94472222222222">
+ <ele>518</ele>
+ <name>Casalborgone</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.0955555555556" lon="7.94972222222222">
+ <ele>518</ele>
+ <name>Berzano</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.0452777777778" lon="7.95555555555556">
+ <ele>488</ele>
+ <name>Don Bosco</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.0175" lon="7.96138888888889">
+ <ele>457</ele>
+ <name>ICP</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.7722222222222" lon="8.185">
+ <ele>457</ele>
+ <name>Loreto</name>
+ <cmt>Punto di riporto</cmt>
+ <desc>Punto di riporto</desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.7491666666667" lon="8.1825">
+ <ele>457</ele>
+ <name>Circuito</name>
+ <cmt>Immissione in sottovento</cmt>
+ <desc>Immissione in sottovento</desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.7511111111111" lon="8.16055555555556">
+ <ele>366</ele>
+ <name>Sottovento dx</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.7611111111111" lon="8.15305555555556">
+ <ele>366</ele>
+ <name>Finale</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.7588888888889" lon="8.17888888888889">
+ <ele>192</ele>
+ <name>Boglietto</name>
+ <cmt>Arrival</cmt>
+ <desc>Arrival</desc>
+ <sym>Airport</sym>
+</rtept>
+</rte>
+<extensions>
+</extensions>
+</gpx>

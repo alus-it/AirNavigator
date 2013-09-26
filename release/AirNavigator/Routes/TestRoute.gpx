@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<gpx
+  version="1.0"
+  creator="AirNavigator"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.topografix.com/GPX/1/0"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<time>2011-09-25T12:54:39Z</time>
+<rte>
+  <name>TestRoute</name>
+  <rtept lat="45.345601" lon="7.919130">
+    <name>Vische</name>
+    <ele>225.0</ele>
+  </rtept>
+  <rtept lat="45.338147" lon="7.910975">
+    <name>Sopravento destro</name>
+    <ele>288.0</ele>
+  </rtept>
+  <rtept lat="45.324887" lon="7.903290">
+    <name>Lago1</name>
+    <ele>353.0</ele>
+  </rtept>
+  <rtept lat="45.330790" lon="7.921510">
+    <name>Lago2</name>
+    <ele>376.0</ele>
+  </rtept>
+  <rtept lat="45.340796" lon="7.939226">
+    <name>Vische Nord</name>
+    <ele>370.0</ele>
+  </rtept>
+  <rtept lat="45.386656" lon="7.965243">
+    <name>Masino Sud</name>
+    <ele>516.0</ele>
+  </rtept>
+  <rtept lat="45.394922" lon="7.952929">
+    <name>Masino Nord</name>
+    <ele>502.0</ele>
+  </rtept>
+  <rtept lat="45.386993" lon="7.918964">
+    <name>Cava</name>
+    <ele>370.0</ele>
+  </rtept>
+  <rtept lat="45.368418" lon="7.916101">
+    <name>Laghetto</name>
+    <ele>342.0</ele>
+  </rtept>
+  <rtept lat="45.345601" lon="7.919130">
+    <name>Vische</name>
+    <ele>225.0</ele>
+  </rtept>
+</rte>
+</gpx>

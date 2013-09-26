@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
+<gpx
+version="1.1"
+ creator="FlightPlan - http://www.flightutilities.com"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.topografix.com/GPX/1/1"
+ xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata>
+<time>2012-12-30T08:17:40Z</time>
+<bounds minlat="44.3916666666667" minlon="7.72611111111111" maxlat="45.3644444444444" maxlon="7.94416666666667"/>
+</metadata>
+<wpt lat="44.3916666666667" lon="7.72611111111111">
+ <ele>443</ele>
+ <name>Pianfei</name>
+ <cmt>Departure</cmt>
+ <desc>Departure</desc>
+ <sym>Airport</sym>
+</wpt>
+<wpt lat="44.3980555555556" lon="7.73083333333333">
+ <ele>549</ele>
+ <name>Sopravento sx</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.7144444444444" lon="7.79472222222222">
+ <ele>457</ele>
+ <name>Bra</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.0191666666667" lon="7.94166666666667">
+ <ele>610</ele>
+ <name>ICP</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.1302777777778" lon="7.94416666666667">
+ <ele>610</ele>
+ <name>Casalborgone</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.1727777777778" lon="7.93638888888889">
+ <ele>549</ele>
+ <name>Po</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.1966666666667" lon="7.9175">
+ <ele>488</ele>
+ <name>Castelrosso</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.3455555555556" lon="7.91194444444444">
+ <ele>366</ele>
+ <name>CircuitoVische</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.3644444444444" lon="7.91777777777778">
+ <ele>335</ele>
+ <name>Finale</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="45.3475" lon="7.91916666666667">
+ <ele>228</ele>
+ <name>Vische</name>
+ <cmt>Arrival</cmt>
+ <desc>Arrival</desc>
+ <sym>Airport</sym>
+</wpt>
+<rte>
+ <name>Pianfei Vische</name>
+ <desc>Pianfei Vische</desc>
+<rtept lat="44.3916666666667" lon="7.72611111111111">
+ <ele>443</ele>
+ <name>Pianfei</name>
+ <cmt>Departure</cmt>
+ <desc>Departure</desc>
+ <sym>Airport</sym>
+</rtept>
+<rtept lat="44.3980555555556" lon="7.73083333333333">
+ <ele>549</ele>
+ <name>Sopravento sx</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.7144444444444" lon="7.79472222222222">
+ <ele>457</ele>
+ <name>Bra</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.0191666666667" lon="7.94166666666667">
+ <ele>610</ele>
+ <name>ICP</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.1302777777778" lon="7.94416666666667">
+ <ele>610</ele>
+ <name>Casalborgone</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.1727777777778" lon="7.93638888888889">
+ <ele>549</ele>
+ <name>Po</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.1966666666667" lon="7.9175">
+ <ele>488</ele>
+ <name>Castelrosso</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.3455555555556" lon="7.91194444444444">
+ <ele>366</ele>
+ <name>CircuitoVische</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.3644444444444" lon="7.91777777777778">
+ <ele>335</ele>
+ <name>Finale</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="45.3475" lon="7.91916666666667">
+ <ele>228</ele>
+ <name>Vische</name>
+ <cmt>Arrival</cmt>
+ <desc>Arrival</desc>
+ <sym>Airport</sym>
+</rtept>
+</rte>
+<extensions>
+</extensions>
+</gpx>

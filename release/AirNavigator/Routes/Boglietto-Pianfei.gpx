@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
+<gpx
+version="1.1"
+ creator="FlightPlan - http://www.flightutilities.com"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.topografix.com/GPX/1/1"
+ xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata>
+<time>2012-12-24T17:27:27Z</time>
+<bounds minlat="44.3897222222222" minlon="7.72388888888889" maxlat="44.7586111111111" maxlon="8.23694444444444"/>
+</metadata>
+<wpt lat="44.7586111111111" lon="8.18361111111111">
+ <ele>196</ele>
+ <name>Boglietto</name>
+ <cmt>Departure</cmt>
+ <desc>Departure</desc>
+ <sym>Airport</sym>
+</wpt>
+<wpt lat="44.7572222222222" lon="8.19888888888889">
+ <ele>274</ele>
+ <name>Soprav Boglietto</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.7136111111111" lon="8.23694444444444">
+ <ele>457</ele>
+ <name>S.S.Belbo</name>
+ <cmt>Ingresso in valle</cmt>
+ <desc>Ingresso in valle</desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.5022222222222" lon="8.05555555555556">
+ <ele>853</ele>
+ <name>Bossolasco</name>
+ <cmt>Fine valle</cmt>
+ <desc>Fine valle</desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.4513888888889" lon="8.05361111111111">
+ <ele>975</ele>
+ <name>Scollinamento</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.4163888888889" lon="7.76111111111111">
+ <ele>533</ele>
+ <name>Bertini</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.3944444444444" lon="7.72388888888889">
+ <ele>533</ele>
+ <name>Approach</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.3897222222222" lon="7.73138888888889">
+ <ele>533</ele>
+ <name>CircuitoPianfei</name>
+ <cmt>Ingresso in circuito</cmt>
+ <desc>Ingresso in circuito</desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.4016666666667" lon="7.755">
+ <ele>533</ele>
+ <name>Sottovento Sx</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.4019444444444" lon="7.74861111111111">
+ <ele>518</ele>
+ <name>Finale</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</wpt>
+<wpt lat="44.3925" lon="7.72861111111111">
+ <ele>436</ele>
+ <name>Pianfei</name>
+ <cmt>Arrival</cmt>
+ <desc>Arrival</desc>
+ <sym>Airport</sym>
+</wpt>
+<rte>
+ <name></name>
+ <desc></desc>
+<rtept lat="44.7586111111111" lon="8.18361111111111">
+ <ele>196</ele>
+ <name>Boglietto</name>
+ <cmt>Departure</cmt>
+ <desc>Departure</desc>
+ <sym>Airport</sym>
+</rtept>
+<rtept lat="44.7572222222222" lon="8.19888888888889">
+ <ele>274</ele>
+ <name>Soprav Boglietto</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.7136111111111" lon="8.23694444444444">
+ <ele>457</ele>
+ <name>S.S.Belbo</name>
+ <cmt>Ingresso in valle</cmt>
+ <desc>Ingresso in valle</desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.5022222222222" lon="8.05555555555556">
+ <ele>853</ele>
+ <name>Bossolasco</name>
+ <cmt>Fine valle</cmt>
+ <desc>Fine valle</desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.4513888888889" lon="8.05361111111111">
+ <ele>975</ele>
+ <name>Scollinamento</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.4163888888889" lon="7.76111111111111">
+ <ele>533</ele>
+ <name>Bertini</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.3944444444444" lon="7.72388888888889">
+ <ele>533</ele>
+ <name>Approach</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.3897222222222" lon="7.73138888888889">
+ <ele>533</ele>
+ <name>CircuitoPianfei</name>
+ <cmt>Ingresso in circuito</cmt>
+ <desc>Ingresso in circuito</desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.4016666666667" lon="7.755">
+ <ele>533</ele>
+ <name>Sottovento Sx</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.4019444444444" lon="7.74861111111111">
+ <ele>518</ele>
+ <name>Finale</name>
+ <cmt></cmt>
+ <desc></desc>
+ <sym>Waypoint</sym>
+</rtept>
+<rtept lat="44.3925" lon="7.72861111111111">
+ <ele>436</ele>
+ <name>Pianfei</name>
+ <cmt>Arrival</cmt>
+ <desc>Arrival</desc>
+ <sym>Airport</sym>
+</rtept>
+</rte>
+<extensions>
+</extensions>
+</gpx>

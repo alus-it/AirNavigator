@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
+<AirNavigatorConfig>
+<aircraft>
+	<!-- measure units: speed: Km/h, fuel consumption: liters/hour, fuel capacity: liters -->
+	<speeds cruise="100" Vx="90" Vy="100" Vs0="45" Vs="55" Vfe="86" Va="135" Vno="160" Vne="180" endScale="185" />
+	<fuel consumption="15" capacity="70" />
+</aircraft>
+<measureUnits>
+	<!-- possible values for horizontal speed : Kmh, Knots, MPH  -->
+	<!-- possible values for vertical speed : FtMin, ms  -->
+	<speeds horizontal="Kmh" vertical="FtMin" />
+	<!-- possible values for distance : Km, NM, Mile  -->
+	<!-- possible values for track error : m, Ft, NM  -->
+	<distances distance="Km" trackError="m" />
+</measureUnits>
+<navigator>
+	<!-- measure units: altitude and distances: meters, angles: degrees -->
+	<takeOff diffAlt="50" />
+	<navParameters trackErrorTolearnce="5" deptDistTolerance="1000" wpDistTolerance="800" courseTolerance="30" />
+	<sunZenith angle="96" />
+</navigator>
+<trackRecorder>
+	<!-- measure units: interval time: seconds, minimum distance: meters -->
+	<update timeInterval="5" distanceInterval="10" />
+</trackRecorder>
+<colorSchema>
+	<colors 
+	background="0000"
+	compassRose="FFFF"
+	dirMarker="F000"
+	magneticDir="00F0"
+	routeIndicator="0F00"
+	cdi="FF00"
+	cdiScale="FFFF"
+	altScale="FFFF"
+	vsi="FFFF"
+	altMarker="FFFF"
+	text="0F00"
+	warning="F000" />
+</colorSchema>
+<GPSreceiver devName="/var/run/gpsfeed" baudRate="115200" dataBits="8" stopBits="1" parity="0" />
+</AirNavigatorConfig>
