@@ -10,6 +10,9 @@
 # Ignore AirNavigator executable file
 /release/AirNavigator/AirNavigator
 
+# Ignore lib folder
+/release/AirNavigator/lib
+
 # Ignore zip files
 *.zip
 

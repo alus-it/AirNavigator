@@ -50,8 +50,9 @@ VERSION = 0.2.5
 #Name of the ditribution zip file
 ZIPNAME = AirNavigator_$(subst .,-,$(VERSION))
 
-#Create bin directory if necessary
-$(shell   mkdir -p $(BIN)) 
+#Create directories if necessary
+$(shell   mkdir -p $(BIN))
+$(shell   mkdir -p $(LIB)) 
 
 #Dependencies
 all: $(DIST)AirNavigator/AirNavigator
