@@ -13,8 +13,4 @@
 # Ignore zip files
 *.zip
 
-# Ignore Eclipse project files
-/.project
-/.cproject
-/.settings
 
