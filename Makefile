@@ -54,17 +54,17 @@ ZIPNAME = AirNavigator_$(subst .,-,$(VERSION))
 ### Build dependencies
 all: $(DIST)AirNavigator/AirNavigator
 
-$(DIST)AirNavigator/AirNavigator: objects libraries
+$(DIST)AirNavigator/AirNavigator: $(OBJS) $(LIBS)
 	$(CC) $(LFLAGS) $(OBJS) -L$(LIB) -lroxml -o $@
 	$(STRIP) $@
 
-# Create bin directory if necessary
-objects: $(BIN) $(OBJS)
+# Create bin directory if missing
+$(OBJS): | $(BIN)
 $(BIN):
 	mkdir -p $(BIN)
 
-# Create lib directory if necessary
-libraries: $(LIB) $(LIBS)
+# Create lib directory if missing
+$(LIBS): | $(LIB) 
 $(LIB):
 	mkdir -p $(LIB)
 
