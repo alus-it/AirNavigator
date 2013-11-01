@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 31/12/2013
+// Last change : 1/11/2013
 // Description : Collection of functions for air navigation calculation
 //============================================================================
 

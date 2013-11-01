@@ -13,14 +13,14 @@
 #ifndef NAVIGATOR_H_
 #define NAVIGATOR_H_
 
-#define STATUS_NOT_INIT			0
-#define STATUS_NO_ROUTE_SET	1
-#define STATUS_TO_START_NAV	2
-#define STATUS_WAIT_FIX			3
-#define STATUS_NAV_TO_DPT		4
-#define STATUS_NAV_TO_WPT		5
-#define STATUS_END_NAV			6
-#define STATUS_NAV_BUSY			7
+#define STATUS_NOT_INIT     0
+#define STATUS_NO_ROUTE_SET 1
+#define STATUS_TO_START_NAV 2
+#define STATUS_WAIT_FIX     3
+#define STATUS_NAV_TO_DPT   4
+#define STATUS_NAV_TO_WPT   5
+#define STATUS_END_NAV      6
+#define STATUS_NAV_BUSY     7
 
 typedef struct wp {
 	int seqNo;           //sequence number
