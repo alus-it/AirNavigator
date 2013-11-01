@@ -149,7 +149,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 			newAltitudeMt=Ft2m(newAltitude);
 		}
 	} else {
-		//fprintf(logFile,"ERROR: Unknown altitude unit: %c\n",altUnit);
+		//logText("ERROR: Unknown altitude unit: %c\n",altUnit);
 
 		return 0;
 	}
@@ -316,7 +316,7 @@ inline uint32_t endian32_swap(uint32_t val){
 
 void processPayload(char *payload, int len, long timestamp) {
 	unsigned char msgID=payload[0];
-	fprintf(logFile,"Received frame ID: %d of length: %d\n",msgID,len);
+	logText("Received frame ID: %d of length: %d\n",msgID,len);
 	if(msgID==SIRF_GEODETIC_MSGID && len==SIRF_GEODETIC_MSG_LEN) { //we want to interpret only geodetic
 		time_t curr_time,gps_time;
 		struct timeval new_time;
@@ -337,22 +337,22 @@ void processPayload(char *payload, int len, long timestamp) {
 		gpsSiRF.time.tm_mon=msg->month-1;
 		gpsSiRF.time.tm_year=endian16_swap(msg->year)-1900;
 		gpsSiRF.time.tm_isdst=-1;
-		fprintf(logFile,"lat: %d %d; lon: %d %d; time: %d/%d/%d %d:%d:%d\n",gpsSiRF.lat_deg,gpsSiRF.lat_mins,gpsSiRF.long_deg,gpsSiRF.long_mins,gpsSiRF.time.tm_mday,gpsSiRF.time.tm_mon,gpsSiRF.time.tm_year,gpsSiRF.time.tm_hour,gpsSiRF.time.tm_min,gpsSiRF.time.tm_sec);
+		logText("lat: %d %d; lon: %d %d; time: %d/%d/%d %d:%d:%d\n",gpsSiRF.lat_deg,gpsSiRF.lat_mins,gpsSiRF.long_deg,gpsSiRF.long_mins,gpsSiRF.time.tm_mday,gpsSiRF.time.tm_mon,gpsSiRF.time.tm_year,gpsSiRF.time.tm_hour,gpsSiRF.time.tm_min,gpsSiRF.time.tm_sec);
 		time(&curr_time);
 		//saved_tz=strdup(getenv("TZ"));
 		//unsetenv("TZ");
 		gps_time=mktime(&gpsSiRF.time);
 		if(abs(gps_time-curr_time)>10) {
-			fprintf(logFile,"Syncing clock needed ! system : %d - GPS : %d\n",(int)curr_time,(int)gps_time);
+			logText("Syncing clock needed ! system : %d - GPS : %d\n",(int)curr_time,(int)gps_time);
 			new_time.tv_sec=gps_time;
 			new_time.tv_usec=0;
 			settimeofday(&new_time,NULL);
-		} else fprintf(logFile,"No need to sync.\n");
+		} else logText("No need to sync.\n");
 		//if(saved_tz!=NULL) {
 		//	setenv("TZ",saved_tz,1);
 		//	free(saved_tz);
 		//}
-		fprintf(logFile,"Geodetic OK !\n");
+		logText("Geodetic OK !\n");
 	}
 	free(payload);
 }
@@ -365,13 +365,13 @@ void* runThread(void *ptr) { //listening function, it will be ran in a separate 
 	fd=open("/dev/gpsdata",O_RDONLY|O_NONBLOCK);
 	if(fd<0) {
 		fd=-1;
-		//fprintf(logFile,"ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
-		fprintf(logFile,"ERROR: Can't open the gps serial port on device: %s\n","/dev/gpsdata");
+		//logText("ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
+		logText("ERROR: Can't open the gps serial port on device: %s\n","/dev/gpsdata");
 		readingSiRF=0;
 		pthread_exit(NULL);
 	}
 
-	fprintf(logFile,"Device opened!\n");
+	logText("Device opened!\n");
 
 	maxfd=fd+1;
 
@@ -394,10 +394,10 @@ void* runThread(void *ptr) { //listening function, it will be ran in a separate 
 		//sleep(1);
 		if(readingSiRF) { //further check if we still want to read after waiting
 			redBytes=read(fd,buf,BUFFER_SIZE);
-			fprintf(logFile,"Red: %d Bytes.\n",redBytes);
+			logText("Red: %d Bytes.\n",redBytes);
 
 			timestamp=time(NULL); //get the timestamp of last char sequence received
-			for(i=0;i<redBytes;i++) { fprintf(logFile,"%x ",buf[i]); switch(frameStatus) { //for each byte received in the buffer
+			for(i=0;i<redBytes;i++) { logText("%x ",buf[i]); switch(frameStatus) { //for each byte received in the buffer
 				case 0: //waiting for start sequence
 					if(buf[i]==0xA0) frameStatus=1; //found first byte of start sequence
 					break;
@@ -447,12 +447,12 @@ void* runThread(void *ptr) { //listening function, it will be ran in a separate 
 								memcpy(payloadCopy,payload,payloadLength);
 								processPayload(payloadCopy,payloadLength,timestamp);
 							}
-						} else fprintf(logFile,"Wrong checksum :(\n");
+						} else logText("Wrong checksum :(\n");
 					}
 					rcvdBytesOfPayload=0;
 					frameStatus=0;
 					break;
-			} } fprintf(logFile,"\n\n"); //end of for(each byte) and switch(status) of received byte
+			} } logText("\n\n"); //end of for(each byte) and switch(status) of received byte
 		} //end of further if(reading) check
 	} //while reading
 	close(fd); //close the serial port
@@ -466,7 +466,7 @@ if(readingSiRF==-1) initializeSiRF();
 		readingSiRF=1;
 		if(pthread_create(&thread,NULL,runThread,(void*)NULL)) {
 			readingSiRF=0;
-			fprintf(logFile,"SiRFreader: ERROR unable to create the reading thread.\n");
+			logText("SiRFreader: ERROR unable to create the reading thread.\n");
 		}
 	}
 	return readingSiRF;

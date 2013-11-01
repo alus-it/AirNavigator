@@ -70,7 +70,7 @@ short GeoidalOpen() {
 	FILE *egm96dataFile=NULL;
 	egm96dataFile=fopen("/mnt/sdcard/AirNavigator/egm96s.dem","rb");
 	if(egm96dataFile==NULL) {
-		fprintf(logFile,"ERROR: Unable to open the egm96 geoidal separation data file.\n");
+		logText("ERROR: Unable to open the egm96 geoidal separation data file.\n");
 		return 0;
 	}
 	unsigned long len=0;
@@ -81,13 +81,13 @@ short GeoidalOpen() {
 		egm96data=(unsigned char*)malloc(len+1);
 		if(egm96data==NULL) {
 			fclose(egm96dataFile);
-			fprintf(logFile,"ERROR: Unable to load in memory the egm96 data.\n");
+			logText("ERROR: Unable to load in memory the egm96 data.\n");
 			return 0;
 		}
 		fread(egm96data,len,1,egm96dataFile);
 	} else {
 		fclose(egm96dataFile);
-		fprintf(logFile,"ERROR: The egm96 geoidal separation data file has not the expected size.\n");
+		logText("ERROR: The egm96 geoidal separation data file has not the expected size.\n");
 		return 0;
 	}
 	fclose(egm96dataFile);

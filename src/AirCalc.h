@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/2/2013
+// Last change : 31/10/2013
 // Description : Header of AirCalc.c
 //============================================================================
 
@@ -65,5 +65,7 @@ double calcWindDirSpeed(double crs, double hd, double tas, double gs, double *ws
 int calcHeadingGroundSpeed(double crs, double wd, double tas, double ws, double *hd, double *gs);
 double calcCourseGroundSpeed(double hd, double wd, double tas, double ws, double *gs);
 void calcHeadCrossWindComp(double ws, double wd, double rd, double *hw, double *xw);
+void calcBisector(double currCourse, double nextCourse, double *bisector, double *bisectorOpposite);
+short bisectorOverpassed(double currCourse, double nextCourse, double actualCurrCourse);
 
 #endif

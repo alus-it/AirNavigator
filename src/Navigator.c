@@ -6,15 +6,13 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/2/2013
+// Last change : 1/11/2013
 // Description : Navigation manager
 //============================================================================
 
 //FIXME: detected possible crash while approaching the final destination
 //FIXME: detected NaN for course and XTD for some rare case
-//TODO: check better situations with negative ATD
 //TODO: manage better the navigation to the departure
-//TODO: verify if the switch to the next WP, especially when 'cutting' the current WP, is correctly done
 
 #define _GNU_SOURCE
 
@@ -22,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <libroxml/roxml.h>
 #include "Navigator.h"
 #include "Configuration.h"
@@ -36,16 +35,13 @@ int status=STATUS_NOT_INIT, numWayPoints=0;
 double trueCourse, previousAltitude=-1000;
 double totalDistKm, prevWPsTotDist; //Km
 wayPoint dept, currWP, dest;
-double lastRemainingDist; //Remaining dist to the next WP of previous cycle expressed in Rad
 
 FILE *routeLog=NULL;
-double wpDistTolerance,courseTolerance,sunZenith; //here in rad
+double sunZenith; //here in rad
 
 void NavConfigure() {
 	int oldStatus=status;
 	status=STATUS_NAV_BUSY;
-	wpDistTolerance=m2Rad(config.wpDistTolerance); //rad
-	courseTolerance=Deg2Rad(config.courseTolerance); //rad
 	sunZenith=Deg2Rad(config.sunZenith); //rad
 	if(oldStatus==STATUS_NOT_INIT) status=STATUS_NO_ROUTE_SET;
 	else status=oldStatus;
@@ -115,20 +111,20 @@ int NavLoadFlightPlan(char* GPXfile) {
 	routeLog=fopen(routeLogPath,"w");
 	free(routeLogPath);
 	if(routeLog==NULL) {
-		fprintf(logFile,"ERROR not possible to write the route log file.\n");
+		logText("ERROR not possible to write the route log file.\n");
 		status=STATUS_NO_ROUTE_SET;
 		return 0;
 	}
 	node_t* root=roxml_load_doc(GPXfile);
 	if(root==NULL) {
-		fprintf(logFile,"ERROR no such file '%s'\n",GPXfile);
+		logText("ERROR no such file '%s'\n",GPXfile);
 		return 0;
 	}
 	char* text=NULL;
 	//TODO: here we load just the first route may be there are others routes in the GPX file...
 	node_t* route=roxml_get_chld(root,"rte",0);
 	if(route==NULL) {
-		fprintf(logFile,"ERROR no route found in GPX file: '%s'\n",GPXfile);
+		logText("ERROR no route found in GPX file: '%s'\n",GPXfile);
 		roxml_release(RELEASE_ALL);
 		roxml_close(root);
 		return 0;
@@ -136,7 +132,7 @@ int NavLoadFlightPlan(char* GPXfile) {
 	node_t* wp;
 	int total=roxml_get_chld_nb(route);
 	if(total<2) {
-		fprintf(logFile,"ERROR no enough waypoints found in route in GPX file: '%s'\n",GPXfile);
+		logText("ERROR no enough waypoints found in route in GPX file: '%s'\n",GPXfile);
 		roxml_release(RELEASE_ALL);
 		roxml_close(root);
 		return 0;
@@ -176,7 +172,7 @@ int NavLoadFlightPlan(char* GPXfile) {
 	}
 	roxml_release(RELEASE_ALL);
 	roxml_close(root);
-	fprintf(logFile,"Loaded route with %d WayPoints.\n\n",wpcounter);
+	logText("Loaded route with %d WayPoints.\n\n",wpcounter);
 	NavCalculateRoute();
 	return 1;
 }
@@ -259,7 +255,7 @@ void NavFindNextWP(double lat, double lon) {
 			nearest=i;
 		}
 	}
-	fprintf(logFile,"\nNearest waypoint is: %s No: %d at %f Km\n",nearest->name,nearest->seqNo,Rad2Km(shortestDist));
+	logText("\nNearest waypoint is: %s No: %d at %f Km\n",nearest->name,nearest->seqNo,Rad2Km(shortestDist));
 	if(nearest==dest) {
 		if(dept->latitude==dest->latitude && dept->longitude==dest->longitude) { //dept and dest are the same place
 			if(calcAngularDist(lat,lon,dept->latitude,dept->longitude)<m2Rad(config.deptDistTolerance)) currWP=dept->next;
@@ -275,7 +271,6 @@ void NavFindNextWP(double lat, double lon) {
 			status=STATUS_NAV_TO_WPT;
 		} else status=STATUS_NAV_TO_DPT; //we have still to go to the departure
 	} else { //we are not traveling to the departure
-		lastRemainingDist=currWP->dist;
 		if(currWP->seqNo>1) { //  //currWP->prev!=dept  if we aren't traveling direcly from the departure
 			prevWPsTotDist=0;
 			for(i=dept->next;i!=currWP;i=i->next) prevWPsTotDist+=i->dist;
@@ -287,7 +282,7 @@ void NavFindNextWP(double lat, double lon) {
 	}
 	if(currWP==dest) PrintNavStatus(status,"Final destination");
 	else PrintNavStatus(status,currWP->name);
-	fprintf(logFile,"Next waypoint is: %s\n\n\n",currWP->name);
+	logText("Next waypoint is: %s\n\n\n",currWP->name);
 	FbRender_Flush();
 }
 
@@ -335,7 +330,6 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
 			if(remainDist<m2Rad(config.deptDistTolerance)) {
 				currWP=dept->next;
-				lastRemainingDist=currWP->dist;
 				dept->arrTimestamp=timestamp; //here we record the starting time for whole route
 				status=STATUS_NAV_TO_WPT;
 				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //recursive call
@@ -343,58 +337,45 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			break;
 		case STATUS_NAV_TO_WPT: {
 			double atd, trackErr;
-			trackErr=calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->trueCourse,&atd);
-			if(atd>=currWP->dist) { //we are arrived or we passed the waypoint
-				currWP->arrTimestamp=timestamp;
-				if(currWP!=dest) {
-					prevWPsTotDist+=Rad2Km(currWP->dist);
-					currWP=currWP->next;
-					lastRemainingDist=currWP->dist;
-					if(currWP!=dest) PrintNavStatus(status,currWP->name);
-					else PrintNavStatus(status,"Final destination");
-				} else {
-					status=STATUS_END_NAV;
-					PrintNavStatus(status,"Nowhere");
-				}
-				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
-				return;
-			} else { //we are still not arrived
-				remainDist=currWP->dist-atd;
-				if(atd>0 && remainDist<wpDistTolerance && remainDist>lastRemainingDist) { //if we are in the wp tolerance and we are getting far from the wp
-					if(isAngleBetween(currWP->next->trueCourse-courseTolerance,Deg2Rad(dir),currWP->next->trueCourse+courseTolerance)) { //consider this cat WP as reached
-						currWP->arrTimestamp=timestamp;
-						if(currWP!=dest) {
-							prevWPsTotDist+=Rad2Km(currWP->dist);
-							currWP=currWP->next;
-							lastRemainingDist=currWP->dist;
-							if(currWP!=dest) PrintNavStatus(status,currWP->name);
-							else PrintNavStatus(status,"Final destination");
-						} else {
-							status=STATUS_END_NAV;
-							PrintNavStatus(status,"Nowhere");
-						}
-						NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
-						return;
+			trackErr=Rad2m(calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->trueCourse,&atd));
+			remainDist=currWP->dist-atd;
+			if(atd>=0) {
+				actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
+				if(bisectorOverpassed(currWP->trueCourse,currWP->next->trueCourse,actualTrueCourse)) { //consider this WP as reached
+					currWP->arrTimestamp=timestamp;
+					//////For TESTING:
+					int hour, min;
+					float sec;
+					convertTimestamp2HourMinSec(timestamp,&hour,&min,&sec);
+					logText("*** %d:%d:%f Bisector crossed lat: %f - lon: %f \n",hour,min,sec,lat,lon);
+					//////END of TESTING
+					if(currWP!=dest) {
+						prevWPsTotDist+=Rad2Km(currWP->dist);
+						currWP=currWP->next;
+						if(currWP!=dest) PrintNavStatus(status,currWP->name);
+						else PrintNavStatus(status,"Final destination");
+					} else {
+						status=STATUS_END_NAV;
+						PrintNavStatus(status,"Nowhere");
 					}
-				}
-				if(atd>0) HSIupdateVSI(m2Ft((currWP->altitude-currWP->prev->altitude)/currWP->dist*atd+currWP->prev->altitude)); //Update VSI
-				trackErr=Rad2m(trackErr);
-				if(trackErr<config.trackErrorTolearnce&&trackErr>-config.trackErrorTolearnce) actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //if we have small error
-				else { //we have bigger error
+					NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
+					return;
+				} //else the WP or bisector is still not reached...
+				if(fabs(trackErr)>config.trackErrorTolearnce) { //if we have bigger error
 					double latI,lonI; //the perpendicular point on the route
 					calcIntermediatePoint(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude,atd,currWP->dist,&latI,&lonI);
 					actualTrueCourse=calcGreatCircleCourse(latI,lonI,currWP->latitude,currWP->longitude);
-				}
+				} //else with a small error the actualTrueCourse calculated before is fine
 				PrintNavTrackATD(atd);
 				HSIupdateCDI(Rad2Deg(actualTrueCourse),trackErr);
-				lastRemainingDist=remainDist;
-				if(timestamp>currWP->prev->arrTimestamp && atd>0) { //to avoid infinite, null or negative speed and time
+				HSIupdateVSI(m2Ft((currWP->altitude-currWP->prev->altitude)/currWP->dist*atd+currWP->prev->altitude));
+				if(timestamp>currWP->prev->arrTimestamp) { //to avoid infinite, null or negative speed and time
 					double averageSpeed=ms2Kmh(Rad2m(atd)/(timestamp-currWP->prev->arrTimestamp));
 					remainDist=Rad2Km(remainDist); //Km
 					double time=remainDist/averageSpeed; //ETE (remaining time) in hours
 					PrintNavRemainingDistWP(remainDist,averageSpeed,time);
 				}
-				if(timestamp>dept->arrTimestamp && atd>0) {
+				if(timestamp>dept->arrTimestamp) {
 					double totCoveredDistKm=prevWPsTotDist+Rad2Km(atd);
 					double averageSpeed=ms2Kmh((totCoveredDistKm*1000)/(timestamp-dept->arrTimestamp)); //Km/h
 					remainDist=totalDistKm-totCoveredDistKm; //Km
@@ -402,14 +383,15 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 					time+=timestamp/3600; //hours, in order to obtain the ETA
 					PrintNavRemainingDistDST(remainDist,averageSpeed,time);
 				}
+			} else { //Negative ATD
+				//TODO: What to do with negative ATD? (It means that we are flying backward and we passed the previous WP)
 			}
 		} break;
 		case STATUS_END_NAV: { //We have reached or passed the destination
 			actualTrueCourse=calcGreatCircleRoute(lat,lon,dest->latitude,dest->longitude,&remainDist); //calc just course and distance
 			PrintNavDTG(remainDist);
 			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
-		}
-			break;
+		} break;
 		case STATUS_NAV_BUSY: //Do nothing
 			break;
 		case STATUS_WAIT_FIX:

@@ -306,6 +306,9 @@ Version 0.2.4
 Version 0.2.5
 	Adaptations and improvements to make it able to run standalone without TomTom ttn application
 
+Version 0.2.6
+	Switch to next Way Point made when crossing bisector lines
+	
 
 CONTACTS
 Author: Alberto Realis-Luc

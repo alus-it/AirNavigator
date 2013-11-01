@@ -16,7 +16,7 @@
 <navigator>
 	<!-- measure units: altitude and distances: meters, angles: degrees -->
 	<takeOff diffAlt="50" />
-	<navParameters trackErrorTolearnce="5" deptDistTolerance="1000" wpDistTolerance="800" courseTolerance="30" />
+	<navParameters trackErrorTolearnce="5" deptDistTolerance="1000" />
 	<sunZenith angle="96" />
 </navigator>
 <trackRecorder>

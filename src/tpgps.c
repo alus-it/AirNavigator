@@ -144,7 +144,7 @@ static void handle_msg(unsigned char * buffer, int len ){
     
     //arl added:
     unsigned char msgID=buffer[0];
-    fprintf(logFile,"Received frame ID: %d of length: %d\n",msgID,len);
+    logText("Received frame ID: %d of length: %d\n",msgID,len);
     //end
 
     if ((len != SIRF_GEODETIC_MSG_LEN) || (msg->msg_id != SIRF_GEODETIC_MSGID)){
@@ -177,7 +177,7 @@ static void handle_msg(unsigned char * buffer, int len ){
     unsetenv("TZ");
     gps_time = mktime(&gps_state.data.time);
     if (abs(gps_time - curr_time) > 10){
-        fprintf(logFile,"Syncing clock needed ! system : %d - GPS : %d\n", curr_time, gps_time);
+        logText("Syncing clock needed ! system : %d - GPS : %d\n", curr_time, gps_time);
         new_time.tv_sec = gps_time;
         new_time.tv_usec = 0;        
         settimeofday(&new_time, NULL);
@@ -187,7 +187,7 @@ static void handle_msg(unsigned char * buffer, int len ){
         free(saved_tz);
     }    
     pthread_mutex_unlock(&gps_state.data_mutex);
-    fprintf(logFile,"Geodetic OK !\n");
+    logText("Geodetic OK !\n");
 };
 
 /** Compute SiRF checksum 
@@ -219,22 +219,22 @@ static int check_frame(unsigned char * buffer, int len ){
     }
     payload_len = endian16_swap(header->len);
     if (payload_len >= SIRF_PAYLOAD_MAX){      
-        fprintf(logFile,"Error payload length : %d\n", payload_len);
+        logText("Error payload length : %d\n", payload_len);
         return -1;
     } else {
         if ((payload_len + SIRF_FRAME_HEADER_LEN + SIRF_FRAME_FOOTER_LEN) > len){
-            fprintf(logFile,"Not enough data \n");
+            logText("Not enough data \n");
             return 0;
         } else {
             footer = ((struct sirf_footer * )&buffer[payload_len  + SIRF_FRAME_HEADER_LEN]);
             
             /* We have enought bytes - Perform sanity check */
             if (footer->post_sync != SIRF_POST){     
-                fprintf(logFile,"Post sync not found \n");
+                logText("Post sync not found \n");
                 return -1;
             }
             if (sirf_chksum(&buffer[SIRF_FRAME_HEADER_LEN], payload_len) != endian16_swap(footer->chk)){
-                fprintf(logFile,"Bad cksum !\n");
+                logText("Bad cksum !\n");
                 return -1;
             }
             /* Frame is valid ! */ 
@@ -277,20 +277,20 @@ int gps_update(void){
 
     read_len = read(gps_state.gpsfd, &buffer[curr_idx], sizeof (buffer)-curr_idx);
     if (read_len <= 0) return -1;
-    else fprintf(logFile,"Red : %d bytes\n",read_len);
+    else logText("Red : %d bytes\n",read_len);
 
     /* Search Prelude Sync            
         We look for a 16 bits synchro word */
     len = curr_idx + read_len ;        
-    //fprintf(logFile,"Buffer : curr idx : %d - %d \n", curr_idx, read_len );
+    //logText("Buffer : curr idx : %d - %d \n", curr_idx, read_len );
     dump(buffer, len);
     i = 0;
     while (i < (len -1)){        
         header = (struct sirf_header *)&buffer[i];
         if (header->sync == SIRF_SYNC){
-            fprintf(logFile,"Sync found at %d\n", i);
+            logText("Sync found at %d\n", i);
             frame_state = check_frame(&buffer[i], len - i);
-            fprintf(logFile,"frame state : %d\n", frame_state);
+            logText("frame state : %d\n", frame_state);
             if (frame_state > 0){
                 /* valid frame */                
                 i += frame_state;
@@ -310,9 +310,9 @@ int gps_update(void){
     if (len >= i) {
         memmove(&buffer[0] , &buffer[i], len - i);
         curr_idx = len - i;
-        fprintf(logFile,"i : %d - cur idx = %i \n", i,  len - i);
+        logText("i : %d - cur idx = %i \n", i,  len - i);
     } else {
-        fprintf(logFile,"Error  we should never be there\n");
+        logText("Error  we should never be there\n");
     }
     return 0;
 }

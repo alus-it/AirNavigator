@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 24/9/2013
+// Last change : 30/10/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -31,17 +32,20 @@
 #include "Geoidal.h"
 
 #ifndef VERSION
-#define VERSION "0.2.5"
+#define VERSION "0.2.6"
 #endif
 
 //TODO: a common base path predefined: /mnt/sdcard/AirNavigator/
 
 typedef struct fileName {
-    int seqNo;	         		//sequence number
+    int seqNo;							//sequence number
     char *name;							//name of the file
     struct fileName *prev;	//Pointer to the previous filename in the list
-    struct fileName *next;  //Pointer to the next filename in the list
+    struct fileName *next;	//Pointer to the next filename in the list
 } *fileEntry;
+
+pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
+FILE *logFile;
 
 int main(int argc, char** argv) {
 	logFile=NULL;
@@ -68,20 +72,21 @@ int main(int argc, char** argv) {
 		FbRender_BlitText(5,60,colorSchema.warning,colorSchema.background,"ERROR: Unable to create the logFile file!");
 		FbRender_Flush();
 	}
-	fprintf(logFile,"AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
+	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
+
 
 	//FIXME: Check battery status (not working)
 	/*short batVolt, refVolt, chargeCurr;
 	 if(checkBattery(&batVolt,&refVolt,&chargeCurr)) {
-	 fprintf(logFile,"Battery Voltage = %d\n",batVolt);           // battery voltage
-	 fprintf(logFile,"Reference Voltage = %d\n",refVolt);       // reference voltage
-	 fprintf(logFile,"Charge Current = %d\n",chargeCurr);             // Charge current
-	 } else fprintf(logFile,"ERROR: unable to get the battery status.\n");*/
+	 logText("Battery Voltage = %d\n",batVolt);           // battery voltage
+	 logText("Reference Voltage = %d\n",refVolt);       // reference voltage
+	 logText("Charge Current = %d\n",chargeCurr);             // Charge current
+	 } else logText("ERROR: unable to get the battery status.\n");*/
 
 	//Read TomTom model
 	FILE *fd=NULL;
 	fd=fopen("/proc/barcelona/modelname","r");
-	if(fd==NULL) fprintf(logFile,"ERROR: unable to read TomTom device model name.\n");
+	if(fd==NULL) logText("ERROR: unable to read TomTom device model name.\n");
 	else {
 		char buf[30];
 		char *ret=fgets(buf,29,fd);
@@ -89,26 +94,26 @@ int main(int argc, char** argv) {
 			free(config.tomtomModel);
 			if(buf[strlen(buf)-1]=='\n') buf[strlen(buf)-1]='\0';
 			config.tomtomModel=strdup(buf);
-			fprintf(logFile,"TomTom model name: %s\n",config.tomtomModel);
-		} else fprintf(logFile,"ERROR: unable to read TomTom device model name.\n");
+			logText("TomTom model name: %s\n",config.tomtomModel);
+		} else logText("ERROR: unable to read TomTom device model name.\n");
 		fclose(fd);
 	}
 
 	//Read serial number serial number
 	fd=NULL;
 	fd=fopen("/mnt/flash/sysfile/id","r");
-	if(fd==NULL) fprintf(logFile,"ERROR: unable to read TomTom device serial number ID.\n");
+	if(fd==NULL) logText("ERROR: unable to read TomTom device serial number ID.\n");
 	else {
 		char buf[30];
 		char *ret=fgets(buf,29,fd);
 		if(ret==buf) {
 			free(config.serialNumber);
 			config.serialNumber=strdup(buf);
-			fprintf(logFile,"TomTom device serial number ID: %s\n",config.serialNumber);
-		} else fprintf(logFile,"ERROR: unable to read TomTom device serial number ID.\n");
+			logText("TomTom device serial number ID: %s\n",config.serialNumber);
+		} else logText("ERROR: unable to read TomTom device serial number ID.\n");
 		fclose(fd);
 	}
-	fprintf(logFile,"Screen resolution: %dx%d pixel\n",screen.width,screen.height); //logFile screen resolution
+	logText("Screen resolution: %dx%d pixel\n",screen.width,screen.height); //logFile screen resolution
 
 	//This is to draw some rainbow lines to put where we think it's going to crash in order to understand where it crashes
 	//DrawTwoPointsLine(10,10,200,200,0xF000);
@@ -119,7 +124,7 @@ int main(int argc, char** argv) {
 
 	//Load configuration
 	loadConfig();
-	fprintf(logFile,"Configuration loaded.\n");
+	logText("Configuration loaded.\n");
 
 	//Prepare the list of available flight plans found in the routes folder
 	struct dirent *entry;
@@ -148,9 +153,9 @@ int main(int argc, char** argv) {
 				}
 		}
 		closedir(dir);
-		if(numGPXfiles==0) fprintf(logFile,"WARNING: No GPX flight plans found.\n");
-	} else fprintf(logFile,"ERROR: could not open the Routes directory.\n");
-	fprintf(logFile,"List of GPX files created.\n");
+		if(numGPXfiles==0) logText("WARNING: No GPX flight plans found.\n");
+	} else logText("ERROR: could not open the Routes directory.\n");
+	logText("List of GPX files created.\n");
 
 	//Display a "menu" with the list of GPX files
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
@@ -186,22 +191,22 @@ int main(int argc, char** argv) {
 	HSIinitialize(0,0,0); //HSI initialization
 
 	if(toLoad!=NULL) {
-		if(!NavLoadFlightPlan(toLoad)) fprintf(logFile,"ERROR: while opening: %s\n",toLoad);
-		else fprintf(logFile,"Flight plan loaded\n");
+		if(!NavLoadFlightPlan(toLoad)) logText("ERROR: while opening: %s\n",toLoad);
+		else logText("Flight plan loaded\n");
 		free(toLoad);
 	}
 
 	//Start the GPS using the traditional NMEA parser
-	if(!NMEAreaderStartRead()) fprintf(logFile,"ERROR: GPSreader NMEA failed to start.\n");
-	else fprintf(logFile,"GPSreader NMEA started.\n");
+	if(!NMEAreaderStartRead()) logText("ERROR: GPSreader NMEA failed to start.\n");
+	else logText("GPSreader NMEA started.\n");
 
 	//Start the GPS using SiRFreader //FIXME: WARNING dosen't work
-	//if(!SiRFreaderStartRead()) fprintf(logFile,"ERROR: SiRFreader failed to start.\n");
-	//else fprintf(logFile,"SiRF reader started.\n");
+	//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n");
+	//else logText("SiRF reader started.\n");
 
 	//Start the track recorder
 	BlackBoxStart();
-	fprintf(logFile,"BlackBox recorder started.\n");
+	logText("BlackBox recorder started.\n");
 
 	if(toLoad!=NULL) {
 		//Here we wait for a touch to start the navigation
@@ -211,25 +216,25 @@ int main(int argc, char** argv) {
 		float timestamp=gps.timestamp;
 		if(timestamp==-1) timestamp=getCurrentTime();
 		NavStartNavigation(timestamp);
-		fprintf(logFile,"Navigation started.\n");
+		logText("Navigation started.\n");
 
 		//Here we wait for a touch to reverse the route
 		while(!TsScreen_touch(&x,&y));
 
 		//Here we reverse the route
 		NavReverseRoute();
-		fprintf(logFile,"Flight plan reversed.\n");
+		logText("Flight plan reversed.\n");
 
 		timestamp=gps.timestamp;
 		if(timestamp==-1) timestamp=getCurrentTime();
 		NavStartNavigation(timestamp);
-		fprintf(logFile,"Navigation re-started.\n");
+		logText("Navigation re-started.\n");
 	}
 
 	/*
 	 //and here the SiRF test implemented by tomplayer:
 	 //Draw two lines to show that the test is started
-	 fprintf(logFile,"Inizio test SiRF implemented by tomplayer.\n");//////////
+	 logText("Inizio test SiRF implemented by tomplayer.\n");//////////
 	 DrawTwoPointsLine(10,10,200,200,0xF000);////////////////////////
 	 DrawTwoPointsLine(20,10,210,200,0xFF00);////////////////
 	 FbRender_Flush();////////////////
@@ -245,15 +250,15 @@ int main(int argc, char** argv) {
 	 time_t curr_time;
 	 struct tm * ptm;
 	 disp_seq = info.seq;
-	 fprintf(logFile,"Lat  : %i°%i'\n",info.lat_deg,info.lat_mins);
-	 fprintf(logFile,"Long : %i°%i'\n",info.long_deg,info.long_mins);
-	 fprintf(logFile,"Alt  : %i,%im\n",info.alt_cm/100,info.alt_cm % 100);
-	 fprintf(logFile,"Sats : %i\n",info.sat_nb);
-	 fprintf(logFile,"vit  : %ikm/h\n",info.speed_kmh);
-	 fprintf(logFile,"TimeG: %s",asctime(&info.time));
+	 logText("Lat  : %i°%i'\n",info.lat_deg,info.lat_mins);
+	 logText("Long : %i°%i'\n",info.long_deg,info.long_mins);
+	 logText("Alt  : %i,%im\n",info.alt_cm/100,info.alt_cm % 100);
+	 logText("Sats : %i\n",info.sat_nb);
+	 logText("vit  : %ikm/h\n",info.speed_kmh);
+	 logText("TimeG: %s",asctime(&info.time));
 	 time(&curr_time);
 	 ptm=localtime(&curr_time);
-	 fprintf(logFile,"TimeS: %02d : %02d\n",ptm->tm_hour,ptm->tm_min );
+	 logText("TimeS: %02d : %02d\n",ptm->tm_hour,ptm->tm_min );
 	 }
 	 usleep(100000);
 	 }
@@ -264,7 +269,7 @@ int main(int argc, char** argv) {
 	 DrawTwoPointsLine(30,10,220,200,0x0F00);/////////////////////////
 	 DrawTwoPointsLine(40,10,230,200,0x00F0);///////////////////////
 	 FbRender_Flush();//////////////////
-	 fprintf(logFile,"Fine test SiRF implemented by tomplayer.\n");//////////
+	 logText("Fine test SiRF implemented by tomplayer.\n");//////////
 	 */
 
 	//Exit "button"
@@ -279,9 +284,9 @@ int main(int argc, char** argv) {
 
 	//Clean and Close all the stuff
 	NMEAreaderClose();
-	fprintf(logFile,"GPS reader NMEA terminated.\n");
+	logText("GPS reader NMEA terminated.\n");
 	//SiRFreaderClose();
-	//fprintf(logFile,"SiRF reader terminated.\n");
+	//logText("SiRF reader terminated.\n");
 	free(config.GPSdevName);
 	NavClose();
 	BlackBoxClose();
@@ -293,10 +298,24 @@ int main(int argc, char** argv) {
 		fileList=currFile->next;
 		free(currFile);
 	} while(fileList!=NULL);
-	fprintf(logFile,"Everything terminated, goodbye!\n");
+	logText("Everything terminated, goodbye!\n");
 	if(logFile!=NULL) fclose(logFile);
 	TsScreen_Exit();
 	FbRender_Close();
 	pthread_exit(NULL);
 	exit(EXIT_SUCCESS);
+}
+
+int logText(const char *texts, ...) {
+	int done=-1;
+	if(logFile!=NULL) {
+		va_list arg;
+		va_start(arg,texts);
+		pthread_mutex_lock(&logMutex);
+		done=vfprintf(logFile,texts,arg);
+		pthread_mutex_unlock(&logMutex);
+   	va_end(arg);
+   	return done;
+	}
+	return done;
 }

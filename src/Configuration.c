@@ -26,8 +26,6 @@ void initConfig() { //Initializes the confog struct with the default values
 	config.takeOffdiffAlt=60; //meter
 	config.trackErrorTolearnce=5;
 	config.deptDistTolerance=1000; //meter
-	config.wpDistTolerance=100; //meter
-	config.courseTolerance=20; //deg
 	config.sunZenith=96; //deg Civil Sun Zenith
 	config.recordTimeInterval=5; //sec
 	config.recordMinDist=10; //meters
@@ -74,7 +72,7 @@ void loadConfig() { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						config.stallSpeed=atof(text);
 					}
-				} else fprintf(logFile,"WARNING: no speeds configuration found, using default values.\n");
+				} else logText("WARNING: no speeds configuration found, using default values.\n");
 				detail=roxml_get_chld(part,"fuel",0);
 				if(detail!=NULL) {
 					attr=roxml_get_attr(detail,"consumption",0);
@@ -82,8 +80,8 @@ void loadConfig() { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						config.fuelConsumption=atof(text);
 					}
-				} else fprintf(logFile,"WARNING: no fuel configuration found, using default values.\n");
-			} else fprintf(logFile,"WARNING: no aircraft configuration found, using default values.\n");
+				} else logText("WARNING: no fuel configuration found, using default values.\n");
+			} else logText("WARNING: no aircraft configuration found, using default values.\n");
 
 			part=roxml_get_chld(root,"measureUnits",0);
 			if(part!=NULL) {
@@ -95,16 +93,16 @@ void loadConfig() { //Load configuration
 						if(strcmp(text,"Kmh")==0 || strcmp(text,"kmh")==0 || strcmp(text,"KMH")==0) config.speedUnit=KMH;
 						else if(strcmp(text,"Knots")==0 || strcmp(text,"knots")==0) config.speedUnit=KNOTS;
 							else if(strcmp(text,"MPH")==0 || strcmp(text,"mph")==0) config.speedUnit=MPH;
-								else fprintf(logFile,"WARNING: Horizontal speed measure unit not recognized, using the default one.\n");
+								else logText("WARNING: Horizontal speed measure unit not recognized, using the default one.\n");
 					}
 					attr=roxml_get_attr(detail,"vertical",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						if(strcmp(text,"FtMin")==0) config.vSpeedUnit=FTMIN;
 						else if(strcmp(text,"ms")==0) config.vSpeedUnit=MS;
-							else fprintf(logFile,"WARNING: Vertical speed measure unit not recognized, using the default one.\n");
+							else logText("WARNING: Vertical speed measure unit not recognized, using the default one.\n");
 					}
-				} else fprintf(logFile,"WARNING: no speeds measure units configuration found, using default values.\n");
+				} else logText("WARNING: no speeds measure units configuration found, using default values.\n");
 				detail=roxml_get_chld(part,"distances",0);
 				if(detail!=NULL) {
 					attr=roxml_get_attr(detail,"distance",0);
@@ -113,7 +111,7 @@ void loadConfig() { //Load configuration
 						if(strcmp(text,"Km")==0 || strcmp(text,"km")==0) config.distUnit=KM;
 						else if(strcmp(text,"NM")==0 || strcmp(text,"nm")==0) config.distUnit=NM;
 							else if(strcmp(text,"Mile")==0 || strcmp(text,"mile")==0) config.distUnit=MI;
-								else fprintf(logFile,"WARNING: distance measure unit not recognized, using the default one.\n");
+								else logText("WARNING: distance measure unit not recognized, using the default one.\n");
 					}
 					attr=roxml_get_attr(detail,"trackError",0);
 					if(attr!=NULL) {
@@ -121,10 +119,10 @@ void loadConfig() { //Load configuration
 						if(strcmp(text,"m")==0 || strcmp(text,"Mt")==0) config.trackErrUnit=MT;
 							else if(strcmp(text,"Ft")==0 || strcmp(text,"ft")==0) config.trackErrUnit=FT;
 								else if(strcmp(text,"NM")==0 || strcmp(text,"nm")==0) config.trackErrUnit=NM;
-									else fprintf(logFile,"WARNING: track error measure unit not recognized, using the default one.\n");
+									else logText("WARNING: track error measure unit not recognized, using the default one.\n");
 					}
-				} else fprintf(logFile,"WARNING: no distances measure units configuration found, using default values.\n");
-			} else fprintf(logFile,"WARNING: no speeds and distances measure units configuration found, using default values.\n");
+				} else logText("WARNING: no distances measure units configuration found, using default values.\n");
+			} else logText("WARNING: no speeds and distances measure units configuration found, using default values.\n");
 			part=roxml_get_chld(root,"navigator",0);
 			if(part!=NULL) {
 				detail=roxml_get_chld(part,"takeOff",0);
@@ -134,7 +132,7 @@ void loadConfig() { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						config.takeOffdiffAlt=atof(text);
 					}
-				} else fprintf(logFile,"WARNING: take off configuration found, using default values.\n");
+				} else logText("WARNING: take off configuration found, using default values.\n");
 				detail=roxml_get_chld(part,"navParameters",0);
 				if(detail!=NULL) {
 					attr=roxml_get_attr(detail,"trackErrorTolearnce",0);
@@ -147,17 +145,7 @@ void loadConfig() { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						config.deptDistTolerance=atof(text);
 					}
-					attr=roxml_get_attr(detail,"wpDistTolerance",0);
-					if(attr!=NULL) {
-						text=roxml_get_content(attr,NULL,0,NULL);
-						config.wpDistTolerance=atof(text);
-					}
-					attr=roxml_get_attr(detail,"courseTolerance",0);
-					if(attr!=NULL) {
-						text=roxml_get_content(attr,NULL,0,NULL);
-						config.courseTolerance=atof(text);
-					}
-				} else fprintf(logFile,"WARNING: no navigation parameters found, using default values.\n");
+				} else logText("WARNING: no navigation parameters found, using default values.\n");
 				detail=roxml_get_chld(part,"sunZenith",0);
 				if(detail!=NULL) {
 					attr=roxml_get_attr(detail,"angle",0);
@@ -165,8 +153,8 @@ void loadConfig() { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						config.sunZenith=atof(text);
 					}
-				} else fprintf(logFile,"WARNING: no sun zenith found, using default value.\n");
-			} else fprintf(logFile,"WARNING: no navigator configuration found, using default values.\n");
+				} else logText("WARNING: no sun zenith found, using default value.\n");
+			} else logText("WARNING: no navigator configuration found, using default values.\n");
 			part=roxml_get_chld(root,"trackRecorder",0);
 			if(part!=NULL) {
 				detail=roxml_get_chld(part,"update",0);
@@ -181,8 +169,8 @@ void loadConfig() { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						config.recordMinDist=atof(text);
 					}
-				} else fprintf(logFile,"WARNING: recording time and distnce intervals missing, using default values.\n");
-			} else fprintf(logFile,"WARNING: no track recorder configuration found, using default values.\n");
+				} else logText("WARNING: recording time and distnce intervals missing, using default values.\n");
+			} else logText("WARNING: no track recorder configuration found, using default values.\n");
 			part=roxml_get_chld(root,"colorSchema",0);
 			if(part!=NULL) {
 				detail=roxml_get_chld(part,"colors",0);
@@ -260,8 +248,8 @@ void loadConfig() { //Load configuration
 						sscanf(text,"%x",&color);
 						colorSchema.warning=(unsigned short)color;
 					}
-				} else fprintf(logFile,"WARNING: in the color schema the colors are missing, using default colors.\n");
-			} else fprintf(logFile,"WARNING: no color schema found, using default colors.\n");
+				} else logText("WARNING: in the color schema the colors are missing, using default colors.\n");
+			} else logText("WARNING: no color schema found, using default colors.\n");
 			part=roxml_get_chld(root,"GPSreceiver",0);
 			if(part!=NULL) {
 				attr=roxml_get_attr(part,"devName",0);
@@ -289,9 +277,9 @@ void loadConfig() { //Load configuration
 					text=roxml_get_content(attr,NULL,0,NULL);
 					config.GPSparity=atoi(text);
 				}
-			} else fprintf(logFile,"WARNING: no GPS receiver configuration found, using default values.\n");
-		} else fprintf(logFile,"ERROR: configuration file config.xml with root element wrong.\n");
+			} else logText("WARNING: no GPS receiver configuration found, using default values.\n");
+		} else logText("ERROR: configuration file config.xml with root element wrong.\n");
 		roxml_release(RELEASE_ALL);
 		roxml_close(root);
-	} else fprintf(logFile,"WARING: configuration file not found: config.xml missing, using default settings.\n");
+	} else logText("WARING: configuration file not found: config.xml missing, using default settings.\n");
 }

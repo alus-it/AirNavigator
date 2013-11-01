@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 27/12/2012
+// Last change : 31/12/2013
 // Description : Collection of functions for air navigation calculation
 //============================================================================
 
@@ -15,24 +15,25 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "AirCalc.h"
 
 //Internal AirCalc calculation defines
 #define EARTH_RADIUS_KM 6371
 #define EARTH_RADIUS_MI 3958.755865744
 #define EARTH_RADIUS_M 6371000
-#define NM_KM 1.852				//1 Knots = 1.852 Km/h
-#define NM_M 1852         //1 NM = 1852 m
+#define NM_KM 1.852					//1 Knots = 1.852 Km/h
+#define NM_M 1852						//1 NM = 1852 m
 #define MILE_KM 1.609344		//1 Mile = 1.609344 Km
-#define FT_M 0.3048				//1 Ft = 0.3048 m
-#define FTMIN_MSEC 0.00508		//1 Ft/min = 0.00508 m/s
-#define YARD_M 0.9144 //1 yard = 0.9144 m (3 Ft)
-#define SEC_HOUR 0.0002777777777777777777777777778 // 1/3600
-#define HALF_PI 1.5707963267948966192313216916398 // PI/2
-#define QUARTER_PI 0.78539816339744830961566084581988 // PI/4
-#define DEG2RAD 0.017453292519943295769236907684886 // PI/180
-#define RAD2DEG 57.295779513082320876798154814105 // 180/PI
-#define RAD2NM 3437.7467707849392526078892888463 // (180*60)/PI
+#define FT_M 0.3048					//1 Ft = 0.3048 m
+#define FTMIN_MSEC 0.00508	//1 Ft/min = 0.00508 m/s
+#define YARD_M 0.9144				//1 yard = 0.9144 m (3 Ft)
+#define SEC_HOUR (1/3600)
+#define HALF_PI (PI/2)
+#define QUARTER_PI (PI/4)
+#define DEG2RAD (PI/180)
+#define RAD2DEG (180/PI)
+#define RAD2NM ((180*60)/PI)
 
 //TOL is a small number of order machine precision- say 1e-15 (here 1e-16).
 //this is used in calcRhumbLineRoute to avoid 0/0 indeterminacies on E-W courses.
@@ -203,11 +204,13 @@ int calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, do
 }
 
 short isAngleBetween(double low, double angle, double hi) {
-	low=absAngle(low)+TWO_PI;
-	angle=absAngle(angle)+TWO_PI;
-	hi=absAngle(hi)+TWO_PI;
-	if(angle>low && angle<hi) return 1;
-	else return 0;
+	if(low==TWO_PI) low=0;
+	if(hi==0) hi=TWO_PI;
+	if(low>hi) {
+		hi+=TWO_PI;
+		if(0<=angle && angle<=PI) angle+=TWO_PI;
+	}
+	return(low<=angle && angle<=hi);
 }
 
 double calcGCCrossTrackError(double lat1, double lon1, double lon2, double latX, double lonX, double course12, double *atd) {
@@ -327,4 +330,26 @@ void calcHeadCrossWindComp(double ws, double wd, double rd, double *hw, double *
 	double diffAngle=wd-rd;
 	*hw=ws*cos(diffAngle);	//tailwind negative
 	*xw=ws*sin(diffAngle);	//positive=wind from right
+}
+
+void calcBisector(double currCourse, double nextCourse, double *bisector, double *bisectorOpposite) {
+	currCourse=absAngle(currCourse+PI); //to see the direction from current WP
+	double diff=currCourse-nextCourse; //angle between teo directions
+	if(diff>0) { //positive difference: the internal angle in on the right
+		diff=absAngle(diff);
+		*bisector=absAngle(currCourse-diff/2);
+	} else { //negative difference: the internal angle is on the left
+		diff=absAngle(-diff);
+		*bisector=absAngle(currCourse+diff/2);
+	}
+	*bisectorOpposite=absAngle(*bisector+PI);
+}
+
+short bisectorOverpassed(double currCourse, double nextCourse, double actualCurrCourse) {
+	double bisector1, bisector2;
+	calcBisector(currCourse,nextCourse,&bisector1,&bisector2);
+	if(absAngle(currCourse-bisector1)<PI) //if currCourse is between bisector1 and bisector2 (bisector1 used as 0)
+		return isAngleBetween(bisector2,actualCurrCourse,bisector1);
+	else //currCourse is between bisector2 and bisector1
+		return isAngleBetween(bisector1,actualCurrCourse,bisector2);
 }

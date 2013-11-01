@@ -7,7 +7,7 @@
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
 // Last change : 04/12/2011
-// Description : Header of AirNavigator
+// Description : Common functions of AirNavigator
 //============================================================================
 
 #ifndef AIRNAVIGATOR_H_
@@ -15,6 +15,6 @@
 
 #include <stdio.h>
 
-FILE *logFile;
+int logText(const char *texts, ...);
 
 #endif //AIRNAVIGATOR_H_

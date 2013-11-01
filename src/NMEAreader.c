@@ -18,7 +18,6 @@
 #include <pthread.h>
 //#include <sys/file.h>
  #include <fcntl.h>
-
 #include "AirNavigator.h"
 #include "Configuration.h"
 #include "AirCalc.h"
@@ -221,7 +220,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 			newAltitudeMt=Ft2m(newAltitude);
 		}
 	} else {
-		fprintf(logFile,"ERROR: Unknown altitude unit: %c\n",altUnit);
+		logText("ERROR: Unknown altitude unit: %c\n",altUnit);
 		return 0;
 	}
 	altTimestamp=timestamp;
@@ -478,7 +477,7 @@ int parseGGA(char* ascii) {
 	field=strsep(&ascii,","); //Differential reference station ID, the last one
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&diffRef);
 #ifdef DEBUG
-	fprintf(logFile,"GGA %d:%d:%.3f\n",timeHour,timeMin,timeSec);
+	logText("GGA %d:%d:%.3f\n",timeHour,timeMin,timeSec);
 #endif //DEBUG
 	if(quality!=Q_NO_FIX) {
 		float timestamp=timeHour*3600+timeMin*60+timeSec;
@@ -605,7 +604,7 @@ int parseRMC(char* ascii) {
 		if(field!=NULL) if(strlen(field)>0) faa=field[0];
 	}
 #ifdef DEBUG
-	fprintf(logFile,"RMC %d:%d:%.3f\n",timeHour,timeMin,timeSec);
+	logText("RMC %d:%d:%.3f\n",timeHour,timeMin,timeSec);
 #endif //DEBUG
 	if(isValid) {
 		float timestamp=timeHour*3600+timeMin*60+timeSec;
@@ -686,7 +685,7 @@ int parseGSA(char* ascii) {
 	field=strsep(&ascii,","); //VDOP, the last one
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%f",&vdop);
 #ifdef DEBUG
-	fprintf(logFile,"GSA Signal PDOP: %f HDOP: %f VDOP: %f\n",pdop,hdop,vdop);
+	logText("GSA Signal PDOP: %f HDOP: %f VDOP: %f\n",pdop,hdop,vdop);
 #endif //DEBUG
 	updateFixMode(mode);
 	if(mode!=MODE_NO_FIX) {
@@ -822,7 +821,7 @@ int parseGSV(char* ascii) {
  field=strsep(&ascii,","); //Channel, the last one
  if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&newChannel);
  #ifdef DEBUG
- fprintf(logFile,"MSS Signal Strength: %d dB, SNR: %d dB, Beacon Frequency: %f kHz, Beacon Data Rate: %d B/s, Channel: %d\n",newSignalStrength,newSNR,newBeaconFreq,newBeaconDataRate,newChannel);
+ logText("MSS Signal Strength: %d dB, SNR: %d dB, Beacon Frequency: %f kHz, Beacon Data Rate: %d B/s, Channel: %d\n",newSignalStrength,newSNR,newBeaconFreq,newBeaconDataRate,newChannel);
  #endif //DEBUG
  if(newChannel!=-1) {
  signalStrength=newSignalStrength;
@@ -856,7 +855,7 @@ int parseGSV(char* ascii) {
  field=strsep(&ascii,","); // Local zone minutes, the last one
  if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&localZoneMin);
  #ifdef DEBUG
- fprintf(logFile,"ZDA %d/%d/%d %2d:%2d:%2.3f zone:%d:%d\n",timeDay,timeMonth,timeYear,timeHour,timeMin,timeSec,localZone,localZoneMin);
+ logText("ZDA %d/%d/%d %2d:%2d:%2.3f zone:%d:%d\n",timeDay,timeMonth,timeYear,timeHour,timeMin,timeSec,localZone,localZoneMin);
  #endif //DEBUG
  if(localZoneMin!=-1) {
  updateDate(timeDay,timeMonth,timeYear);
@@ -920,7 +919,7 @@ int parseGSV(char* ascii) {
  }
  }
  #ifdef DEBUG
- fprintf(logFile,"VTG True track: %f, Magnetic track: %f, Speed: %f Knots %f Km/h \n",trueTrack,magneticTrack,groundSpeedKnots,groundSpeedKmh);
+ logText("VTG True track: %f, Magnetic track: %f, Speed: %f Knots %f Km/h \n",trueTrack,magneticTrack,groundSpeedKnots,groundSpeedKmh);
  #endif //DEBUG
  if(faa!=FAA_NOTVAL&&groundSpeedKmh>=0) {
  updateGroundSpeedAndDirection(groundSpeedKmh,groundSpeedKnots,trueTrack,magneticTrack);
@@ -988,7 +987,7 @@ int parseGSV(char* ascii) {
  if(field!=NULL) if(strlen(field)>0) faa=field[0];
  }
  #ifdef DEBUG
- fprintf(logFile,"GLL %d:%d:%.3f\n",timeHour,timeMin,timeSec);
+ logText("GLL %d:%d:%.3f\n",timeHour,timeMin,timeSec);
  #endif //DEBUG
  if(isValid) {
  float timestamp=timeHour*3600+timeMin*60+timeSec;
@@ -1037,7 +1036,7 @@ int parseGSV(char* ascii) {
  return 1;
  }
  #ifdef DEBUG
- fprintf(logFile,"GBS %d:%d:%.3f latErr: %f m, lonErr: %f m, altErr: %f m\n",timeHour,timeMin,timeSec,latitudeError,longitudeError,altitudeError);
+ logText("GBS %d:%d:%.3f latErr: %f m, lonErr: %f m, altErr: %f m\n",timeHour,timeMin,timeSec,latitudeError,longitudeError,altitudeError);
  #endif //DEBUG
  return 0;
  } */
@@ -1045,12 +1044,12 @@ int parseGSV(char* ascii) {
 int parse(char* ascii, long timestamp) {
 	if(strlen(ascii)<6) {
 #ifdef DEBUG
-		fprintf(logFile,"Received too short sentence: %s\n",ascii);
+		logText("Received too short sentence: %s\n",ascii);
 #endif
 		return -1;
 	}
 #ifdef DEBUG
-	if(ascii[0]!='$') fprintf(logFile,"$ expected as first char but first char is: %c\n",ascii[0]);
+	if(ascii[0]!='$') logText("$ expected as first char but first char is: %c\n",ascii[0]);
 #endif
 	int r=2;
 	switch(ascii[3]){
@@ -1085,8 +1084,8 @@ int parse(char* ascii, long timestamp) {
 			//break;
 	}
 #ifdef DEBUG
-	if(r<0) fprintf(logFile,"WARNING: parsing sentence %s returned: %d\n",ascii,r);
-	else if(r==2) fprintf(logFile,"Received unexpected sentence: %s\n",ascii);
+	if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
+	else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
 #endif
 	free(ascii);
 	return 1;
@@ -1098,7 +1097,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	//fd=open(config.GPSdevName,O_RDWR|O_NOCTTY|O_NONBLOCK); //read and write, non blocking
 	if(fd<0) {
 		fd=-1;
-		fprintf(logFile,"ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
+		logText("ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
 		reading=0;
 		pthread_exit(NULL);
 	}
@@ -1156,7 +1155,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 								if(getCRCintValue(sentence,rcvdBytesOfSentence)==checksum) { //right CRC
 #ifdef DEBUG_PRINT_SENTENCES //DEBUG print the sentence
 										sentence[rcvdBytesOfSentence]='\0';
-										fprintf(logFile,"%s\n",sentence);
+										logText("%s\n",sentence);
 #endif //DEBUG
 									sentence[rcvdBytesOfSentence-3]='\0'; //put terminator cut off checksum
 									parse(strdup(sentence),timestamp);
@@ -1191,7 +1190,7 @@ short NMEAreaderStartRead() { //function to start the listening thread
 		reading=1;
 		if(pthread_create(&thread,NULL,run,(void*)NULL)) {
 			reading=0;
-			fprintf(logFile,"NMEAreader: ERROR unable to create the reading thread.\n");
+			logText("NMEAreader: ERROR unable to create the reading thread.\n");
 		}
 	}
 	return reading;

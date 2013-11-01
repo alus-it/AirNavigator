@@ -6,14 +6,14 @@
 # Copyright : (C) 2010 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 27/9/2013
+# Last change : 1/1/2013
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
 # Usual path of the toolchain: /usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin/ (must be added to your path)
 
 # AirNavigator version string
-VERSION = 0.2.5
+VERSION = 0.2.6
 
 # Compiler and tools
 CC = arm-linux-gcc
