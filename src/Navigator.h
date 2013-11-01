@@ -23,16 +23,16 @@
 #define STATUS_NAV_BUSY			7
 
 typedef struct wp {
-	int seqNo;						//sequence number
-	char *name;						//name of the WP
-	double latitude;			//rad
-	double longitude;			//rad
-	double altitude;			//meter
-	double dist;					//distance to to this WP in rad
-	double trueCourse;		//initial true course to to this WP in rad
-	double arrTimestamp;	//arrival to this WP timestamp in seconds (from h 0:00)
-	struct wp *prev;			//Pointer to the previous waypoint in the list
-	struct wp *next;			//Pointer to the next waypoint in the list
+	int seqNo;           //sequence number
+	char *name;          //name of the WP
+	double latitude;     //rad
+	double longitude;    //rad
+	double altitude;     //meter
+	double dist;         //distance to to this WP in rad
+	double trueCourse;   //initial true course to to this WP in rad
+	double arrTimestamp; //arrival to this WP timestamp in seconds (from h 0:00)
+	struct wp *prev;     //Pointer to the previous waypoint in the list
+	struct wp *next;     //Pointer to the next waypoint in the list
 } *wayPoint;
 
 int NavLoadFlightPlan(char* GPXfile);

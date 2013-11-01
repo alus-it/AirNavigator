@@ -22,11 +22,11 @@ enum lengthMeasureUnit {
 };
 
 enum speedMesureUnit {
-	KMH,		//Speed in Km/h
-	KNOTS,	//Speed in Knots
-	MPH,		//Speed in Miles per Hour
-	FTMIN,	//Vertical speed in Feet each Minute
-	MS			//Vertical speed in Meters each Second
+	KMH,   //Speed in Km/h
+	KNOTS, //Speed in Knots
+	MPH,   //Speed in Miles per Hour
+	FTMIN, //Vertical speed in Feet each Minute
+	MS     //Vertical speed in Meters each Second
 };
 
 struct configuration {

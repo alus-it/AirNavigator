@@ -28,8 +28,8 @@
 #include "Navigator.h"
 #include "BlackBox.h"
 
-#define BUFFER_SIZE					24576 //4096*6
-#define MAX_SENTENCE_LENGHT	255
+#define BUFFER_SIZE         (4096*6)
+#define MAX_SENTENCE_LENGTH 255
 
 //#define DEBUG
 //#define DEBUG_PRINT_SENTENCES
@@ -1128,7 +1128,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	//End GGA request//////////////////////
 	long i,redBytes;
 	int rcvdBytesOfSentence=0;
-	char sentence[MAX_SENTENCE_LENGHT]={0};
+	char sentence[MAX_SENTENCE_LENGTH]={0};
 	long timestamp;
 	short lineFeedExpected=1;
 	while(reading) { // loop while waiting for input
@@ -1167,7 +1167,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 						break;
 					default:
 						if(rcvdBytesOfSentence>0) { //add chars to the sentence
-							if(rcvdBytesOfSentence<MAX_SENTENCE_LENGHT) sentence[rcvdBytesOfSentence++]=buf[i];
+							if(rcvdBytesOfSentence<MAX_SENTENCE_LENGTH) sentence[rcvdBytesOfSentence++]=buf[i];
 							else { //to avoid buffer overflow
 								rcvdBytesOfSentence=0;
 								lineFeedExpected=0;

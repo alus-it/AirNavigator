@@ -14,15 +14,15 @@
 #define AIRCALC_H_
 
 //Common calculation defines
-#define PI 3.1415926535897932384626433832795
-#define TWO_PI 6.283185307179586476925286766559 // 2*PI
-#define SIXTYTH  0.0166666666666666666666666666667 // 1/60
+#define PI      3.1415926535897932384626433832795
+#define TWO_PI  (2*PI)
+#define SIXTYTH 0.0166666666666666666666666666667 // 1/60
 #define MILE_FT 5280 //1 Mile = 5280 Ft (1760 Yards)
 
 //Sunrise/sunset algorithm return values
-#define SUN_RISES_AND_SETS	1
-#define SUN_NEVER_RISES		2 //The sun never rises on this location (on the specified date)
-#define SUN_NEVER_SETS		3 //The sun never sets on this location (on the specified date)
+#define SUN_RISES_AND_SETS 1
+#define SUN_NEVER_RISES    2 //The sun never rises on this location (on the specified date)
+#define SUN_NEVER_SETS     3 //The sun never sets on this location (on the specified date)
 
 double Km2Nm(double valueKm);
 double Nm2Km(double valueNm);

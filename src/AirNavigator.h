@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 04/12/2011
+// Last change : 30/11/2013
 // Description : Common functions of AirNavigator
 //============================================================================
 

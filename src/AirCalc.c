@@ -21,19 +21,19 @@
 //Internal AirCalc calculation defines
 #define EARTH_RADIUS_KM 6371
 #define EARTH_RADIUS_MI 3958.755865744
-#define EARTH_RADIUS_M 6371000
-#define NM_KM 1.852					//1 Knots = 1.852 Km/h
-#define NM_M 1852						//1 NM = 1852 m
-#define MILE_KM 1.609344		//1 Mile = 1.609344 Km
-#define FT_M 0.3048					//1 Ft = 0.3048 m
-#define FTMIN_MSEC 0.00508	//1 Ft/min = 0.00508 m/s
-#define YARD_M 0.9144				//1 yard = 0.9144 m (3 Ft)
-#define SEC_HOUR (1/3600)
-#define HALF_PI (PI/2)
-#define QUARTER_PI (PI/4)
-#define DEG2RAD (PI/180)
-#define RAD2DEG (180/PI)
-#define RAD2NM ((180*60)/PI)
+#define EARTH_RADIUS_M  6371000
+#define NM_KM           1.852    //1 Knots = 1.852 Km/h
+#define NM_M            1852     //1 NM = 1852 m
+#define MILE_KM         1.609344 //1 Mile = 1.609344 Km
+#define FT_M            0.3048   //1 Ft = 0.3048 m
+#define FTMIN_MSEC      0.00508  //1 Ft/min = 0.00508 m/s
+#define YARD_M          0.9144   //1 yard = 0.9144 m (3 Ft)
+#define SEC_HOUR        0.0002777777777777777777777777778 //1/3600
+#define HALF_PI         (PI/2)
+#define QUARTER_PI      (PI/4)
+#define DEG2RAD         (PI/180)
+#define RAD2DEG         (180/PI)
+#define RAD2NM          ((180*60)/PI)
 
 //TOL is a small number of order machine precision- say 1e-15 (here 1e-16).
 //this is used in calcRhumbLineRoute to avoid 0/0 indeterminacies on E-W courses.
@@ -334,7 +334,7 @@ void calcHeadCrossWindComp(double ws, double wd, double rd, double *hw, double *
 
 void calcBisector(double currCourse, double nextCourse, double *bisector, double *bisectorOpposite) {
 	currCourse=absAngle(currCourse+PI); //to see the direction from current WP
-	double diff=currCourse-nextCourse; //angle between teo directions
+	double diff=currCourse-nextCourse; //angle between the directions
 	if(diff>0) { //positive difference: the internal angle in on the right
 		diff=absAngle(diff);
 		*bisector=absAngle(currCourse-diff/2);

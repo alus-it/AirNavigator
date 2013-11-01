@@ -14,10 +14,10 @@
 #define BLACKBOX_H_
 
 #define BBS_NOT_SET   0
-#define BBS_WAIT_FIX	1
+#define BBS_WAIT_FIX  1
 #define BBS_WAIT_POS  2
 #define BBS_WAIT_OPT  3
-#define BBS_PAUSED		4
+#define BBS_PAUSED    4
 
 #define MIN_DIST 0.00000109872 // 7 m in Rad
 

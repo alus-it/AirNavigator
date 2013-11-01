@@ -24,50 +24,50 @@
 #include "AirNavigator.h"
 #include "SiRFreader.h"
 
-#define BUFFER_SIZE					1034
-#define MAX_PAYLOAD_LENGHT	1023
+#define BUFFER_SIZE        1034
+#define MAX_PAYLOAD_LENGHT 1023
 
 #define SIRF_GEODETIC_MSGID 0x29
 #define SIRF_GEODETIC_MSG_LEN 91
 
 
 struct geodetic_nav_data {
-    uint8_t  msgID;
-    uint16_t navValid;
-    uint16_t navType;
-    uint16_t weekNo;
-    uint32_t TOW;
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint16_t second;
-    uint32_t satIDlist;
-    int32_t latitude;
-    int32_t longitude;
-    uint32_t altEllips;
-    uint32_t altitude;
-    uint8_t mapDatum;
-    uint16_t speed;
-    uint16_t course;
-    int16_t magneticVar;
-    int16_t climbRate;
-    int16_t headingRate;
-    uint32_t estHposPosErr;
-    uint32_t estVposPosErr;
-    uint32_t estTimeErr;
-    uint16_t estHvelocityErr;
-    int32_t clockBias;
-    uint32_t clockBiasErr;
-    int32_t clockDrift;
-    uint32_t clockDriftErr;
-    uint32_t distance;
-    uint16_t distErr;
-    uint16_t headingErr;
-    uint8_t SVcount;
-    uint8_t HDOP;
-    uint8_t addModeInfo;
+	uint8_t  msgID;
+	uint16_t navValid;
+	uint16_t navType;
+	uint16_t weekNo;
+	uint32_t TOW;
+	uint16_t year;
+	uint8_t month;
+	uint8_t day;
+	uint8_t hour;
+	uint8_t minute;
+	uint16_t second;
+	uint32_t satIDlist;
+	int32_t latitude;
+	int32_t longitude;
+	uint32_t altEllips;
+	uint32_t altitude;
+	uint8_t mapDatum;
+	uint16_t speed;
+	uint16_t course;
+	int16_t magneticVar;
+	int16_t climbRate;
+	int16_t headingRate;
+	uint32_t estHposPosErr;
+	uint32_t estVposPosErr;
+	uint32_t estTimeErr;
+	uint16_t estHvelocityErr;
+	int32_t clockBias;
+	uint32_t clockBiasErr;
+	int32_t clockDrift;
+	uint32_t clockDriftErr;
+	uint32_t distance;
+	uint16_t distErr;
+	uint16_t headingErr;
+	uint8_t SVcount;
+	uint8_t HDOP;
+	uint8_t addModeInfo;
 };
 
 

@@ -38,10 +38,10 @@
 //TODO: a common base path predefined: /mnt/sdcard/AirNavigator/
 
 typedef struct fileName {
-    int seqNo;							//sequence number
-    char *name;							//name of the file
-    struct fileName *prev;	//Pointer to the previous filename in the list
-    struct fileName *next;	//Pointer to the next filename in the list
+	int seqNo;             //sequence number
+	char *name;            //name of the file
+	struct fileName *prev; //Pointer to the previous filename in the list
+	struct fileName *next; //Pointer to the next filename in the list
 } *fileEntry;
 
 pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
