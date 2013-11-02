@@ -1,4 +1,4 @@
-AirNavigator version 0.2.5 - README file
+AirNavigator - README file
 
 The aim of this project is to develop an experimental GPS navigation application for ultralight/microlight aircrafts, using as hardware a vehicular and inexpensive TomTom navigator. The program, given a flight plan defined by the user, is able to provide navigation indications, including an HSI (Horizontal Situation Indicator), along all the way points of the route until the final destination.
 
@@ -74,7 +74,6 @@ On the left side, Horizontal Situation Indicator:
 
 	In white the compass rose
 	In red the indicator of current true heading
-	In blue the the current magnetic heading
 	In green the course indicator to the next way point
 	In yellow the course deviation indicator, displayed also in meters
     
@@ -192,14 +191,12 @@ Navigator
 <navigator>
 	<!-- measure units: altitude and distances: meters, angles: degrees -->
 	<takeOff diffAlt="50" />
-	<navParameters trackErrorTolearnce="5" deptDistTolerance="1000" wpDistTolerance="100" courseTolerance="20" />
+	<navParameters trackErrorTolearnce="5" deptDistTolerance="1000" />
 	<sunZenith angle="96" />
 </navigator>
 * takeOff diffAlt: it is the difference of altitude that once detected together with a speed higher than the stall speed will be considered as the start of the flight.
 * trackErrorTolearnce: if the track error (XTD) is smaller than trackErrorTolearnce the navigator will use an easier calculation algorithm in order to be faster we are already in route.
 * deptDistTolerance: if we are at distance less than deptDistTolerance from our departure location than AirNavigator will consider us still at the departure and starting the flight, else it will consider us away from the departure and the flight already started to the next way point
-* wpDistTolerance: if we are at distance less than wpDistTolerance from the current WP then the navigator will start to consider if maybe we are already starting to head to the further WP and in this case it will consider the current WP reached
-* courseTolerance: it is an angle in degrees, it used in the previous case as tolerance to understand if we are already heading to the next WP
 * sunZenith angle: it is the sun Zenith angle in degrees used to calculate sunrise and sunset times:
 	Official:	90° 50'
 	Civil:		96°
@@ -233,8 +230,8 @@ Colors schema configuration
 Here it is possible to choose the color of everything AirNavigator will display on the screen of your TomTom, the colors must be encoded with a four digit hexadecimal number starting from 0000 that is black up to FFFF that is white. (Red=F000, green=0F00, blue=00F0, yellow=FF00)
 * background: the color of the background
 * compassRose: color of the compass and its scale
-* dirMarker: color of the marker on the top of the compass indicating the current direction
-* magneticDir: color of the numbers indicating the current magnetic heading
+* dirMarker: color of the marker on the top of the compass indicating the current heading true direction
+* magneticDir: color of the numbers indicating the current magnetic heading (not displayed because from TomTom GPS unit it is equal to the true one)
 * routeIndicator: color of the arrow in the HSI indicating the direction of the route
 * cdi: color of the course deviation indicator inside the HSI
 * cdiScale: color of the course deviation scale
@@ -309,6 +306,7 @@ Version 0.2.5
 Version 0.2.6
 	Switch to next Way Point made when crossing bisector lines
 	Magnetic heading not displayed because from TomTom's GPS is always equal to true one
+	Crash when heading to the final destination fixed
 	Some other bug fixed
 
 CONTACTS

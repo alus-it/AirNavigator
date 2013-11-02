@@ -6,7 +6,7 @@
 # Copyright : (C) 2010 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 1/1/2013
+# Last change : 2/11/2013
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -68,37 +68,37 @@ $(LIBS): | $(LIB)
 $(LIB):
 	mkdir -p $(LIB)
 
-$(BIN)main.o: $(SRC)main.c
+$(BIN)main.o: $(SRC)main.c $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)TomTom.h $(SRC)NMEAreader.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
 	$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' $< -o $@
 
-$(BIN)NMEAreader.o: $(SRC)NMEAreader.c
+$(BIN)NMEAreader.o: $(SRC)NMEAreader.c $(SRC)NMEAreader.h $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)TomTom.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)tpgps.o: $(SRC)tpgps.c
+#$(BIN)tpgps.o: $(SRC)tpgps.c
+#	$(CC) $(CFLAGS) $< -o $@
+
+$(BIN)SiRFreader.o: $(SRC)SiRFreader.c $(SRC)SiRFreader.h $(SRC)AirNavigator.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)SiRFreader.o: $(SRC)SiRFreader.c
-	$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)Navigator.o: $(SRC)Navigator.c
+$(BIN)Navigator.o: $(SRC)Navigator.c $(SRC)Navigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)NMEAreader.h $(SRC)TomTom.h $(SRC)HSI.h $(SRC)AirNavigator.h $(LIBSRC)libroxml/roxml.h
 	$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
 
-$(BIN)HSI.o: $(SRC)HSI.c
+$(BIN)HSI.o: $(SRC)HSI.c $(SRC)HSI.h $(SRC)TomTom.h $(SRC)AirCalc.h $(SRC)Configuration.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)BlackBox.o: $(SRC)BlackBox.c
+$(BIN)BlackBox.o: $(SRC)BlackBox.c $(SRC)BlackBox.h $(SRC)Configuration.h $(SRC)AirCalc.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)TomTom.o: $(SRC)TomTom.c
+$(BIN)TomTom.o: $(SRC)TomTom.c $(SRC)TomTom.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)Configuration.h
 	$(CC) $(CFLAGS) -DLINUX_TARGET -I $(INC) $< -o $@
 
-$(BIN)Configuration.o: $(SRC)Configuration.c
+$(BIN)Configuration.o: $(SRC)Configuration.c $(SRC)Configuration.h $(SRC)AirNavigator.h $(SRC)TomTom.h $(LIBSRC)libroxml/roxml.h
 	$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
 
-$(BIN)Geoidal.o: $(SRC)Geoidal.c
+$(BIN)Geoidal.o: $(SRC)Geoidal.c $(SRC)Geoidal.h $(SRC)AirNavigator.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)AirCalc.o: $(SRC)AirCalc.c
+$(BIN)AirCalc.o: $(SRC)AirCalc.c $(SRC)AirCalc.h
 	$(CC) $(CFLAGS) $< -o $@
 
 

@@ -208,8 +208,8 @@ int main(int argc, char** argv) {
 	}
 
 	//Start the GPS using the traditional NMEA parser
-	if(!NMEAreaderStartRead()) logText("ERROR: GPSreader NMEA failed to start.\n");
-	else logText("GPSreader NMEA started.\n");
+	if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n");
+	else logText("NMEAreader started.\n");
 
 	//Start the GPS using SiRFreader //FIXME: WARNING dosen't work
 	//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n");

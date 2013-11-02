@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "Geoidal.h"
 #include "AirNavigator.h"
 
 #define GEOID_H 19
@@ -102,8 +103,8 @@ short GeoidalIsOpen() {
 void GeoidalClose() {
 	if(egm96data!=NULL) {
 			free(egm96data);
-	    egm96data=NULL;
-	 }
+			egm96data=NULL;
+	}
 }
 
 double getEGM96data(int x, int y) {

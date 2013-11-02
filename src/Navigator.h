@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 25/12/2012
+// Last change : 2/11/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -19,8 +19,9 @@
 #define STATUS_WAIT_FIX     3
 #define STATUS_NAV_TO_DPT   4
 #define STATUS_NAV_TO_WPT   5
-#define STATUS_END_NAV      6
-#define STATUS_NAV_BUSY     7
+#define STATUS_NAV_TO_DST   6
+#define STATUS_END_NAV      7
+#define STATUS_NAV_BUSY     8
 
 typedef struct wp {
 	int seqNo;           //sequence number
