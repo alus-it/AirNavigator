@@ -47,6 +47,20 @@ typedef struct fileName {
 pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
 FILE *logFile;
 
+int logText(const char *texts, ...) {
+	int done=-1;
+	if(logFile!=NULL) {
+		va_list arg;
+		va_start(arg,texts);
+		pthread_mutex_lock(&logMutex);
+		done=vfprintf(logFile,texts,arg);
+		pthread_mutex_unlock(&logMutex);
+   	va_end(arg);
+   	return done;
+	}
+	return done;
+}
+
 int main(int argc, char** argv) {
 	logFile=NULL;
 	if(!FbRender_Open()) exit(EXIT_FAILURE);
@@ -69,7 +83,7 @@ int main(int argc, char** argv) {
 
 	logFile=fopen("/mnt/sdcard/AirNavigator/log.txt","w"); //log file
 	if(logFile==NULL) {
-		FbRender_BlitText(5,60,colorSchema.warning,colorSchema.background,"ERROR: Unable to create the logFile file!");
+		FbRender_BlitText(5,60,colorSchema.warning,colorSchema.background,0,"ERROR: Unable to create the logFile file!");
 		FbRender_Flush();
 	}
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
@@ -162,19 +176,16 @@ int main(int argc, char** argv) {
 	if(numGPXfiles>0) {
 		currFile=fileList;
 		short DoLoad=0;
-		FbRender_BlitText(100,20,colorSchema.dirMarker,colorSchema.background,"AirNavigator");
-		FbRender_BlitText(100,30,colorSchema.magneticDir,colorSchema.background,"http://www.alus.it/airnavigator");
-		FbRender_BlitText(20,60,colorSchema.text,colorSchema.background,"Select a GPX flight plan:");
-		FbRender_BlitText(200,240,colorSchema.text,colorSchema.background,"LOAD");
+		FbRender_BlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator");
+		FbRender_BlitText(100,30,colorSchema.magneticDir,colorSchema.background,0,"http://www.alus.it/airnavigator");
+		FbRender_BlitText(20,60,colorSchema.text,colorSchema.background,0,"Select a GPX flight plan:");
+		FbRender_BlitText(200,240,colorSchema.text,colorSchema.background,0,"LOAD");
 		while(!DoLoad) {
-			char *str;
-			asprintf(&str,"%s                                         ",currFile->name);
-			FbRender_BlitText(20,70,colorSchema.cdi,colorSchema.background,str); //print the name of the current file
-			free(str);
-			if(currFile->prev!=NULL) FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,"<< Prev");
-			else FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,"       ");
-			if(currFile->next!=NULL) FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,"Next >>");
-			else FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,"       ");
+			FbRender_BlitText(20,70,colorSchema.cdi,colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
+			if(currFile->prev!=NULL) FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"<< Prev");
+			else FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"       ");
+			if(currFile->next!=NULL) FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
+			else FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
 			FbRender_Flush();
 			while(!TsScreen_touch(&x,&y)); //wait user presses a "button"
 			if(y>200) {
@@ -273,7 +284,7 @@ int main(int argc, char** argv) {
 	 */
 
 	//Exit "button"
-	FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,"exit");
+	FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
 	FbRender_Flush();
 
 	short DoExit=0;
@@ -306,16 +317,3 @@ int main(int argc, char** argv) {
 	exit(EXIT_SUCCESS);
 }
 
-int logText(const char *texts, ...) {
-	int done=-1;
-	if(logFile!=NULL) {
-		va_list arg;
-		va_start(arg,texts);
-		pthread_mutex_lock(&logMutex);
-		done=vfprintf(logFile,texts,arg);
-		pthread_mutex_unlock(&logMutex);
-   	va_end(arg);
-   	return done;
-	}
-	return done;
-}

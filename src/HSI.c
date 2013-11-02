@@ -120,7 +120,7 @@ void drawCompass(int dir) { //works with direction as integer
 		pix=cx; //Here we locate the label
 		piy=label_pos;
 		rotatePoint(cx,cy,&pix,&piy,angle);
-		FbRender_BlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,labels[i]);
+		FbRender_BlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,0,labels[i]);
 		int index2=index+5;
 		short minor=1,j;
 		for(j=0;j<5;index2+=5,j++,minor=!minor) {
@@ -146,7 +146,7 @@ void drawLabels(int dir) { //also here direction as integer
 		int pix=cx; //locate the label
 		int piy=label_pos;
 		rotatePoint(cx,cy,&pix,&piy,angle);
-		FbRender_BlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,labels[i]);
+		FbRender_BlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,0,labels[i]);
 	}
 }
 
@@ -205,25 +205,22 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 }
 
 void diplayCDIvalue(double cdiMt) {
-	char *str;
 	double cdi=fabs(cdiMt);
 	switch(config.trackErrUnit) {
 		case FT:
 			cdi=m2Ft(cdi);
-			if(cdi>=MILE_FT) asprintf(&str,"%6.2f Mi",cdi/MILE_FT); //Display in miles
-			else asprintf(&str,"%5.0f Ft",fabs(cdi));
+			if(cdi>=MILE_FT) FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%6.2f Mi",cdi/MILE_FT); //Display in miles
+			else FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%5.0f Ft",fabs(cdi));
 			break;
 		case NM:
-			asprintf(&str,"%6.2f NM",m2Nm(cdi));
+			FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%6.2f NM",m2Nm(cdi));
 			break;
 		case MT:
 		default:
-			if(cdi>=1000) asprintf(&str,"%6.2f Km",cdi/1000); //Display in Km
-			else asprintf(&str,"%5.0fm",fabs(cdi));
+			if(cdi>=1000) FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%6.2f Km",cdi/1000); //Display in Km
+			else FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%5.0fm",fabs(cdi));
 			/* no break */
 	}
-	FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,str);
-	free(str);
 }
 
 void HSIdraw(double direction, double course, double cdiMt) {
@@ -240,15 +237,10 @@ void HSIdraw(double direction, double course, double cdiMt) {
 			drawCDI(direction,course,cdiMt);
 		} //else no need to repaint the HSI
 	}
-	char *str;
-	asprintf(&str,"%06.2f",direction);
-	FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,str);
-	asprintf(&str,"%06.2f",actualMagDir);
-	FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,str);
+	FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
+	//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
 	diplayCDIvalue(cdiMt);
-	asprintf(&str,"%06.2f",course);
-	FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,str);
-	free(str);
+	FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
 	FbRender_Flush();
 }
 
@@ -261,15 +253,10 @@ void HSIupdateDir(double direction,double magneticDirection) {
 	} //else no need to repaint the HSI
 	actualDir=direction;
 	actualMagDir=magneticDirection;
-	char *str;
-	asprintf(&str,"%06.2f",direction);
-	FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,str);
-	asprintf(&str,"%06.2f",magneticDirection);
-	FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,str);
+	FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
+	//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",magneticDirection);
 	diplayCDIvalue(actualCDI);
-	asprintf(&str,"%06.2f",actualCourse);
-	FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,str);
-	free(str);
+	FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",actualCourse);
 }
 
 void HSIupdateCDI(double course, double cdi) {
@@ -277,15 +264,10 @@ void HSIupdateCDI(double course, double cdi) {
 		FillCircle(cx,cy,cir,colorSchema.background); //clear the internal part of the compass
 		drawLabels(previousDir);
 		drawCDI(actualDir,course,cdi);
-		char *str;
-		asprintf(&str,"%06.2f",actualDir);
-		FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,str);
-		asprintf(&str,"%06.2f",actualMagDir);
-		FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,str);
+		FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",actualDir);
+		//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
 		diplayCDIvalue(cdi);
-		asprintf(&str,"%06.2f",course);
-		FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,str);
-		free(str);
+		FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
 	} //else no need to repaint the HSI
 }
 
@@ -297,15 +279,10 @@ void HSIdrawVSIscale(double altFt) {
 	maxScaleFt+=HalfAltScale; //add 500 ft for the top of the scale
 	int markerFt=(maxScaleFt/50)*50; //assign the first line altitude
 	int markerPx;
-	char *str;
 	for(markerPx=round((maxScaleFt-markerFt)*0.26)+6;markerPx<PxAltScale+6&&markerFt>=0;markerPx+=13,markerFt-=50) { //1Ft=0.26Px
 		DrawTwoPointsLine(screen.height,markerPx,screen.height+6,markerPx,colorSchema.altScale);
-		if(markerFt==((markerFt/100)*100)) {
-			asprintf(&str,"%d",(int)(markerFt/100));
-			FbRender_BlitText(screen.height+7,markerPx-4,colorSchema.altScale,colorSchema.background,str);
-		}
+		if(markerFt==((markerFt/100)*100)) FbRender_BlitText(screen.height+7,markerPx-4,colorSchema.altScale,colorSchema.background,0,"%d",(int)(markerFt/100));
 	}
-	free(str);
 	DrawHorizontalLine(screen.height+12,cy-3,2,colorSchema.altMarker);
 	DrawHorizontalLine(screen.height+10,cy-2,4,colorSchema.altMarker);
 	DrawHorizontalLine(screen.height+8,cy-1,16,colorSchema.altMarker);

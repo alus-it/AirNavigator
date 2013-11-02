@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/2/2013
+// Last change : 2/11/2013
 // Description : I/O TomTom interface
 //============================================================================
 
@@ -47,8 +47,7 @@ void FbRender_Close();
 void FbRender_Clear(int aFromY, int aNrLines, unsigned short aColor);
 void FbRender_BlitCharacter(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);
 void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);
-void FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, char *string);
-void FbRender_BlitTextItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char *string);
+int FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, unsigned short italic, const char *args, ...);
 void TsScreen_Init();
 void TsScreen_Exit();
 int TsScreen_pen(int *x, int *y, int *pen);

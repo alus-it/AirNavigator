@@ -304,11 +304,12 @@ Version 0.2.4
 	Added the possibility to choose between some different measure units for speeds and distances in the configuration file
 
 Version 0.2.5
-	Adaptations and improvements to make it able to run standalone without TomTom ttn application
+	Adaptations and improvements to make it able to run standalone without original TomTom software
 
 Version 0.2.6
 	Switch to next Way Point made when crossing bisector lines
-	
+	Magnetic heading not displayed because from TomTom's GPS is always equal to true one
+	Some other bug fixed
 
 CONTACTS
 Author: Alberto Realis-Luc

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/2/2013
+// Last change : 2/11/2013
 // Description : I/O TomTom interface
 //============================================================================
 
@@ -18,6 +18,7 @@
 #include <math.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
@@ -291,20 +292,25 @@ void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned 
 	}
 }
 
-void FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, char *str) {
-	while(*str) {
-		FbRender_BlitCharacter(x,y,aColor,aBackColor,*str);
-		x+=CharWidth;
-		str++;
+int FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, unsigned short italic, const char *args, ...) {
+	int done=-1;
+	if(args!=NULL) {
+		va_list arg;
+		va_start(arg,args);
+		char *str;
+		done=vasprintf(&str,args,arg);
+		if(done) {
+			int i=0;
+			while(str[i]) {
+				if(italic) FbRender_BlitCharacterItalic(x,y,aColor,aBackColor,str[i]);
+				else FbRender_BlitCharacter(x,y,aColor,aBackColor,str[i]);
+				x+=CharWidth;
+				i++;
+			}
+		}
+		free(str);
 	}
-}
-
-void FbRender_BlitTextItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char *str) {
-	while(*str) {
-		FbRender_BlitCharacterItalic(x,y,aColor,aBackColor,*str);
-		x+=CharWidth;
-		str++;
-	}
+	return done;
 }
 
 void FbRender_Flush() {
@@ -482,48 +488,41 @@ void FillRect(int ulx, int uly, int drx, int dry, unsigned short color) {
 
 void PrintPosition(int latD, int latM, double latS, short N, int lonD, int lonM, double lonS, short E) {
 	if(screen.height!=240) {
-		char *str;
-		asprintf(&str,"%3d %2d' %6.3f\" %c ",latD,latM,latS,N?'N':'S');
-		FbRender_BlitText(screen.height+28,2,colorSchema.text,colorSchema.background,str);
-		asprintf(&str,"%3d %2d' %6.3f\" %c ",lonD,lonM,lonS,E?'E':'W');
-		FbRender_BlitText(screen.height+28,12,colorSchema.text,colorSchema.background,str);
-		free(str);
+		FbRender_BlitText(screen.height+28,2,colorSchema.text,colorSchema.background,0,"%3d %2d' %6.3f\" %c ",latD,latM,latS,N?'N':'S');
+		FbRender_BlitText(screen.height+28,12,colorSchema.text,colorSchema.background,0,"%3d %2d' %6.3f\" %c ",lonD,lonM,lonS,E?'E':'W');
 	}
 }
 
 void PrintSpeed(double speedKmh, double speedKnots) {
-	char *str;
 	if(screen.height!=240) {
 		switch(config.speedUnit) {
 			case KNOTS:
-				asprintf(&str,"GS: %7.2f Knots",speedKnots);
+				FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f Knots",speedKnots);
 				break;
 			case MPH:
-				asprintf(&str,"GS: %7.2f MPH  ",Km2Miles(speedKmh));
+				FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f MPH  ",Km2Miles(speedKmh));
 				break;
 			case KMH:
 			default:
-				asprintf(&str,"GS: %7.2f Km/h ",speedKmh);
+				FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f Km/h ",speedKmh);
 				/* no break */
 		}
 	} else switch(config.speedUnit) {
 		case KNOTS:
-			asprintf(&str,"%.0f Knots",speedKnots);
+			FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f Knots",speedKnots);
 			break;
 		case MPH:
-			asprintf(&str,"%.0f MPH  ",Km2Miles(speedKmh));
+			FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f MPH  ",Km2Miles(speedKmh));
 			break;
 		case KMH:
 		default:
-			asprintf(&str,"%.0f Km/h ",speedKmh);
+			FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f Km/h ",speedKmh);
 			/* no break */
 	}
-	FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,str);
-	free(str);
 }
 
 void PrintNavStatus(int status, char *WPname) {
-	char *statusName, *str;
+	char *statusName;
 	switch(status) {
 			case STATUS_NOT_INIT: 		statusName=strdup("Nav not set   "); break;
 			case STATUS_NO_ROUTE_SET:	statusName=strdup("No route set  "); break;
@@ -536,182 +535,142 @@ void PrintNavStatus(int status, char *WPname) {
 			default:									statusName=strdup("Unknown       "); break;
 	}
 	if(screen.height!=240) {
-		asprintf(&str,"NAV: %s       ",statusName);
-		FbRender_BlitText(screen.height+28,52,colorSchema.text,colorSchema.background,str);
-		asprintf(&str,"WPT: %s                 ",WPname);
-		FbRender_BlitText(screen.height+28,62,colorSchema.text,colorSchema.background,str);
+		FbRender_BlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"NAV: %s       ",statusName);
+		FbRender_BlitText(screen.height+28,62,colorSchema.text,colorSchema.background,0,"WPT: %s                 ",WPname);
 	} else {
-		asprintf(&str,"%s       ",statusName);
-		FbRender_BlitText(screen.height+28,52,colorSchema.text,colorSchema.background,str);
-		asprintf(&str,"%s               ",WPname);
-		FbRender_BlitText(screen.height+28,62,colorSchema.text,colorSchema.background,str);
+		FbRender_BlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"%s       ",statusName);
+		FbRender_BlitText(screen.height+28,62,colorSchema.text,colorSchema.background,0,"%s               ",WPname);
 	}
 	free(statusName);
-	free(str);
 }
 
 void PrintNavRemainingDistWP(double distKm, double averageSpeedKmh, double hours) {
-	char *str;
 	if(screen.height!=240) {
 		switch(config.distUnit) { //Distance To Go
 			case NM:
-				asprintf(&str,"DTG: %7.3f NM    ",Km2Nm(distKm));
+				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f NM    ",Km2Nm(distKm));
 				break;
 			case MI:
-				asprintf(&str,"DTG: %7.3f Mi    ",Km2Miles(distKm));
+				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Mi    ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				asprintf(&str,"DTG: %7.3f Km    ",distKm);
+				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",distKm);
 				/* no break */
 		}
-		FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,str);
 		switch(config.speedUnit) {
 			case KNOTS:
-				asprintf(&str,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
+				FbRender_BlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
 			case MPH:
-				asprintf(&str,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
+				FbRender_BlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
 				break;
 			case KMH:
 			default:
-				asprintf(&str,"AS: %5.1f Km/h    ",averageSpeedKmh);
+				FbRender_BlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
 				/* no break */
 		}
-		FbRender_BlitText(screen.height+28,92,colorSchema.text,colorSchema.background,str);
-	} else {
-		switch(config.distUnit) { //Distance To Go
+	} else switch(config.distUnit) { //Distance To Go
 			case NM:
-				asprintf(&str,"%.2f NM    ",Km2Nm(distKm));
+				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f NM    ",Km2Nm(distKm));
 				break;
 			case MI:
-				asprintf(&str,"%.2f Mi    ",Km2Miles(distKm));
+				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f Mi    ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				asprintf(&str,"%.2f Km    ",distKm);
+				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f Km    ",distKm);
 				/* no break */
-		}
-		FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,str);
 	}
 	if(hours<100) {
 		int hour,min;
 		float sec;
-		convertDecimal2DegMinSec(hours,&hour,&min,&sec);
-		if(screen.height!=240) asprintf(&str,"ETE: %2d:%02d:%02.0f    ",hour,min,sec);
-		else asprintf(&str,"%2d:%02d    ",hour,min);
-	} else if(screen.height!=240) str=strdup("ETE: --:--:--    "); //Estimated Time Enroute
-		else str=strdup("--:--    ");
-	FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,str);
-	free(str);
+		convertDecimal2DegMinSec(hours,&hour,&min,&sec); //Estimated Time Enroute
+		if(screen.height!=240) FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"ETE: %2d:%02d:%02.0f    ",hour,min,sec);
+		else FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"%2d:%02d    ",hour,min);
+	} else if(screen.height!=240) FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"ETE: --:--:--    ");
+		else FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"--:--    ");
 }
 
 void PrintNavDTG(double distRad) { //Distance To Go
-	char *str;
 	switch(config.distUnit) {
 		case NM:
-			asprintf(&str,"DTG: %7.3f NM    ",Rad2Nm(distRad));
+			FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f NM    ",Rad2Nm(distRad));
 			break;
 		case MI:
-			asprintf(&str,"DTG: %7.3f Mi    ",Rad2Mi(distRad));
+			FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Mi    ",Rad2Mi(distRad));
 			break;
 		case KM:
 		default:
-			asprintf(&str,"DTG: %7.3f Km    ",Rad2Km(distRad));
+			FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",Rad2Km(distRad));
 			/* no break */
 	}
-	FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,str);
-	free(str);
 }
 
 void PrintNavTrackATD(double atdRad) {
-	if(screen.height!=240) {
-		char *str;
-		switch(config.distUnit) {
-			case NM:
-				asprintf(&str,"ATD: %7.3f NM  ",Rad2Nm(atdRad));
-				break;
-			case MI:
-				asprintf(&str,"ATD: %7.3f Mi  ",Rad2Mi(atdRad));
-				break;
-			case KM:
-			default:
-				asprintf(&str,"ATD: %7.3f Km  ",Rad2Km(atdRad));
-				/* no break */
-		}
-		FbRender_BlitText(screen.height+28,82,colorSchema.text,colorSchema.background,str);
-		free(str);
+	if(screen.height!=240) switch(config.distUnit) {
+		case NM:
+			FbRender_BlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f NM  ",Rad2Nm(atdRad));
+			break;
+		case MI:
+			FbRender_BlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f Mi  ",Rad2Mi(atdRad));
+			break;
+		case KM:
+		default:
+			FbRender_BlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f Km  ",Rad2Km(atdRad));
+			/* no break */
 	}
 }
 
 void PrintAltitude(double altMt, double altFt) {
-	char *str;
-	asprintf(&str,"%.0f Ft   %.0f m    ",altFt,altMt);
-	FbRender_BlitText(screen.height+28,133,colorSchema.text,colorSchema.background,str);
-	free(str);
+	FbRender_BlitText(screen.height+28,133,colorSchema.text,colorSchema.background,0,"%.0f Ft   %.0f m    ",altFt,altMt);
 }
 
 void PrintVerticalSpeed(double FtMin) {
-	/*
-	char *str;
-	asprintf(&str,"VS: %.0f Ft/min   ",FtMin);
-	FbRender_BlitText(2,42,colorSchema.text,colorSchema.background,str);
-	free(str);
-	*/
+	//FbRender_BlitText(2,42,colorSchema.text,colorSchema.background,str,0,"VS: %.0f Ft/min   ",FtMin);
 }
 
 void PrintTurnRate(double DegMin) {
-	/*
-	char *str;
-	asprintf(&str,"TR: %.2f Deg/min  ",DegMin);
-	FbRender_BlitText(2,52,colorSchema.text,colorSchema.background,str);
-	free(str);
-	*/
+	//FbRender_BlitText(2,52,colorSchema.text,colorSchema.background,str,0,"TR: %.2f Deg/min  ",DegMin);
 }
 
 void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double timeHours) {
-	char *str;
 	if(screen.height!=240) {
 		switch(config.distUnit) {
 			case NM:
-				asprintf(&str,"Tot DTG: %7.3f NM     ",Km2Nm(distKm));
+				FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f NM     ",Km2Nm(distKm));
 				break;
 			case MI:
-				asprintf(&str,"Tot DTG: %7.3f Mi     ",Km2Miles(distKm));
+				FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Mi     ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				asprintf(&str,"Tot DTG: %7.3f Km     ",distKm);
+				FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Km     ",distKm);
 				/* no break */
 		}
-		FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,str);
 		switch(config.speedUnit) {
 			case KNOTS:
-				asprintf(&str,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
+				FbRender_BlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
 			case MPH:
-				asprintf(&str,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
+				FbRender_BlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
 				break;
 			case KMH:
 			default:
-				asprintf(&str,"AS: %5.1f Km/h    ",averageSpeedKmh);
+				FbRender_BlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
 				/* no break */
 		}
-		FbRender_BlitText(screen.height+28,182,colorSchema.text,colorSchema.background,str);
-	} else {
-		switch(config.distUnit) {
-			case NM:
-				asprintf(&str,"%.2f NM     ",Km2Nm(distKm));
-				break;
-			case MI:
-				asprintf(&str,"%.2f Mi     ",Km2Miles(distKm));
-				break;
-			case KM:
-			default:
-				asprintf(&str,"%.2f Km     ",distKm);
-				/* no break */
-		}
-		FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,str);
+	} else switch(config.distUnit) {
+		case NM:
+			FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f NM     ",Km2Nm(distKm));
+			break;
+		case MI:
+			FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f Mi     ",Km2Miles(distKm));
+			break;
+		case KM:
+		default:
+			FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f Km     ",distKm);
+			/* no break */
 	}
 	//TODO: Continue here with the conversion to smaller screen
 	if(timeHours<48) {
@@ -719,53 +678,31 @@ void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double time
 		int hour,min;
 		float sec;
 		convertDecimal2DegMinSec(timeHours,&hour,&min,&sec);
-		asprintf(&str,"ETA: %2d:%02d:%02.0f    ",hour,min,sec);
-	} else str=strdup("ETA: --:--:--    "); //Estimated Time of Arrival
-	FbRender_BlitText(screen.height+28,192,colorSchema.text,colorSchema.background,str);
-	free(str);
+		FbRender_BlitText(screen.height+28,192,colorSchema.text,colorSchema.background,0,"ETA: %2d:%02d:%02.0f    ",hour,min,sec);
+	} else FbRender_BlitText(screen.height+28,192,colorSchema.text,colorSchema.background,0,"ETA: --:--:--    "); //Estimated Time of Arrival
 }
 
 void PrintTime(int hour, int minute, float second) {
-	char *str;
-	asprintf(&str,"UTC: %02d:%02d:%02.0f",hour,minute,second);
-	FbRender_BlitText(screen.height+28,240,colorSchema.text,colorSchema.background,str);
-	free(str);
+	FbRender_BlitText(screen.height+28,240,colorSchema.text,colorSchema.background,0,"UTC: %02d:%02d:%02.0f",hour,minute,second);
 }
 
 void PrintDate(int day, int month, int year) {
-	/*
-	char *str;
-	asprintf(&str,"Date: %2d/%02d/%4d",day,month,year);
-	FbRender_BlitText(2,230,colorSchema.text,colorSchema.background,str);
-	free(str);
-	*/
+	//FbRender_BlitText(2,230,colorSchema.text,colorSchema.background,0,"Date: %2d/%02d/%4d",day,month,year);
 }
 
 void PrintNumOfSats(int activeSats, int satsInView) {
-	char *str;
-	asprintf(&str,"SAT: %2d/%2d",activeSats,satsInView);
-	FbRender_BlitText(screen.height+28,250,colorSchema.text,colorSchema.background,str);
-	free(str);
+	FbRender_BlitText(screen.height+28,250,colorSchema.text,colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
 }
 
 void PrintFixMode(int fixMode) {
-	char *str;
-	unsigned short color;
 	switch(fixMode) {
-		case 3: str=strdup("FIX: 3D mode"); color=colorSchema.text; break;
-		case 2: str=strdup("FIX: 2D mode"); color=colorSchema.warning; break;
-		case 1: str=strdup("FIX: No Fix "); color=colorSchema.warning; break;
-		default: str=strdup("FIX: Unknown"); color=colorSchema.warning; break;
+		case 3: FbRender_BlitText(screen.height+28,260,colorSchema.text,colorSchema.background,0,"FIX: 3D mode"); break;
+		case 2: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: 2D mode"); break;
+		case 1: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: No Fix "); break;
+		default: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: Unknown"); break;
 	}
-	FbRender_BlitText(screen.height+28,260,color,colorSchema.background,str);
-	free(str);
 }
 
 void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition) {
-	/*
-	char *str;
-	asprintf(&str,"DOP P:%4.1f H:%4.1f V:%4.1f",pDiluition,hDiluition,vDiluition);
-	FbRender_BlitText(2,260,colorSchema.text,colorSchema.background,str);
-	free(str);
-	*/
+	//FbRender_BlitText(2,260,colorSchema.text,colorSchema.background,0,"DOP P:%4.1f H:%4.1f V:%4.1f",pDiluition,hDiluition,vDiluition);
 }
