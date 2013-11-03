@@ -1,13 +1,13 @@
 //============================================================================
-// Name        : TomTom.c
+// Name        : FbRender.c
 // Since       : 8/7/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 2/11/2013
-// Description : I/O TomTom interface
+// Last change : 3/11/2013
+// Description : FrameBuffer renderer
 //============================================================================
 
 #define _GNU_SOURCE
@@ -22,13 +22,13 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
-#include <barcelona/Barc_ts.h>
-#include <barcelona/Barc_gps.h>
-#include <barcelona/Barc_Battery.h>
-#include "TomTom.h"
+
+#include "FbRender.h"
 #include "Navigator.h"
 #include "AirCalc.h"
 #include "Configuration.h"
+
+#define CHAR_WIDTH    8
 
 static int fbfd=-1;
 static struct fb_var_screeninfo vinfo;
@@ -36,9 +36,6 @@ static struct fb_fix_screeninfo finfo;
 static long int screensize=0;
 static char *fbp=0;
 static char *fbbackp=0;
-static int tsfd=-1;
-static fd_set fdset;
-static int maxfd;
 static int iClipTop=0,iClipBottom=272,iClipMin=0,iClipMax=480;
 
 //Attempt to init here screen config
@@ -227,7 +224,7 @@ static const unsigned char asciiTable[]={0x00,0x00,0x00,0x00,0x00,//0x00,
 void FbRender_BlitCharacter(int x, int y, unsigned short aColor, unsigned short aBackColor, char character) {
 	unsigned char data0,data1,data2,data3,data4;
 	if(x<0||y<0) return;
-	if(x>screen.width-CharWidth-1||y>screen.height-7) return;
+	if(x>screen.width-CHAR_WIDTH-1||y>screen.height-7) return;
 	if((character<32)||(character>126)) character=' ';
 	const unsigned char *aptr=&asciiTable[(character-32)*5];
 	data0=*aptr++;
@@ -237,7 +234,7 @@ void FbRender_BlitCharacter(int x, int y, unsigned short aColor, unsigned short 
 	data4=*aptr;
 	register unsigned short *ptr=(unsigned short*)(fbbackp+y*((vinfo.xres*vinfo.bits_per_pixel)/8));
 	ptr+=x;
-	register unsigned short *endp=ptr+CharWidth*screen.width;
+	register unsigned short *endp=ptr+CHAR_WIDTH*screen.width;
 	while(ptr<endp) {
 		if(data0&1) *ptr++=aColor;
 		else *ptr++=aBackColor;
@@ -254,14 +251,14 @@ void FbRender_BlitCharacter(int x, int y, unsigned short aColor, unsigned short 
 		if(data4&1) *ptr++=aColor;
 		else *ptr++=aBackColor;
 		data4>>=1;
-		ptr+=screen.width-(CharWidth-3);
+		ptr+=screen.width-(CHAR_WIDTH-3);
 	}
 }
 
 void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char character) {
 	unsigned char data0,data1,data2,data3,data4;
 	if(x<0||y<0) return;
-	if(x>screen.width-CharWidth-1||y>screen.height-7) return;
+	if(x>screen.width-CHAR_WIDTH-1||y>screen.height-7) return;
 	if((character<32)||(character>126)) character=' ';
 	const unsigned char *aptr=&asciiTable[(character-32)*5];
 	data0=*aptr++;
@@ -271,7 +268,7 @@ void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned 
 	data4=*aptr;
 	register unsigned short *ptr=(unsigned short*)(fbbackp+y*((vinfo.xres*vinfo.bits_per_pixel)/8));
 	ptr+=x;
-	register unsigned short *endp=ptr+CharWidth*screen.width;
+	register unsigned short *endp=ptr+CHAR_WIDTH*screen.width;
 	while(ptr<endp) {
 		if(data0&1) *ptr++=aColor;
 		else *ptr++=aBackColor;
@@ -288,7 +285,7 @@ void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned 
 		if(data4&1) *ptr++=aColor;
 		else *ptr++=aBackColor;
 		data4>>=1;
-		ptr+=screen.width-(CharWidth-2);
+		ptr+=screen.width-(CHAR_WIDTH-2);
 	}
 }
 
@@ -304,7 +301,7 @@ int FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackC
 			while(str[i]) {
 				if(italic) FbRender_BlitCharacterItalic(x,y,aColor,aBackColor,str[i]);
 				else FbRender_BlitCharacter(x,y,aColor,aBackColor,str[i]);
-				x+=CharWidth;
+				x+=CHAR_WIDTH;
 				i++;
 			}
 		}
@@ -321,64 +318,7 @@ void FbRender_Scroll(int target_y, int source_y, int height) {
 	memmove(fbbackp+target_y*screen.height*2,fbbackp+source_y*screen.height*2,height*screen.height*2);
 }
 
-void TsScreen_Init() {
-	tsfd=open("/dev/ts",O_RDWR|O_NOCTTY|O_NONBLOCK);
-	if(tsfd<0) tsfd=open("/dev/ts",O_RDONLY|O_NOCTTY|O_NONBLOCK);
-	if(tsfd<0) {
-		printf("tomtom_touchscreen: Kon niet geopend worden '/dev/ts'.\n");
-		tsfd=-1;
-	}
-	ioctl(tsfd,TS_SET_RAW_OFF,NULL);
-	maxfd=tsfd+1;
-	FD_ZERO(&fdset);
-	FD_SET(tsfd, &fdset);
-}
 
-void TsScreen_Exit() {
-	if(tsfd>=0) close(tsfd);
-}
-
-int TsScreen_pen(int *x, int *y, int *pen) {
-	if(tsfd<0) return 0;
-	int read_len;
-	TS_EVENT new_event;
-	static int have_previous=0;
-	static TS_EVENT prev_event;
-	if(!have_previous) {
-		read_len=read(tsfd,&prev_event,sizeof(TS_EVENT));
-		if(read_len==sizeof(TS_EVENT)) have_previous=1;
-	}
-	if(!have_previous) return 0; // if we still don't have an event, there are no events pending, and we can just return
-	memcpy(&new_event,&prev_event,sizeof(TS_EVENT)); // We have an event
-	have_previous=0;
-	read_len=read(tsfd,&prev_event,sizeof(TS_EVENT));
-	if(read_len==sizeof(TS_EVENT)) have_previous=1;
-	while(have_previous&&(prev_event.pressure!=0)==(new_event.pressure!=0)) {
-		memcpy(&new_event,&prev_event,sizeof(TS_EVENT));
-		have_previous=0;
-		read_len=read(tsfd,&prev_event,sizeof(TS_EVENT));
-		if(read_len==sizeof(TS_EVENT)) have_previous=1;
-	}
-	*x=new_event.x;
-	*y=new_event.y;
-	*pen=new_event.pressure;
-	return 1;
-}
-
-int TsScreen_touch(int *x, int *y) {
-	if(tsfd<0) return 0;
-	int read_len;
-	static TS_EVENT event;
-	read_len=read(tsfd,&event,sizeof(TS_EVENT));
-	if(read_len==sizeof(TS_EVENT)) {
-		if(event.pressure==0) {
-			*x=event.x;
-			*y=event.y;
-			return 1;
-		}
-	}
-	return 0;
-}
 
 unsigned long FixSqrt(unsigned long x) {
 	unsigned long r,nr,m;
@@ -422,43 +362,6 @@ void FillCircle(int cx, int cy, int aRad, unsigned short color) {
 void PutLinePoint(int x, int y, unsigned short color, int width) {
 	if(width>1) FillCircle(x,y,width,color);
 	else FbRender_PutPixel(x,y,color);
-}
-
-short checkBattery(short *batVolt, short *refVolt, short *chargeCurr) {
-	int battery=open("/dev/battery",O_RDONLY|O_NOCTTY);
-	if(battery<0) return 0;
-	else {
-		BATTERY_STATUS bs;
-		if(ioctl(battery,IOR_BATTERY_STATUS,&bs)==-1) { //if the return values is -1 it means fault
-			close(battery);
-			return -1;
-		}
-		*batVolt=(short)bs.u16BatteryVoltage;   // battery voltage
-		*refVolt=(short)bs.u16ReferenceVoltage; // reference voltage
-		*chargeCurr=(short)bs.u16ChargeCurrent; // Charge current
-		//What kind of units do we have here?
-		close(battery);
-	}
-	return 1;
-}
-
-static int gps;
-
-short enableGPS() {
-	gps=open("/dev/gps",O_RDWR);
-	if(gps<0) return 0;
-	else {
-		if(ioctl(gps,IOW_GPS_ON,NULL)==-1) { //if the return values is -1 it means fault
-			close(gps);
-			gps=-1;
-			return -1;
-		}
-	}
-	return 1;
-}
-
-void disableGPS() {
-	if(gps>=0) close(gps);
 }
 
 void DrawTwoPointsLine(int ax, int ay, int bx, int by, unsigned short color) {

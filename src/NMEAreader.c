@@ -23,7 +23,7 @@
 #include "AirCalc.h"
 #include "Geoidal.h"
 #include "NMEAreader.h"
-#include "TomTom.h"
+#include "FbRender.h"
 #include "HSI.h"
 #include "Navigator.h"
 #include "BlackBox.h"

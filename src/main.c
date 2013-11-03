@@ -21,7 +21,8 @@
 #include <pthread.h>
 #include "AirNavigator.h"
 #include "Configuration.h"
-#include "TomTom.h"
+#include "FbRender.h"
+#include "TsScreen.h"
 #include "NMEAreader.h"
 #include "Navigator.h"
 #include "AirCalc.h"
