@@ -3,10 +3,10 @@
 // Since       : 19/2/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
-// Copyright   : (C) 2010 Alberto Realis-Luc
+// Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 1/11/2013
+// Last change : 3/11/2013
 // Description : Collection of functions for air navigation calculation
 //============================================================================
 
@@ -28,7 +28,7 @@
 #define FT_M            0.3048   //1 Ft = 0.3048 m
 #define FTMIN_MSEC      0.00508  //1 Ft/min = 0.00508 m/s
 #define YARD_M          0.9144   //1 yard = 0.9144 m (3 Ft)
-#define SEC_HOUR        0.0002777777777777777777777777778 //1/3600
+#define SEC_HOUR        0.0002777777777777777777777777777778L //1/3600
 #define HALF_PI         (PI/2)
 #define QUARTER_PI      (PI/4)
 #define DEG2RAD         (PI/180)

@@ -3,14 +3,13 @@
 // Since       : 19/2/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
-// Copyright   : (C) 2010 Alberto Realis-Luc
+// Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
 // Last change : 2/11/2013
 // Description : Navigation manager
 //============================================================================
 
-//FIXME: detected possible crash while approaching the final destination
 //FIXME: detected NaN for course and XTD for some rare case
 //TODO: manage better the navigation to the departure
 
@@ -34,16 +33,18 @@
 int status=STATUS_NOT_INIT, numWayPoints=0;
 double trueCourse, previousAltitude=-1000;
 double totalDistKm, prevWPsTotDist; //Km
+double prevWpAvgSpeed, prevTotAvgSpeed; //Km/h
 wayPoint dept, currWP, dest;
 char *routeLogPath;
 FILE *routeLog=NULL;
 double sunZenith; //here in rad
 
-
 void NavConfigure() {
 	int oldStatus=status;
 	status=STATUS_NAV_BUSY;
 	sunZenith=Deg2Rad(config.sunZenith); //rad
+	prevWpAvgSpeed=config.cruiseSpeed;
+	prevTotAvgSpeed=config.cruiseSpeed;
 	if(oldStatus==STATUS_NOT_INIT) status=STATUS_NO_ROUTE_SET;
 	else status=oldStatus;
 }
@@ -96,8 +97,7 @@ void NavCalculateRoute() {
 	if(routeLog!=NULL) fclose(routeLog); //Close the route log file when not needed
 	prevWPsTotDist=0;
 	status=STATUS_TO_START_NAV;
-	if(numWayPoints==2) PrintNavStatus(status,"Final destination");
-	else PrintNavStatus(status,dept->next->name);
+	PrintNavStatus(status,dept->next->name);
 	FbRender_Flush();
 }
 
@@ -162,7 +162,6 @@ int NavLoadFlightPlan(char* GPXfile) {
 				if(text!=NULL) altX=atof(text);
 				else altX=0;
 			} else altX=0; //WP altitude missing we put it to 0
-			wpcounter++;
 			node=roxml_get_chld(wp,"name",0);
 			if(node!=NULL) {
 				text=roxml_get_content(node,NULL,0,NULL);
@@ -287,11 +286,9 @@ void NavFindNextWP(double lat, double lon) {
 		}
 		status=STATUS_NAV_TO_WPT;
 	}
-	if(currWP!=dest) PrintNavStatus(status,currWP->name);
-	else {
-		status=STATUS_NAV_TO_DST;
-		PrintNavStatus(status,"Final destination");
-	}
+
+	if(currWP==dest) status=STATUS_NAV_TO_DST;
+	PrintNavStatus(status,currWP->name);
 	logText("Next waypoint is: %s\n\n\n",currWP->name);
 	FbRender_Flush();
 }
@@ -314,9 +311,33 @@ void NavStartNavigation(float timestamp) { //timestamp have to be the real time 
 		currWP=dept->next;
 		status=STATUS_WAIT_FIX;
 	}
-	if(currWP==dest) PrintNavStatus(status,"Final destination");
-	else PrintNavStatus(status,currWP->name);
+	PrintNavStatus(status,currWP->name);
 	FbRender_Flush();
+}
+
+void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
+	double averageSpeed; //Km/h
+	double time; //Hours
+	if(timestamp>currWP->prev->arrTimestamp) { //to avoid infinite, null or negative speed and time
+		remainDist=Rad2Km(remainDist); //Km
+		if(atd>=0) {
+			averageSpeed=ms2Kmh(Rad2m(atd)/(timestamp-currWP->prev->arrTimestamp));
+			prevWpAvgSpeed=averageSpeed;
+		} else averageSpeed=prevWpAvgSpeed; //with negative ATDs we estimate using previous average speed
+		time=remainDist/averageSpeed; //ETE (remaining time) in hours
+		PrintNavRemainingDistWP(remainDist,averageSpeed,time);
+	}
+	if(timestamp>dept->arrTimestamp) {
+		double totCoveredDistKm=prevWPsTotDist+Rad2Km(atd);
+		if(atd>=0) {
+			averageSpeed=ms2Kmh((totCoveredDistKm*1000)/(timestamp-dept->arrTimestamp)); //Km/h
+			prevTotAvgSpeed=averageSpeed;
+		} else averageSpeed=prevTotAvgSpeed;
+		remainDist=totalDistKm-totCoveredDistKm; //Km
+		time=remainDist/averageSpeed; //hours
+		time+=timestamp/3600; //hours, in order to obtain the ETA
+		PrintNavRemainingDistDST(remainDist,averageSpeed,time);
+	}
 }
 
 void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, double dir, float timestamp) {
@@ -341,110 +362,70 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			if(remainDist<m2Rad(config.deptDistTolerance)) {
 				currWP=dept->next;
 				dept->arrTimestamp=timestamp; //here we record the starting time for whole route
-
-				if(currWP!=dest) {
-					status=STATUS_NAV_TO_WPT;
-					PrintNavStatus(status,currWP->name);
-				} else { //Next WP is already the final destination
-					status=STATUS_NAV_TO_DST;
-					PrintNavStatus(status,"Final destination");
-				}
+				if(currWP!=dest) status=STATUS_NAV_TO_WPT;
+				else status=STATUS_NAV_TO_DST; //Next WP is already the final destination
+				PrintNavStatus(status,currWP->name);
 				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //recursive call
 			}
 			break;
 		case STATUS_NAV_TO_WPT: {
 			double atd, trackErr;
 			trackErr=Rad2m(calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->trueCourse,&atd));
-			remainDist=currWP->dist-atd;
-			if(atd>=0) {
-				actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
-				if(bisectorOverpassed(currWP->trueCourse,currWP->next->trueCourse,actualTrueCourse)) { //consider this WP as reached
-					currWP->arrTimestamp=timestamp;
+			if(atd>=0) remainDist=currWP->dist-atd;
+			else remainDist=currWP->dist+fabs(atd); //negative ATD: we are still before the prev WP
+			actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
+			if(atd>=0 && (bisectorOverpassed(currWP->trueCourse,currWP->next->trueCourse,actualTrueCourse) || atd>=currWP->dist)) { //consider this WP as reached
+				currWP->arrTimestamp=timestamp;
 
-					//////Bisector TESTING:
-					int hour, min,latDeg,lonDeg,latMin,lonMin;
-					float sec,latSec,lonSec;
-					convertTimestamp2HourMinSec(timestamp,&hour,&min,&sec);
-					convertRad2DegMinSec(lat,&latDeg,&latMin,&latSec);
-					convertRad2DegMinSec(lon,&lonDeg,&lonMin,&lonSec);
-					logText("*** %d:%d:%f Bisector crossed lat: %d %d %f - lon: %d %d %f \n",hour,min,sec,latDeg,latMin,latSec,lonDeg,lonMin,lonSec);
-					//////END of TESTING
+				//////Bisector TESTING:
+				int hour, min,latDeg,lonDeg,latMin,lonMin;
+				float sec,latSec,lonSec;
+				convertTimestamp2HourMinSec(timestamp,&hour,&min,&sec);
+				convertRad2DegMinSec(lat,&latDeg,&latMin,&latSec);
+				convertRad2DegMinSec(lon,&lonDeg,&lonMin,&lonSec);
+				logText("*** %d:%d:%f Bisector crossed lat: %d %d %f - lon: %d %d %f \n",hour,min,sec,latDeg,latMin,latSec,lonDeg,lonMin,lonSec);
+				//////END of TESTING
 
-					prevWPsTotDist+=Rad2Km(currWP->dist);
-					currWP=currWP->next;
-					if(currWP!=dest) PrintNavStatus(status,currWP->name);
-					else { //Next WP is the final destination
-						status=STATUS_NAV_TO_DST;
-						PrintNavStatus(status,"Final destination");
-					}
-					NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
-					return;
-				} //else the WP or bisector is still not reached...
-				if(fabs(trackErr)>config.trackErrorTolearnce) { //if we have bigger error
-					double latI,lonI; //the perpendicular point on the route
-					calcIntermediatePoint(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude,atd,currWP->dist,&latI,&lonI);
-					actualTrueCourse=calcGreatCircleCourse(latI,lonI,currWP->latitude,currWP->longitude);
-				} //else with a small error the actualTrueCourse calculated before is fine
-				PrintNavTrackATD(atd);
-				HSIupdateCDI(Rad2Deg(actualTrueCourse),trackErr);
-				HSIupdateVSI(m2Ft((currWP->altitude-currWP->prev->altitude)/currWP->dist*atd+currWP->prev->altitude));
-				if(timestamp>currWP->prev->arrTimestamp) { //to avoid infinite, null or negative speed and time
-					double averageSpeed=ms2Kmh(Rad2m(atd)/(timestamp-currWP->prev->arrTimestamp));
-					remainDist=Rad2Km(remainDist); //Km
-					double time=remainDist/averageSpeed; //ETE (remaining time) in hours
-					PrintNavRemainingDistWP(remainDist,averageSpeed,time);
-				}
-				if(timestamp>dept->arrTimestamp) {
-					double totCoveredDistKm=prevWPsTotDist+Rad2Km(atd);
-					double averageSpeed=ms2Kmh((totCoveredDistKm*1000)/(timestamp-dept->arrTimestamp)); //Km/h
-					remainDist=totalDistKm-totCoveredDistKm; //Km
-					double time=remainDist/averageSpeed; //hours
-					time+=timestamp/3600; //hours, in order to obtain the ETA
-					PrintNavRemainingDistDST(remainDist,averageSpeed,time);
-				}
-			} else { //Negative ATD
-				//TODO: What to do with negative ATD? (It means that we are flying backward and we passed the previous WP)
-			}
+				prevWPsTotDist+=Rad2Km(currWP->dist);
+				currWP=currWP->next;
+				if(currWP==dest) status=STATUS_NAV_TO_DST; //Next WP is the final destination
+				PrintNavStatus(status,currWP->name);
+				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
+				return;
+			} //else the WP or bisector is still not reached...
+			if(fabs(trackErr)>config.trackErrorTolearnce) { //if we have bigger error
+				double latI,lonI; //the perpendicular point on the route
+				calcIntermediatePoint(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude,atd,currWP->dist,&latI,&lonI);
+				actualTrueCourse=calcGreatCircleCourse(latI,lonI,currWP->latitude,currWP->longitude);
+			} //else with a small error the actualTrueCourse calculated before is fine
+			HSIupdateCDI(Rad2Deg(actualTrueCourse),trackErr);
+			PrintNavTrackATD(atd);
+			if(atd>=0) HSIupdateVSI(m2Ft((currWP->altitude-currWP->prev->altitude)/currWP->dist*atd+currWP->prev->altitude));
+			updateDtgEteEtaAs(atd,timestamp,remainDist);
 		} break;
 		case STATUS_NAV_TO_DST: {
 			double atd, trackErr;
 			trackErr=Rad2m(calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->trueCourse,&atd));
-			remainDist=currWP->dist-atd;
-			if(atd>=0) {
-				if(atd>=currWP->dist) { //consider destination as reached (90 degrees bisector)
-					currWP->arrTimestamp=timestamp;
-					status=STATUS_END_NAV;
-					PrintNavStatus(status,"Nowhere");
-					NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
-					return;
-				} //else the destination is still not reached...
-				if(fabs(trackErr)<config.trackErrorTolearnce) //with a really small error
-					actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //just find the direct direction to the destination
-				else { //otherwise we have bigger error and so we calculate it better...
-					double latI,lonI; //the perpendicular point on the route
-					calcIntermediatePoint(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude,atd,currWP->dist,&latI,&lonI);
-					actualTrueCourse=calcGreatCircleCourse(latI,lonI,currWP->latitude,currWP->longitude);
-				}
-				PrintNavTrackATD(atd);
-				HSIupdateCDI(Rad2Deg(actualTrueCourse),trackErr);
-				HSIupdateVSI(m2Ft((currWP->altitude-currWP->prev->altitude)/currWP->dist*atd+currWP->prev->altitude));
-				if(timestamp>currWP->prev->arrTimestamp) { //to avoid infinite, null or negative speed and time
-					double averageSpeed=ms2Kmh(Rad2m(atd)/(timestamp-currWP->prev->arrTimestamp));
-					remainDist=Rad2Km(remainDist); //Km
-					double time=remainDist/averageSpeed; //ETE (remaining time) in hours
-					PrintNavRemainingDistWP(remainDist,averageSpeed,time);
-				}
-				if(timestamp>dept->arrTimestamp) {
-					double totCoveredDistKm=prevWPsTotDist+Rad2Km(atd);
-					double averageSpeed=ms2Kmh((totCoveredDistKm*1000)/(timestamp-dept->arrTimestamp)); //Km/h
-					remainDist=totalDistKm-totCoveredDistKm; //Km
-					double time=remainDist/averageSpeed; //hours
-					time+=timestamp/3600; //hours, in order to obtain the ETA
-					PrintNavRemainingDistDST(remainDist,averageSpeed,time);
-				}
-			} else { //Negative ATD
-				//TODO: What to do with negative ATD? (It means that we are flying backward and we passed the previous WP)
+			if(atd>=0) remainDist=currWP->dist-atd;
+			else remainDist=currWP->dist+fabs(atd); //negative ATD: we are still before the prev WP
+			if(atd>=currWP->dist) { //consider destination as reached (90 degrees bisector)
+				currWP->arrTimestamp=timestamp;
+				status=STATUS_END_NAV;
+				PrintNavStatus(status,"Nowhere");
+				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
+				return;
+			} //else the destination is still not reached...
+			if(fabs(trackErr)<config.trackErrorTolearnce) //with a really small error
+				actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //just find the direct direction to the destination
+			else { //otherwise we have bigger error and so we calculate it better...
+				double latI,lonI; //the perpendicular point on the route
+				calcIntermediatePoint(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude,atd,currWP->dist,&latI,&lonI);
+				actualTrueCourse=calcGreatCircleCourse(latI,lonI,currWP->latitude,currWP->longitude);
 			}
+			PrintNavTrackATD(atd);
+			HSIupdateCDI(Rad2Deg(actualTrueCourse),trackErr);
+			if(atd>=0) HSIupdateVSI(m2Ft((currWP->altitude-currWP->prev->altitude)/currWP->dist*atd+currWP->prev->altitude));
+			updateDtgEteEtaAs(atd,timestamp,remainDist);
 		} break;
 		case STATUS_END_NAV: { //We have reached or passed the destination
 			actualTrueCourse=calcGreatCircleRoute(lat,lon,dest->latitude,dest->longitude,&remainDist); //calc just course and distance
@@ -481,13 +462,9 @@ void NavSkipCurrentWayPoint() {
 		currWP=currWP->next; //jump to the next
 		currWP->trueCourse=calcGreatCircleRoute(lat,lon,currWP->latitude,currWP->longitude,&currWP->dist); //recalc course
 		totalDistKm+=Rad2Km(currWP->dist); //we add the new dst form current pos to the next WP
-		if(currWP!=dest) {
-			status=STATUS_NAV_TO_WPT;
-			PrintNavStatus(status,currWP->name);
-		} else {
-			status=STATUS_NAV_TO_DST;
-			PrintNavStatus(status,"Final destination");
-		}
+		if(currWP!=dest) status=STATUS_NAV_TO_WPT;
+		else status=STATUS_NAV_TO_DST;
+		PrintNavStatus(status,currWP->name);
 	}
 }
 

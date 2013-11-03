@@ -3,11 +3,11 @@
 // Since       : 19/2/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
-// Copyright   : (C) 2010 Alberto Realis-Luc
+// Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 2/11/2013
-// Description : Navigation manager
+// Last change : 3/11/2013
+// Description : Header of the navigation manager: Navigator.c
 //============================================================================
 
 #ifndef NAVIGATOR_H_

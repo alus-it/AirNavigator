@@ -3,7 +3,7 @@
 // Since       : 8/7/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
-// Copyright   : (C) 2010 Alberto Realis-Luc
+// Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
 // Last change : 2/11/2013
@@ -524,15 +524,16 @@ void PrintSpeed(double speedKmh, double speedKnots) {
 void PrintNavStatus(int status, char *WPname) {
 	char *statusName;
 	switch(status) {
-			case STATUS_NOT_INIT: 		statusName=strdup("Nav not set   "); break;
-			case STATUS_NO_ROUTE_SET:	statusName=strdup("No route set  "); break;
-			case STATUS_TO_START_NAV:	statusName=strdup("Ready to start"); break;
-			case STATUS_WAIT_FIX:			statusName=strdup("Waiting FIX   "); break;
-			case STATUS_NAV_TO_DPT:		statusName=strdup("Nav to Depart."); break;
-			case STATUS_NAV_TO_WPT:		statusName=strdup("Nav to WPT    "); break;
-			case STATUS_END_NAV:			statusName=strdup("Nav ended     "); break;
-			case STATUS_NAV_BUSY:			statusName=strdup("Busy, planning"); break;
-			default:									statusName=strdup("Unknown       "); break;
+			case STATUS_NOT_INIT:     statusName=strdup("Nav not set   "); break;
+			case STATUS_NO_ROUTE_SET: statusName=strdup("No route set  "); break;
+			case STATUS_TO_START_NAV: statusName=strdup("Ready to start"); break;
+			case STATUS_WAIT_FIX:     statusName=strdup("Waiting FIX   "); break;
+			case STATUS_NAV_TO_DPT:   statusName=strdup("Nav to Depart."); break;
+			case STATUS_NAV_TO_WPT:   statusName=strdup("Nav to WPT    "); break;
+			case STATUS_NAV_TO_DST:   statusName=strdup("Nav to Dest.  ");   break;
+			case STATUS_END_NAV:      statusName=strdup("Nav ended     "); break;
+			case STATUS_NAV_BUSY:     statusName=strdup("Busy, planning"); break;
+			default:                  statusName=strdup("Unknown       "); break;
 	}
 	if(screen.height!=240) {
 		FbRender_BlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"NAV: %s       ",statusName);
@@ -582,7 +583,7 @@ void PrintNavRemainingDistWP(double distKm, double averageSpeedKmh, double hours
 				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f Km    ",distKm);
 				/* no break */
 	}
-	if(hours<100) {
+	if(hours<100 && hours>0) {
 		int hour,min;
 		float sec;
 		convertDecimal2DegMinSec(hours,&hour,&min,&sec); //Estimated Time Enroute
@@ -673,7 +674,7 @@ void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double time
 			/* no break */
 	}
 	//TODO: Continue here with the conversion to smaller screen
-	if(timeHours<48) {
+	if(timeHours<48 && timeHours>0) {
 		if(timeHours>24) timeHours-=24;
 		int hour,min;
 		float sec;

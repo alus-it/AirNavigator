@@ -3,10 +3,10 @@
 // Since       : 14/9/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
-// Copyright   : (C) 2010 Alberto Realis-Luc
+// Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 08/2/2013
+// Last change : 3/11/2013
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
@@ -30,6 +30,8 @@ char *filename=NULL;
 long trackPointCounter;
 FILE *tracklogFile=NULL;
 short bbStatus=BBS_NOT_SET;
+
+//TODO: here we should put a mutex
 
 void BlackBoxStart() {
 	if(bbStatus!=BBS_NOT_SET) return;
@@ -164,6 +166,7 @@ short BlackBoxCommit() {
 }
 
 void BlackBoxClose() {
+	BlackBoxCommit();
 	bbStatus=BBS_NOT_SET;
 	if(tracklogFile!=NULL) {
 		fprintf(tracklogFile,"</trkseg>\n"

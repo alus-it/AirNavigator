@@ -3,10 +3,10 @@
 // Since       : 8/7/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
-// Copyright   : (C) 2010 Alberto Realis-Luc
+// Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/10/2013
+// Last change : 2/11/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
@@ -232,9 +232,16 @@ int main(int argc, char** argv) {
 		//Here we wait for a touch to reverse the route
 		while(!TsScreen_touch(&x,&y));
 
+		//Stop the recorder in order to finalize the track of the first way
+		BlackBoxClose();
+
 		//Here we reverse the route
 		NavReverseRoute();
 		logText("Flight plan reversed.\n");
+
+		//Start the track recorder for the return way
+		BlackBoxStart();
+		logText("BlackBox recorder restarted.\n");
 
 		timestamp=gps.timestamp;
 		if(timestamp==-1) timestamp=getCurrentTime();
@@ -301,6 +308,7 @@ int main(int argc, char** argv) {
 	free(config.GPSdevName);
 	NavClose();
 	BlackBoxClose();
+	logText("BlackBox recorder closed.\n");
 	free(config.tomtomModel);
 	free(config.serialNumber);
 	if(numGPXfiles>0) do { //free the list of GPX files

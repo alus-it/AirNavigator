@@ -3,7 +3,7 @@
 #  Since       : 11/07/2012
 #  Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 #  Web         : http://www.alus.it/airnavigator/
-#  Copyright   : (C) 2010 Alberto Realis-Luc
+#  Copyright   : (C) 2010-2013 Alberto Realis-Luc
 #  License     : GNU GPL v2
 #  Last change : 11/07/2011
 #  Description : Simple Makefile to compile roxml library for ARM 

@@ -3,7 +3,7 @@
 // Since       : 19/2/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
-// Copyright   : (C) 2010 Alberto Realis-Luc
+// Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
 // Last change : 31/10/2013
@@ -14,9 +14,9 @@
 #define AIRCALC_H_
 
 //Common calculation defines
-#define PI      3.1415926535897932384626433832795
+#define PI      3.1415926535897932384626433832795029L
 #define TWO_PI  (2*PI)
-#define SIXTYTH 0.0166666666666666666666666666667 // 1/60
+#define SIXTYTH 0.0166666666666666666666666666666667L // 1/60
 #define MILE_FT 5280 //1 Mile = 5280 Ft (1760 Yards)
 
 //Sunrise/sunset algorithm return values
