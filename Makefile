@@ -74,9 +74,6 @@ $(BIN)main.o: $(SRC)main.c $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)FbRe
 $(BIN)NMEAreader.o: $(SRC)NMEAreader.c $(SRC)NMEAreader.h $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FbRender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@
 
-#$(BIN)tpgps.o: $(SRC)tpgps.c
-#	$(CC) $(CFLAGS) $< -o $@
-
 $(BIN)SiRFreader.o: $(SRC)SiRFreader.c $(SRC)SiRFreader.h $(SRC)AirNavigator.h
 	$(CC) $(CFLAGS) $< -o $@
 
