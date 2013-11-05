@@ -376,16 +376,6 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
 			if(atd>=0 && (bisectorOverpassed(currWP->trueCourse,currWP->next->trueCourse,actualTrueCourse) || atd>=currWP->dist)) { //consider this WP as reached
 				currWP->arrTimestamp=timestamp;
-
-				//////Bisector TESTING:
-				int hour, min,latDeg,lonDeg,latMin,lonMin;
-				float sec,latSec,lonSec;
-				convertTimestamp2HourMinSec(timestamp,&hour,&min,&sec);
-				convertRad2DegMinSec(lat,&latDeg,&latMin,&latSec);
-				convertRad2DegMinSec(lon,&lonDeg,&lonMin,&lonSec);
-				logText("*** %d:%d:%f Bisector crossed lat: %d %d %f - lon: %d %d %f \n",hour,min,sec,latDeg,latMin,latSec,lonDeg,lonMin,lonSec);
-				//////END of TESTING
-
 				prevWPsTotDist+=Rad2Km(currWP->dist);
 				currWP=currWP->next;
 				if(currWP==dest) status=STATUS_NAV_TO_DST; //Next WP is the final destination

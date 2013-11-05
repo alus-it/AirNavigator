@@ -126,4 +126,4 @@ libclean:
 ### Make the zip file with the final distribution
 zip: all
 	@rm -f $(DIST)*.zip
-	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r .$(DIST)$(ZIPNAME).zip . ;cd ..;
+	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPNAME).zip . ;cd ..;

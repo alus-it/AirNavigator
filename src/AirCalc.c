@@ -89,13 +89,13 @@ double calcTotalSpeed(double hSpeed,double vSpeed) {
 }
 
 double latDegMin2rad(int degrees,float minutes,short N) {
-	if(N) return (degrees+minutes*SIXTYTH)*DEG2RAD;
-	else return -(degrees+minutes*SIXTYTH)*DEG2RAD;
+	if(N) return (degrees+minutes*SIXTYTH)*DEG2RAD; //North latitudes positive
+	else return -(degrees+minutes*SIXTYTH)*DEG2RAD; //South latitudes negative
 }
 
 double lonDegMin2rad(int degrees,float minutes,short E) {
-	if(E) return -(degrees+minutes*SIXTYTH)*DEG2RAD;
-	else return (degrees+minutes*SIXTYTH)*DEG2RAD;
+	if(E) return -(degrees+minutes*SIXTYTH)*DEG2RAD; //Here we consider East longitudes as negative
+	else return (degrees+minutes*SIXTYTH)*DEG2RAD; //... and West longitudes as positive
 }
 
 double latDegMinSec2rad(int deg, int min, float sec, short N) {

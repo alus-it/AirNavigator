@@ -307,7 +307,8 @@ Version 0.2.6
 	Switch to next Way Point made when crossing bisector lines
 	Magnetic heading not displayed because from TomTom's GPS is always equal to true one
 	Crash when heading to the final destination fixed
-	Some other bug fixed
+	Create a new track file when reversing the route to return back
+	Some other less relevant bug fixed
 
 CONTACTS
 Author: Alberto Realis-Luc

@@ -112,7 +112,7 @@ short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int m
 					lastlon=lon;
 					lastTimestamp=timestamp;
 					lat=Rad2Deg(lat);
-					lon=-Rad2Deg(lon);
+					lon=-Rad2Deg(lon); //For GPX standard East longitudes are positive
 					if(lat<minlat) minlat=lat;
 					if(lon<minlon) minlon=lon;
 					if(lat>maxlat) maxlat=lat;
