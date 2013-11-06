@@ -25,8 +25,6 @@ short TsScreenStart();
 void TsScreenClose();
 condVar_t TsScreenGetCondVar();
 TS_EVENT TsScreenGetLastTouch();
-int TsScreen_pen(int *x, int *y, int *pen);
-int TsScreen_touch(int *x, int *y);
 
 short checkBattery(short *batVolt, short *refVolt, short *chargeCurr);
 short enableGPS();

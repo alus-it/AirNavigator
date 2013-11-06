@@ -29,7 +29,6 @@
 #include "BlackBox.h"
 #include "HSI.h"
 //#include "SiRFreader.h"
-//#include "tpgps.h"
 #include "Geoidal.h"
 
 #ifndef VERSION
@@ -86,31 +85,11 @@ int main(int argc, char** argv) {
 		releaseAll();
 		exit(EXIT_FAILURE);
 	}
-	fileEntry fileList=NULL, currFile=NULL; //the list of the found GPX flight plans and the pointer to the current one
-	int numGPXfiles=0;
-	//int x=0,y=0; //coordinates of the touch screen
 
 	FbRender_Flush();
-
 	initConfig(); //initialize the configuration with the default values
-
 	FbRender_Flush();
-	{ // flush pen input
-		int x=0,y=0,pen=0;
-		while(TsScreen_pen(&x,&y,&pen));
-	}
-
-
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
-
-
-	//FIXME: Check battery status (not working)
-	/*short batVolt, refVolt, chargeCurr;
-	 if(checkBattery(&batVolt,&refVolt,&chargeCurr)) {
-	 logText("Battery Voltage = %d\n",batVolt);           // battery voltage
-	 logText("Reference Voltage = %d\n",refVolt);       // reference voltage
-	 logText("Charge Current = %d\n",chargeCurr);             // Charge current
-	 } else logText("ERROR: unable to get the battery status.\n");*/
 
 	//Read TomTom model
 	FILE *fd=NULL;
@@ -156,6 +135,8 @@ int main(int argc, char** argv) {
 	logText("Configuration loaded.\n");
 
 	//Prepare the list of available flight plans found in the routes folder
+	fileEntry fileList=NULL, currFile=NULL; //the list of the found GPX flight plans and the pointer to the current one
+	int numGPXfiles=0;
 	struct dirent *entry;
 	DIR *dir = opendir("/mnt/sdcard/AirNavigator/Routes");
 	if(dir!=NULL) {
@@ -204,7 +185,6 @@ int main(int argc, char** argv) {
 			if(currFile->next!=NULL) FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
 			else FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
 			FbRender_Flush();
-
 			pthread_mutex_lock(&signal->lastTouchMutex);
 			pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user presses a "button"
 			TS_EVENT lt=TsScreenGetLastTouch();
@@ -274,47 +254,6 @@ int main(int argc, char** argv) {
 		logText("Navigation re-started.\n");
 	}
 
-	/*
-	 //and here the SiRF test implemented by tomplayer:
-	 //Draw two lines to show that the test is started
-	 logText("Inizio test SiRF implemented by tomplayer.\n");//////////
-	 DrawTwoPointsLine(10,10,200,200,0xF000);////////////////////////
-	 DrawTwoPointsLine(20,10,210,200,0xFF00);////////////////
-	 FbRender_Flush();////////////////
-
-	 struct gps_data info;
-	 int disp_seq = 0;
-	 gps_init();
-	 int countdown=10000;
-	 while(countdown>0) {
-	 if(gps_update()==-1) {
-	 gps_get_data(&info);
-	 if(info.seq!=disp_seq) {
-	 time_t curr_time;
-	 struct tm * ptm;
-	 disp_seq = info.seq;
-	 logText("Lat  : %i°%i'\n",info.lat_deg,info.lat_mins);
-	 logText("Long : %i°%i'\n",info.long_deg,info.long_mins);
-	 logText("Alt  : %i,%im\n",info.alt_cm/100,info.alt_cm % 100);
-	 logText("Sats : %i\n",info.sat_nb);
-	 logText("vit  : %ikm/h\n",info.speed_kmh);
-	 logText("TimeG: %s",asctime(&info.time));
-	 time(&curr_time);
-	 ptm=localtime(&curr_time);
-	 logText("TimeS: %02d : %02d\n",ptm->tm_hour,ptm->tm_min );
-	 }
-	 usleep(100000);
-	 }
-	 countdown--;
-	 }
-	 gps_close();
-	 //Draw two lines to show that the test is finished
-	 DrawTwoPointsLine(30,10,220,200,0x0F00);/////////////////////////
-	 DrawTwoPointsLine(40,10,230,200,0x00F0);///////////////////////
-	 FbRender_Flush();//////////////////
-	 logText("Fine test SiRF implemented by tomplayer.\n");//////////
-	 */
-
 	//Exit "button"
 	FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
 	FbRender_Flush();
@@ -324,7 +263,10 @@ int main(int argc, char** argv) {
 		pthread_mutex_lock(&signal->lastTouchMutex);
 		pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user touches the screen
 		TS_EVENT lt=TsScreenGetLastTouch();
-		if((lt.x>screen.width-(5*8))&&(lt.y<40)) DoExit=1;
+		if((lt.x>screen.width-(5*8))&&(lt.y<40)) {
+			DoExit=1;
+			logText("Touch to exit detected\n");
+		}
 		pthread_mutex_unlock(&signal->lastTouchMutex);
 	}
 
