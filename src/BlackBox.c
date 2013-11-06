@@ -31,8 +31,6 @@ long trackPointCounter;
 FILE *tracklogFile=NULL;
 short bbStatus=BBS_NOT_SET;
 
-//TODO: here we should put a mutex
-
 void BlackBoxStart() {
 	if(bbStatus!=BBS_NOT_SET) return;
 	trackPointCounter=0;

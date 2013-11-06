@@ -182,8 +182,8 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	pey=major_mark;
 	pix=cx;
 	piy=cdi_border;
-	rotatePoint(cx,cy,&pex,&pey,angle+PI);
-	rotatePoint(cx,cy,&pix,&piy,angle+PI);
+	rotatePoint(cx,cy,&pex,&pey,angle+M_PI);
+	rotatePoint(cx,cy,&pix,&piy,angle+M_PI);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
 	short i;
 	for(i=-5;i<6;i++) { //ticks of the CDI scale

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 3/11/2013
+// Last change : 6/11/2013
 // Description : Collection of functions for air navigation calculation
 //============================================================================
 
@@ -28,12 +28,10 @@
 #define FT_M            0.3048   //1 Ft = 0.3048 m
 #define FTMIN_MSEC      0.00508  //1 Ft/min = 0.00508 m/s
 #define YARD_M          0.9144   //1 yard = 0.9144 m (3 Ft)
-#define SEC_HOUR        0.0002777777777777777777777777777778L //1/3600
-#define HALF_PI         (PI/2)
-#define QUARTER_PI      (PI/4)
-#define DEG2RAD         (PI/180)
-#define RAD2DEG         (180/PI)
-#define RAD2NM          ((180*60)/PI)
+#define SEC_HOUR        0.00027777777777777778  // 1/3600
+#define DEG2RAD         (M_PI/180)
+#define RAD2DEG         (180/M_PI)
+#define RAD2NM          ((180*60)/M_PI)
 
 //TOL is a small number of order machine precision- say 1e-15 (here 1e-16).
 //this is used in calcRhumbLineRoute to avoid 0/0 indeterminacies on E-W courses.
@@ -118,7 +116,7 @@ double absAngle(double angle) { //to put angle in the range between 0 and 2PI
 double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, double *d) { //Loxodrome
 	double dlon_W=absAngle(lon2-lon1);
 	double dlon_E=absAngle(lon1-lon2);
-	double dphi=log(tan(lat2/2+QUARTER_PI)/tan(lat1/2+QUARTER_PI));
+	double dphi=log(tan(lat2/2+M_PI_4)/tan(lat1/2+M_PI_4));
 	double q,tc;
 	if(fabs(lat2-lat1)>SQRT_TOL) q=(lat2-lat1)/dphi;
 	else q=cos(lat1);
@@ -134,12 +132,12 @@ double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, do
 
 double calcGreatCircleRoute(double lat1, double lon1, double lat2, double lon2, double *d) { //Ortodrome
 	*d=calcAngularDist(lat1,lon1,lat2,lon2);
-	if(lat1+lat2==0 && fabs(lon1-lon2)==PI && fabs(lat1)!=HALF_PI) return 0; //Course between antipodal points is undefined!
+	if(lat1+lat2==0 && fabs(lon1-lon2)==M_PI && fabs(lat1)!=M_PI_2) return 0; //Course between antipodal points is undefined!
 	double tc;
-	if(d==0 || lat1==-HALF_PI) tc=TWO_PI;
-	else if (lat1==HALF_PI) tc=PI;
+	if(d==0 || lat1==-M_PI_2) tc=TWO_PI;
+	else if (lat1==M_PI_2) tc=M_PI;
 	else if(lon1==lon2) {
-		if(lat1>lat2) tc=PI;
+		if(lat1>lat2) tc=M_PI;
 		else tc=TWO_PI;
 	}
 	else if(sin(lon2-lon1)<0) tc=acos((sin(lat2)-sin(lat1)*cos(*d))/(sin(*d)*cos(lat1)));
@@ -208,7 +206,7 @@ short isAngleBetween(double low, double angle, double hi) {
 	if(hi==0) hi=TWO_PI;
 	if(low>hi) {
 		hi+=TWO_PI;
-		if(0<=angle && angle<=PI) angle+=TWO_PI;
+		if(0<=angle && angle<=M_PI) angle+=TWO_PI;
 	}
 	return(low<=angle && angle<=hi);
 }
@@ -216,17 +214,17 @@ short isAngleBetween(double low, double angle, double hi) {
 double calcGCCrossTrackError(double lat1, double lon1, double lon2, double latX, double lonX, double course12, double *atd) {
 	double dist1X,xtd; //positive XTD means right of course, negative means left
 	double course1X=calcGreatCircleRoute(lat1,lon1,latX,lonX,&dist1X);
-	if(lat1!=HALF_PI && lat1!=-HALF_PI) xtd=asin(sin(dist1X)*sin(course1X-course12));
+	if(lat1!=M_PI_2 && lat1!=-M_PI_2) xtd=asin(sin(dist1X)*sin(course1X-course12));
 	else { //If the point 1 is the N or S Pole replace crs_1X-crs_12 with lonX-lon2 or lon2-lonX, respectively
 		double diff;
-		if(lat1==HALF_PI) diff=lonX-lon2;
+		if(lat1==M_PI_2) diff=lonX-lon2;
 		else diff=lon2-lonX;
 		xtd=asin(sin(dist1X)*sin(diff));
 	}
-	if(isAngleBetween(course12+QUARTER_PI,course1X,course12+PI)) *atd=-acos(cos(dist1X)/cos(xtd));
+	if(isAngleBetween(course12+M_PI_4,course1X,course12+M_PI)) *atd=-acos(cos(dist1X)/cos(xtd));
 	else *atd=acos(cos(dist1X)/cos(xtd));
 	//For very short distances
-  //*atd=asin(sqrt(pow(sin(dist1X),2)-pow(sin(xtd),2))/cos(xtd));
+	// *atd=asin(sqrt(pow(sin(dist1X),2)-pow(sin(xtd),2))/cos(xtd));
 	return xtd;
 }
 
@@ -333,7 +331,7 @@ void calcHeadCrossWindComp(double ws, double wd, double rd, double *hw, double *
 }
 
 void calcBisector(double currCourse, double nextCourse, double *bisector, double *bisectorOpposite) {
-	currCourse=absAngle(currCourse+PI); //to see the direction from current WP
+	currCourse=absAngle(currCourse+M_PI); //to see the direction from current WP
 	double diff=currCourse-nextCourse; //angle between the directions
 	if(diff>0) { //positive difference: the internal angle in on the right
 		diff=absAngle(diff);
@@ -342,13 +340,13 @@ void calcBisector(double currCourse, double nextCourse, double *bisector, double
 		diff=absAngle(-diff);
 		*bisector=absAngle(currCourse+diff/2);
 	}
-	*bisectorOpposite=absAngle(*bisector+PI);
+	*bisectorOpposite=absAngle(*bisector+M_PI);
 }
 
 short bisectorOverpassed(double currCourse, double nextCourse, double actualCurrCourse) {
 	double bisector1, bisector2;
 	calcBisector(currCourse,nextCourse,&bisector1,&bisector2);
-	if(absAngle(currCourse-bisector1)<PI) //if currCourse is between bisector1 and bisector2 (bisector1 used as 0)
+	if(absAngle(currCourse-bisector1)<M_PI) //if currCourse is between bisector1 and bisector2 (bisector1 used as 0)
 		return isAngleBetween(bisector2,actualCurrCourse,bisector1);
 	else //currCourse is between bisector2 and bisector1
 		return isAngleBetween(bisector1,actualCurrCourse,bisector2);

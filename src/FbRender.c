@@ -39,21 +39,6 @@ static char *fbbackp=0;
 static int iClipTop=0,iClipBottom=272,iClipMin=0,iClipMax=480;
 static short isOpen=-1;
 
-//Attempt to init here screen config
-//struct screenConfig screen = {
-//		/* background */ (unsigned short) 0x0000, //black
-//		/* compassRose */(unsigned short) 0xffff, //white
-//		/* dirMarker */ (unsigned short) 0xf000, //red
-//		/* magneticDir */ (unsigned short) 0x00f0, //blue
-//		/* routeIndicator */ (unsigned short) 0x0f00, //green
-//		/* cdi */ (unsigned short) 0xff00, //yellow
-//		/* cdiScale */ (unsigned short) 0xffff,
-//		/* altScale */ (unsigned short) 0xffff,
-//		/* vsi */ (unsigned short) 0xffff,
-//		/* altMarker */ (unsigned short) 0xffff,
-//		/* text */ (unsigned short) 0x0f00, //green
-//		/* warning */ (unsigned short) 0xf000 //red
-//};
 
 unsigned short Color(int r, int g, int b) {
 	return (b>>3)+((g>>2)*32)+((r>>3)*2048);// (gray>>2)<<5;

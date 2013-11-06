@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 5/11/2013
+// Last change : 6/11/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
