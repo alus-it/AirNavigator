@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 2/11/2013
+// Last change : 5/11/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
@@ -33,7 +33,7 @@
 #include "Geoidal.h"
 
 #ifndef VERSION
-#define VERSION "0.2.6"
+#define VERSION "0.2.7"
 #endif
 
 //TODO: a common base path predefined: /mnt/sdcard/AirNavigator/
@@ -46,7 +46,7 @@ typedef struct fileName {
 } *fileEntry;
 
 pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
-FILE *logFile;
+FILE *logFile=NULL;
 
 int logText(const char *texts, ...) {
 	int done=-1;
@@ -56,22 +56,40 @@ int logText(const char *texts, ...) {
 		pthread_mutex_lock(&logMutex);
 		done=vfprintf(logFile,texts,arg);
 		pthread_mutex_unlock(&logMutex);
-   	va_end(arg);
-   	return done;
+		va_end(arg);
+		return done;
 	}
 	return done;
 }
 
+void releaseAll() {
+	if(logFile!=NULL) fclose(logFile);
+	TsScreenClose();
+	FbRender_Close();
+	pthread_exit(NULL);
+}
+
 int main(int argc, char** argv) {
-	logFile=NULL;
-	if(!FbRender_Open()) exit(EXIT_FAILURE);
+	logFile=fopen("/mnt/sdcard/AirNavigator/log.txt","w"); //create log file
+	if(logFile==NULL) {
+		printf("ERROR: Unable to create the logFile file!\n");
+		releaseAll();
+		exit(EXIT_FAILURE);
+	}
+	if(!FbRender_Open()){
+		logText("ERROR: Unable to start the Frame Buffer renderer!\n");
+		releaseAll();
+		exit(EXIT_FAILURE);
+	}
+	if(!TsScreenStart()) {
+		logText("ERROR: Unable to start the Touch Screen manager!\n");
+		releaseAll();
+		exit(EXIT_FAILURE);
+	}
 	fileEntry fileList=NULL, currFile=NULL; //the list of the found GPX flight plans and the pointer to the current one
-
 	int numGPXfiles=0;
-	int x=0,y=0; //coordinates of the touch screen
+	//int x=0,y=0; //coordinates of the touch screen
 
-	//Initialization
-	TsScreen_Init();
 	FbRender_Flush();
 
 	initConfig(); //initialize the configuration with the default values
@@ -82,11 +100,7 @@ int main(int argc, char** argv) {
 		while(TsScreen_pen(&x,&y,&pen));
 	}
 
-	logFile=fopen("/mnt/sdcard/AirNavigator/log.txt","w"); //log file
-	if(logFile==NULL) {
-		FbRender_BlitText(5,60,colorSchema.warning,colorSchema.background,0,"ERROR: Unable to create the logFile file!");
-		FbRender_Flush();
-	}
+
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
 
 
@@ -172,12 +186,14 @@ int main(int argc, char** argv) {
 	} else logText("ERROR: could not open the Routes directory.\n");
 	logText("List of GPX files created.\n");
 
+	condVar_t signal=TsScreenGetCondVar();
+
 	//Display a "menu" with the list of GPX files
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
 	if(numGPXfiles>0) {
 		currFile=fileList;
 		short DoLoad=0;
-		FbRender_BlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator");
+		FbRender_BlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator  v. %s",VERSION);
 		FbRender_BlitText(100,30,colorSchema.magneticDir,colorSchema.background,0,"http://www.alus.it/airnavigator");
 		FbRender_BlitText(20,60,colorSchema.text,colorSchema.background,0,"Select a GPX flight plan:");
 		FbRender_BlitText(200,240,colorSchema.text,colorSchema.background,0,"LOAD");
@@ -188,14 +204,18 @@ int main(int argc, char** argv) {
 			if(currFile->next!=NULL) FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
 			else FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
 			FbRender_Flush();
-			while(!TsScreen_touch(&x,&y)); //wait user presses a "button"
-			if(y>200) {
-				if(x<80 && currFile->prev!=NULL) currFile=currFile->prev;
-				else if(x>200 && x<300) {
+
+			pthread_mutex_lock(&signal->lastTouchMutex);
+			pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user presses a "button"
+			TS_EVENT lt=TsScreenGetLastTouch();
+			if(lt.y>200) {
+				if(lt.x<80 && currFile->prev!=NULL) currFile=currFile->prev;
+				else if(lt.x>200 && lt.x<300) {
 					asprintf(&toLoad,"%s%s","/mnt/sdcard/AirNavigator/Routes/",currFile->name);
 					DoLoad=1;
-				} else if(x>350 && currFile->next!=NULL) currFile=currFile->next;
+				} else if(lt.x>350 && currFile->next!=NULL) currFile=currFile->next;
 			}
+			pthread_mutex_unlock(&signal->lastTouchMutex);
 		}
 	}
 
@@ -222,7 +242,9 @@ int main(int argc, char** argv) {
 
 	if(toLoad!=NULL) {
 		//Here we wait for a touch to start the navigation
-		while(!TsScreen_touch(&x,&y));
+		pthread_mutex_lock(&signal->lastTouchMutex);
+		pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex);
+		pthread_mutex_unlock(&signal->lastTouchMutex);
 
 		//Here we start the navigation
 		float timestamp=gps.timestamp;
@@ -231,7 +253,9 @@ int main(int argc, char** argv) {
 		logText("Navigation started.\n");
 
 		//Here we wait for a touch to reverse the route
-		while(!TsScreen_touch(&x,&y));
+		pthread_mutex_lock(&signal->lastTouchMutex);
+		pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex);
+		pthread_mutex_unlock(&signal->lastTouchMutex);
 
 		//Stop the recorder in order to finalize the track of the first way
 		BlackBoxClose();
@@ -297,8 +321,11 @@ int main(int argc, char** argv) {
 
 	short DoExit=0;
 	while(!DoExit) {
-		while(!TsScreen_touch(&x,&y)); //wait user touches the screen
-		if((x>screen.width-(5*8))&&(y<40)) DoExit=1;
+		pthread_mutex_lock(&signal->lastTouchMutex);
+		pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user touches the screen
+		TS_EVENT lt=TsScreenGetLastTouch();
+		if((lt.x>screen.width-(5*8))&&(lt.y<40)) DoExit=1;
+		pthread_mutex_unlock(&signal->lastTouchMutex);
 	}
 
 	//Clean and Close all the stuff
@@ -318,11 +345,8 @@ int main(int argc, char** argv) {
 		fileList=currFile->next;
 		free(currFile);
 	} while(fileList!=NULL);
-	logText("Everything terminated, goodbye!\n");
-	if(logFile!=NULL) fclose(logFile);
-	TsScreen_Exit();
-	FbRender_Close();
-	pthread_exit(NULL);
+	logText("Releasing all... Goodbye!\n");
+	releaseAll();
 	exit(EXIT_SUCCESS);
 }
 

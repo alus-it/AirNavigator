@@ -6,15 +6,25 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 3/11/2013
+// Last change : 5/11/2013
 // Description : Header of TsScreen.c the touch screen manager
 //============================================================================
 
 #ifndef TSSCREEN_H_
 #define TSSCREEN_H_
 
-void TsScreen_Init();
-void TsScreen_Exit();
+#include <pthread.h>
+#include <barcelona/Barc_ts.h>
+
+typedef struct condVarStruct {
+	pthread_mutex_t lastTouchMutex;
+	pthread_cond_t lastTouchSignal;
+} *condVar_t;
+
+short TsScreenStart();
+void TsScreenClose();
+condVar_t TsScreenGetCondVar();
+TS_EVENT TsScreenGetLastTouch();
 int TsScreen_pen(int *x, int *y, int *pen);
 int TsScreen_touch(int *x, int *y);
 

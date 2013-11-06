@@ -13,7 +13,7 @@
 # Usual path of the toolchain: /usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin/ (must be added to your path)
 
 # AirNavigator version string
-VERSION = 0.2.6
+VERSION = 0.2.7
 
 # Compiler and tools
 CC = arm-linux-gcc
@@ -69,7 +69,7 @@ $(LIB):
 	mkdir -p $(LIB)
 
 $(BIN)main.o: $(SRC)main.c $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)FbRender.h $(SRC)TsScreen.h $(SRC)NMEAreader.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
-	$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' $< -o $@
+	$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' -I $(INC) $< -o $@
 
 $(BIN)NMEAreader.o: $(SRC)NMEAreader.c $(SRC)NMEAreader.h $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FbRender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@

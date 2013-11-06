@@ -37,6 +37,7 @@ static long int screensize=0;
 static char *fbp=0;
 static char *fbbackp=0;
 static int iClipTop=0,iClipBottom=272,iClipMin=0,iClipMax=480;
+static short isOpen=-1;
 
 //Attempt to init here screen config
 //struct screenConfig screen = {
@@ -66,16 +67,19 @@ short FbRender_Open() {
 	fbfd=open("/dev/fb",O_RDWR);
 	if(!fbfd) { //open the framebuffer
 		printf("FATAL ERROR: Impossible to open the framebuffer.\n");
+		isOpen=-1;
 		return 0;
 	}
 	if(ioctl(fbfd,FBIOGET_FSCREENINFO,&finfo)) { // Get fixed screen information
 		printf("FATAL ERROR: Impossible to get fixed screen information from framebuffer.\n");
 		close(fbfd);
+		isOpen=-2;
 		return 0;
 	}
 	if(ioctl(fbfd,FBIOGET_VSCREENINFO,&vinfo)) { // Get variable screen information
 		printf("FATAL ERROR: Impossible to get variable screen information from framebuffer.\n");
 		close(fbfd);
+		isOpen=-3;
 		return 0;
 	}
 	screen.width=vinfo.xres;
@@ -90,13 +94,16 @@ short FbRender_Open() {
 		printf("FATAL ERROR: Impossible to map the screen device to memory.\n");
 		munmap(fbp,screensize);
 		close(fbfd);
+		isOpen=-4;
 		return 0;
 	}
 	fbbackp=(char*)malloc(screensize);
+	isOpen=1;
 	return 1;
 }
 
 void FbRender_Close() {
+	if(isOpen!=1) return;
 	if(fbfd>0) {
 		munmap(fbp,screensize);
 		close(fbfd);

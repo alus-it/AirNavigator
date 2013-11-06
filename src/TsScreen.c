@@ -6,13 +6,15 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 3/11/2013
+// Last change : 5/11/2013
 // Description : Touch screen manager
 //============================================================================
 
+#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <sys/ioctl.h>
 #include <barcelona/Barc_ts.h>
 #include <barcelona/Barc_gps.h>
@@ -20,26 +22,85 @@
 #include "TsScreen.h"
 #include "AirNavigator.h"
 
+volatile short readingTS=-1; //-1 means still not initialized
 static int tsfd=-1;
-static fd_set fdset;
-static int maxfd;
+pthread_t threadTsScreen;
+condVar_t condVar;
+TS_EVENT lastTouch;
 static int gps;
 
-void TsScreen_Init() {
-	tsfd=open("/dev/ts",O_RDWR|O_NOCTTY|O_NONBLOCK);
-	if(tsfd<0) tsfd=open("/dev/ts",O_RDONLY|O_NOCTTY|O_NONBLOCK);
+
+void initializeTsScreen() {
+	condVar=(condVar_t)malloc(sizeof(struct condVarStruct));
+	pthread_mutex_init(&condVar->lastTouchMutex,NULL);
+	pthread_cond_init(&condVar->lastTouchSignal,NULL);
+
+	tsfd=open("/dev/ts",O_RDONLY|O_NOCTTY|O_NONBLOCK);
 	if(tsfd<0) {
-		logText("tomtom_touchscreen: Kon niet geopend worden '/dev/ts'.\n");
+		logText("TsScreen: ERROR can't open the device: /dev/ts\n");
 		tsfd=-1;
+		readingTS=-1;
 	}
 	ioctl(tsfd,TS_SET_RAW_OFF,NULL);
-	maxfd=tsfd+1;
-	FD_ZERO(&fdset);
-	FD_SET(tsfd, &fdset);
+	readingTS=0;
 }
 
-void TsScreen_Exit() {
+void* runTsScreen(void *ptr) {
+	if(tsfd<0) {
+		readingTS=0;
+		pthread_exit(NULL);
+		return NULL;
+	}
+	fd_set fdset;
+	int maxfd=tsfd+1;
+	int read_len;
+	while(readingTS) { // loop while waiting for input
+		FD_ZERO(&fdset);
+		FD_SET(tsfd, &fdset);
+		select(maxfd,&fdset,NULL,NULL,NULL);
+		TS_EVENT event;
+		read_len=read(tsfd,&event,sizeof(TS_EVENT));
+		if(read_len==sizeof(TS_EVENT)) {
+			if(event.pressure==0) {
+				pthread_mutex_lock(&condVar->lastTouchMutex);
+				lastTouch=event;
+				pthread_cond_signal(&condVar->lastTouchSignal);
+				pthread_mutex_unlock(&condVar->lastTouchMutex);
+			}
+		}
+	}
+	pthread_exit(NULL);
+	return NULL;
+}
+
+short TsScreenStart() {
+	if(readingTS==-1) initializeTsScreen();
+	if(readingTS==0) {
+		readingTS=1;
+		if(pthread_create(&threadTsScreen,NULL,runTsScreen,(void*)NULL)) {
+			readingTS=0;
+			logText("TsScreen: ERROR unable to create the reading thread.\n");
+		}
+	}
+	return readingTS;
+}
+
+void TsScreenClose() {
+	if(readingTS==1) readingTS=0;
+	pthread_join(threadTsScreen,NULL); //wait for thread death
+	pthread_mutex_destroy(&condVar->lastTouchMutex);
+	pthread_cond_destroy(&condVar->lastTouchSignal);
+	free(condVar);
 	if(tsfd>=0) close(tsfd);
+	readingTS=-1;
+}
+
+condVar_t TsScreenGetCondVar() {
+	return condVar;
+}
+
+TS_EVENT TsScreenGetLastTouch() {
+	return lastTouch;
 }
 
 int TsScreen_pen(int *x, int *y, int *pen) {
@@ -72,7 +133,7 @@ int TsScreen_pen(int *x, int *y, int *pen) {
 int TsScreen_touch(int *x, int *y) {
 	if(tsfd<0) return 0;
 	int read_len;
-	static TS_EVENT event;
+	TS_EVENT event;
 	read_len=read(tsfd,&event,sizeof(TS_EVENT));
 	if(read_len==sizeof(TS_EVENT)) {
 		if(event.pressure==0) {

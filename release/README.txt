@@ -310,6 +310,9 @@ Version 0.2.6
 	Create a new track file when reversing the route to return back
 	Some other less relevant bug fixed
 
+Version 0.2.7
+	TODO...
+
 CONTACTS
 Author: Alberto Realis-Luc
 Web: http://www.alus.it/airnavigator/

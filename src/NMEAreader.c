@@ -37,7 +37,7 @@
 long BAUD;
 int DATABITS,STOPBITS,PARITYON,PARITY;
 pthread_t thread;
-volatile short reading=-1; //-1 means still not initialized
+volatile short readingNMEA=-1; //-1 means still not initialized
 float altTimestamp=0,dirTimestamp=0,newerTimestamp=0;
 short GGAfound=0,RMCfound=0,GSAfound=0;
 float altB,latMinB,lonMinB,timeSecB,groundSpeedKnotsB,trueTrackB,magneticVariationB,pdopB,hdopB,vdopB;
@@ -68,7 +68,7 @@ void updateFixMode(int fixMode) {
 	}
 }
 
-void initialize() {
+void initializeNMEAreader() {
 	gps.timestamp=-1;
 	gps.speedKmh=-100;
 	gps.speedKnots=-100;
@@ -183,15 +183,15 @@ void initialize() {
 			break;
 	} //end of switch parity
 	GeoidalOpen();
-	reading=0;
+	readingNMEA=0;
 	updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
 	updateNumOfActiveSats(0);
 	FbRender_Flush();
 }
 
 short NMEAreaderIsReading() {
-	if(reading==-1) return 0; //in the case it is not initilized we are not reading..
-	return reading;
+	if(readingNMEA==-1) return 0; //in the case it is not initilized we are not reading..
+	return readingNMEA;
 }
 
 int getCRCintValue(char* sentence, int rcvdBytesOfSentence) {
@@ -1098,8 +1098,9 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	if(fd<0) {
 		fd=-1;
 		logText("ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
-		reading=0;
+		readingNMEA=0;
 		pthread_exit(NULL);
+		return NULL;
 	}
 	struct termios oldtio,newtio; //place for old and new port settings for serial port
 	tcgetattr(fd,&oldtio); // save current port settings
@@ -1131,10 +1132,10 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	char sentence[MAX_SENTENCE_LENGTH]={0};
 	long timestamp;
 	short lineFeedExpected=1;
-	while(reading) { // loop while waiting for input
+	while(readingNMEA) { // loop while waiting for input
 		FD_SET(fd,&readfs);
 		select(maxfd,&readfs,NULL,NULL,NULL); //wait to read because the read is now non-blocking
-		if(reading) { //further check if we still want to read after waiting
+		if(readingNMEA) { //further check if we still want to read after waiting
 			redBytes=read(fd,buf,BUFFER_SIZE);
 			timestamp=time(NULL); //get the timestamp of last char sequence received
 			for(i=0;i<redBytes;i++)
@@ -1176,8 +1177,8 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 						break;
 				} //end of switch(each byte) of just received sequence
 			update();
-		} //end of further if(reading) check
-	} //while reading
+		} //end of further if(readingNMEA) check
+	} //while readingNMEA
 	tcsetattr(fd,TCSANOW,&oldtio); //restore old port settings
 	if(fd>=0) close(fd); //close the serial port
 	pthread_exit(NULL);
@@ -1185,19 +1186,19 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 }
 
 short NMEAreaderStartRead() { //function to start the listening thread
-	if(reading==-1) initialize();
-	if(!reading) {
-		reading=1;
+	if(readingNMEA==-1) initializeNMEAreader();
+	if(!readingNMEA) {
+		readingNMEA=1;
 		if(pthread_create(&thread,NULL,run,(void*)NULL)) {
-			reading=0;
+			readingNMEA=0;
 			logText("NMEAreader: ERROR unable to create the reading thread.\n");
 		}
 	}
-	return reading;
+	return readingNMEA;
 }
 
 void NMEAreaderStopRead() {
-	if(reading==1) reading=0;
+	if(readingNMEA==1) readingNMEA=0;
 }
 
 void NMEAreaderClose() {
