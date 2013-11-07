@@ -13,7 +13,7 @@
 # Usual path of the toolchain: /usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin/ (must be added to your path)
 
 # AirNavigator version string
-VERSION = 0.2.7
+VERSION = 0.2.8
 
 # Compiler and tools
 CC = arm-linux-gcc

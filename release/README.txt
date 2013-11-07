@@ -52,7 +52,8 @@ To install AirNavigator on your TomTom device follow these steps:
 2. Connect your TomTom to the PC using the USB cable or insert the TomTom's SD card in your PC
 3. Extract the folders "AirNavigator" and "SdkRegistry" from the zip file into the root of TomTom's memory or SD card
 4. Unmount (safely remove) the TomTom device (or SD card) and restart it
-5. In the main menu you should see at the end an icon to start AirNavigator
+5. If using an SD card make sure it is writable also when inserting it back into the TomTom
+6. In the main menu you should see at the end an icon to start AirNavigator
 
 
 UNINSTALLATION
@@ -312,6 +313,10 @@ Version 0.2.6
 
 Version 0.2.7
 	Listening for Touch Screen input now done in a separate thread
+
+Version 0.2.8
+	TODO....
+
 
 CONTACTS
 Author: Alberto Realis-Luc
