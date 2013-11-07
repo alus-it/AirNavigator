@@ -88,9 +88,9 @@ Right side:
 
 	Latitude expressed in degrees, minutes and seconds
 	Longitude expressed in degrees, minutes and seconds
-    
+
 	GS: Ground Speed
-    
+
 	NAV: Current status of the navigator
 	WPT: Name of the next way point
 	DTG: Distance To Go, remaining distance to the next way point
@@ -311,7 +311,7 @@ Version 0.2.6
 	Some other less relevant bug fixed
 
 Version 0.2.7
-	TODO...
+	Listening for Touch Screen input now done in a separate thread
 
 CONTACTS
 Author: Alberto Realis-Luc
