@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 6/11/2013
+// Last change : 7/11/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
@@ -35,7 +35,15 @@
 #define VERSION "0.2.7"
 #endif
 
-//TODO: a common base path predefined: /mnt/sdcard/AirNavigator/
+#define MAIN_STATUS_NOT_INIT    -1
+#define MAIN_STATUS_INITIALIZED  0
+#define MAIN_STATUS_NOT_LOADED   1
+#define MAIN_STATUS_SELECT_ROUTE 2
+#define MAIN_STATUS_READY_TO_FLY 3
+#define MAIN_STATUS_FLY_ROUTE    4
+#define MAIN_STATUS_FLY_REVERSED 5
+#define MAIN_STATUS_WAIT_EXIT    6
+
 
 typedef struct fileName {
 	int seqNo;             //sequence number
@@ -47,20 +55,6 @@ typedef struct fileName {
 pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
 FILE *logFile=NULL;
 
-int logText(const char *texts, ...) {
-	int done=-1;
-	if(logFile!=NULL) {
-		va_list arg;
-		va_start(arg,texts);
-		pthread_mutex_lock(&logMutex);
-		done=vfprintf(logFile,texts,arg);
-		pthread_mutex_unlock(&logMutex);
-		va_end(arg);
-		return done;
-	}
-	return done;
-}
-
 void releaseAll() {
 	if(logFile!=NULL) fclose(logFile);
 	TsScreenClose();
@@ -69,25 +63,24 @@ void releaseAll() {
 }
 
 int main(int argc, char** argv) {
-	logFile=fopen("/mnt/sdcard/AirNavigator/log.txt","w"); //create log file
-	if(logFile==NULL) {
-		printf("ERROR: Unable to create the logFile file!\n");
+	int status=MAIN_STATUS_NOT_INIT;
+	char *logPath;
+	asprintf(&logPath,"%slog.txt",BASE_PATH);
+	logFile=fopen(logPath,"w"); //create log file
+	free(logPath);
+	if(logFile!=NULL) //if the log file has been created...
+		if(FbRender_Open()) //if the frame buffer render is started
+			if(TsScreenStart()) { //if the touch screen listening thread is started
+				initConfig(); //initialize the configuration with the default values
+				status=MAIN_STATUS_INITIALIZED;
+			} else logText("ERROR: Unable to start the Touch Screen manager!\n");
+		else logText("ERROR: Unable to start the Frame Buffer renderer!\n");
+	else printf("ERROR: Unable to create the logFile file!\n");
+	if(status!=MAIN_STATUS_INITIALIZED) {
 		releaseAll();
 		exit(EXIT_FAILURE);
 	}
-	if(!FbRender_Open()){
-		logText("ERROR: Unable to start the Frame Buffer renderer!\n");
-		releaseAll();
-		exit(EXIT_FAILURE);
-	}
-	if(!TsScreenStart()) {
-		logText("ERROR: Unable to start the Touch Screen manager!\n");
-		releaseAll();
-		exit(EXIT_FAILURE);
-	}
-
-	FbRender_Flush();
-	initConfig(); //initialize the configuration with the default values
+	//FbRender_Flush();
 	FbRender_Flush();
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
 
@@ -138,7 +131,10 @@ int main(int argc, char** argv) {
 	fileEntry fileList=NULL, currFile=NULL; //the list of the found GPX flight plans and the pointer to the current one
 	int numGPXfiles=0;
 	struct dirent *entry;
-	DIR *dir = opendir("/mnt/sdcard/AirNavigator/Routes");
+	char *routesPath;
+	asprintf(&routesPath,"%sRoutes",BASE_PATH);
+	DIR *dir = opendir(routesPath);
+	free(routesPath);
 	if(dir!=NULL) {
 		int len;
 		while((entry=readdir(dir))!=NULL) { //make the list of GPX files...
@@ -164,110 +160,149 @@ int main(int argc, char** argv) {
 		}
 		closedir(dir);
 		if(numGPXfiles==0) logText("WARNING: No GPX flight plans found.\n");
+		else logText("List of GPX files created.\n");
 	} else logText("ERROR: could not open the Routes directory.\n");
-	logText("List of GPX files created.\n");
 
-	condVar_t signal=TsScreenGetCondVar();
 
-	//Display a "menu" with the list of GPX files
-	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
-	if(numGPXfiles>0) {
+	if(numGPXfiles>0) { //here we start to prepare the "menu" to select the route
+		status=MAIN_STATUS_SELECT_ROUTE;
 		currFile=fileList;
-		short DoLoad=0;
 		FbRender_BlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator  v. %s",VERSION);
 		FbRender_BlitText(100,30,colorSchema.magneticDir,colorSchema.background,0,"http://www.alus.it/airnavigator");
 		FbRender_BlitText(20,60,colorSchema.text,colorSchema.background,0,"Select a GPX flight plan:");
 		FbRender_BlitText(200,240,colorSchema.text,colorSchema.background,0,"LOAD");
-		while(!DoLoad) {
-			FbRender_BlitText(20,70,colorSchema.cdi,colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
-			if(currFile->prev!=NULL) FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"<< Prev");
-			else FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"       ");
-			if(currFile->next!=NULL) FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
-			else FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
-			FbRender_Flush();
+	}
+	else status=MAIN_STATUS_NOT_LOADED;
+
+	short doExit=0;
+	condVar_t signal=TsScreenGetCondVar();
+	TS_EVENT lastTouch;
+	short waitTouch=0;
+	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
+	while(!doExit) { //Main loop
+		if(waitTouch) { //if needed we wait for user input
 			pthread_mutex_lock(&signal->lastTouchMutex);
-			pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user presses a "button"
-			TS_EVENT lt=TsScreenGetLastTouch();
-			if(lt.y>200) {
-				if(lt.x<80 && currFile->prev!=NULL) currFile=currFile->prev;
-				else if(lt.x>200 && lt.x<300) {
-					asprintf(&toLoad,"%s%s","/mnt/sdcard/AirNavigator/Routes/",currFile->name);
-					DoLoad=1;
-				} else if(lt.x>350 && currFile->next!=NULL) currFile=currFile->next;
-			}
+			pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user touches the screen
+			lastTouch=TsScreenGetLastTouch(); //get the coordinates of the touch
 			pthread_mutex_unlock(&signal->lastTouchMutex);
 		}
-	}
+		switch(status) { //Main status machine
+			case MAIN_STATUS_SELECT_ROUTE: { //Display a "menu" with the list of GPX files
+				if(numGPXfiles>0) {
+					FbRender_BlitText(20,70,colorSchema.cdi,colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
+					if(currFile->prev!=NULL) FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"<< Prev");
+					else FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"       ");
+					if(currFile->next!=NULL) FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
+					else FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
+					FbRender_Flush();
+					if(waitTouch) {
+						if(lastTouch.y>200) {
+							if(lastTouch.x<80 && currFile->prev!=NULL) {
+								currFile=currFile->prev;
+								waitTouch=0;
+							} else if(lastTouch.x>200 && lastTouch.x<300) {
+								asprintf(&toLoad,"%s%s%s",BASE_PATH,"Routes/",currFile->name);
+								status=MAIN_STATUS_READY_TO_FLY;
+								waitTouch=0;
+							} else if(lastTouch.x>350 && currFile->next!=NULL) {
+								currFile=currFile->next;
+								waitTouch=0;
+							}
+						}
+					} else waitTouch=1;
+				}
+			} break;
+			case MAIN_STATUS_NOT_LOADED:
+				FbRender_Clear(0,screen.height,colorSchema.background); //draw the main screen
+				HSIinitialize(0,0,0); //HSI initialization
 
-	FbRender_Clear(0,screen.height,colorSchema.background); //draw the main screen
-	HSIinitialize(0,0,0); //HSI initialization
+				//Start the GPS using the traditional NMEA parser
+				if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n");
+				else logText("NMEAreader started.\n");
+				//Start the GPS using SiRFreader
+				//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n");
+				//else logText("SiRF reader started.\n");
 
-	if(toLoad!=NULL) {
-		if(!NavLoadFlightPlan(toLoad)) logText("ERROR: while opening: %s\n",toLoad);
-		else logText("Flight plan loaded\n");
-		free(toLoad);
-	}
+				//Start the track recorder
+				BlackBoxStart();
+				logText("BlackBox recorder started.\n");
 
-	//Start the GPS using the traditional NMEA parser
-	if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n");
-	else logText("NMEAreader started.\n");
+				//Exit "button"
+				FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
+				FbRender_Flush();
 
-	//Start the GPS using SiRFreader //FIXME: WARNING dosen't work
-	//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n");
-	//else logText("SiRF reader started.\n");
+				waitTouch=1; //Here we wait for a touch on the exit button
+				status=MAIN_STATUS_WAIT_EXIT;
+				break;
+			case MAIN_STATUS_READY_TO_FLY:
+				FbRender_Clear(0,screen.height,colorSchema.background); //draw the main screen
+				HSIinitialize(0,0,0); //HSI initialization
+				if(NavLoadFlightPlan(toLoad)) logText("Flight plan loaded\n"); //Attempt to load
+				else {
+					if(toLoad!=NULL) {
+						logText("ERROR: while opening: %s\n",toLoad);
+						free(toLoad);
+					}
+					else logText("ERROR: NULL pointer to the route file to be loaded.\n");
+					status=MAIN_STATUS_NOT_LOADED;
+					waitTouch=0;
+					break;
+				}
+				free(toLoad);
 
-	//Start the track recorder
-	BlackBoxStart();
-	logText("BlackBox recorder started.\n");
+				//Start the GPS using the traditional NMEA parser
+				if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n");
+				else logText("NMEAreader started.\n");
+				//Start the GPS using SiRFreader
+				//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n");
+				//else logText("SiRF reader started.\n");
 
-	if(toLoad!=NULL) {
-		//Here we wait for a touch to start the navigation
-		pthread_mutex_lock(&signal->lastTouchMutex);
-		pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex);
-		pthread_mutex_unlock(&signal->lastTouchMutex);
+				//Start the track recorder
+				BlackBoxStart();
+				logText("BlackBox recorder started.\n");
+				waitTouch=1; //Here we wait for a touch to start the navigation
+				status=MAIN_STATUS_FLY_ROUTE;
+				break;
+			case MAIN_STATUS_FLY_ROUTE: {
+				//Here we start the navigation
+				float timestamp=gps.timestamp;
+				if(timestamp==-1) timestamp=getCurrentTime();
+				NavStartNavigation(timestamp);
+				logText("Navigation started.\n");
+				waitTouch=1; //Here we wait for a touch to reverse the route
+				status=MAIN_STATUS_FLY_REVERSED;
+			} break;
+			case MAIN_STATUS_FLY_REVERSED: {
+				//Stop the recorder in order to finalize the track of the first way
+				BlackBoxClose();
 
-		//Here we start the navigation
-		float timestamp=gps.timestamp;
-		if(timestamp==-1) timestamp=getCurrentTime();
-		NavStartNavigation(timestamp);
-		logText("Navigation started.\n");
+				//Here we reverse the route
+				NavReverseRoute();
+				logText("Flight plan reversed.\n");
 
-		//Here we wait for a touch to reverse the route
-		pthread_mutex_lock(&signal->lastTouchMutex);
-		pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex);
-		pthread_mutex_unlock(&signal->lastTouchMutex);
+				//Start the track recorder for the return way
+				BlackBoxStart();
+				logText("BlackBox recorder restarted.\n");
 
-		//Stop the recorder in order to finalize the track of the first way
-		BlackBoxClose();
+				float timestamp=gps.timestamp;
+				if(timestamp==-1) timestamp=getCurrentTime();
+				NavStartNavigation(timestamp);
+				logText("Navigation re-started.\n");
 
-		//Here we reverse the route
-		NavReverseRoute();
-		logText("Flight plan reversed.\n");
+				//Exit "button"
+				FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
+				FbRender_Flush();
 
-		//Start the track recorder for the return way
-		BlackBoxStart();
-		logText("BlackBox recorder restarted.\n");
-
-		timestamp=gps.timestamp;
-		if(timestamp==-1) timestamp=getCurrentTime();
-		NavStartNavigation(timestamp);
-		logText("Navigation re-started.\n");
-	}
-
-	//Exit "button"
-	FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
-	FbRender_Flush();
-
-	short DoExit=0;
-	while(!DoExit) {
-		pthread_mutex_lock(&signal->lastTouchMutex);
-		pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user touches the screen
-		TS_EVENT lt=TsScreenGetLastTouch();
-		if((lt.x>screen.width-(5*8))&&(lt.y<40)) {
-			DoExit=1;
-			logText("Touch to exit detected\n");
+				waitTouch=1; //Here we wait for a touch on the exit button
+				status=MAIN_STATUS_WAIT_EXIT;
+			} break;
+			case MAIN_STATUS_WAIT_EXIT:
+				if((lastTouch.x>screen.width-(5*8))&&(lastTouch.y<40)) doExit=1;
+				waitTouch=1; //Here we wait for a touch on the exit button
+				break;
+			default:
+				break;
 		}
-		pthread_mutex_unlock(&signal->lastTouchMutex);
 	}
 
 	//Clean and Close all the stuff
@@ -290,5 +325,19 @@ int main(int argc, char** argv) {
 	logText("Releasing all... Goodbye!\n");
 	releaseAll();
 	exit(EXIT_SUCCESS);
+}
+
+int logText(const char *texts, ...) {
+	int done=-1;
+	if(logFile!=NULL) {
+		va_list arg;
+		va_start(arg,texts);
+		pthread_mutex_lock(&logMutex);
+		done=vfprintf(logFile,texts,arg);
+		pthread_mutex_unlock(&logMutex);
+		va_end(arg);
+		return done;
+	}
+	return done;
 }
 

@@ -6,12 +6,14 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 5/11/2013
+// Last change : 7/11/2013
 // Description : Common functions of AirNavigator
 //============================================================================
 
 #ifndef AIRNAVIGATOR_H_
 #define AIRNAVIGATOR_H_
+
+#define BASE_PATH "/mnt/sdcard/AirNavigator/"
 
 int logText(const char *texts, ...);
 

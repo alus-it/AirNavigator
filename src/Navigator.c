@@ -102,6 +102,7 @@ void NavCalculateRoute() {
 }
 
 int NavLoadFlightPlan(char* GPXfile) {
+	if(GPXfile==NULL) return 0;
 	if(status==STATUS_NOT_INIT) NavConfigure();
 	if(status==STATUS_NOT_INIT) return 0;
 	NavClearRoute();

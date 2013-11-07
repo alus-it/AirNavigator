@@ -10,6 +10,9 @@
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
+#define _GNU_SOURCE
+
+#include <stdio.h>
 #include <libroxml/roxml.h>
 #include "Configuration.h"
 #include "AirNavigator.h"
@@ -53,7 +56,9 @@ void initConfig() { //Initializes the confog struct with the default values
 }
 
 void loadConfig() { //Load configuration
-	node_t* root=roxml_load_doc("/mnt/sdcard/AirNavigator/config.xml");
+	char *configPath;
+	asprintf(&configPath,"%sconfig.xml",BASE_PATH);
+	node_t* root=roxml_load_doc(configPath);
 	if(root!=NULL) {
 		node_t *part,*detail,*attr;
 		char* text=roxml_get_name(root,NULL,0);
@@ -82,7 +87,6 @@ void loadConfig() { //Load configuration
 					}
 				} else logText("WARNING: no fuel configuration found, using default values.\n");
 			} else logText("WARNING: no aircraft configuration found, using default values.\n");
-
 			part=roxml_get_chld(root,"measureUnits",0);
 			if(part!=NULL) {
 				detail=roxml_get_chld(part,"speeds",0);
@@ -282,4 +286,5 @@ void loadConfig() { //Load configuration
 		roxml_release(RELEASE_ALL);
 		roxml_close(root);
 	} else logText("WARING: configuration file not found: config.xml missing, using default settings.\n");
+	free(configPath);
 }

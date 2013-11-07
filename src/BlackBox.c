@@ -19,6 +19,7 @@
 #include <time.h>
 #include <math.h>
 #include "BlackBox.h"
+#include "AirNavigator.h"
 #include "Configuration.h"
 #include "AirCalc.h"
 
@@ -57,7 +58,7 @@ void BlackBoxStart() {
 short openRecordingFile() {
 	if(bbStatus!=BBS_WAIT_FIX) return 0;
 	char *path;
-	asprintf(&path,"/mnt/sdcard/AirNavigator/Tracks/%s",filename);
+	asprintf(&path,"%sTracks/%s",BASE_PATH,filename);
 	tracklogFile=fopen(path,"w");
 	free(path);
 	if(tracklogFile==NULL) {

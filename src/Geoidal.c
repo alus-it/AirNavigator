@@ -10,6 +10,8 @@
 // Description : Estimates geoidal separation from WGS86 to main sea level
 //============================================================================
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -69,7 +71,10 @@ double wgs84_to_msl_delta(double lat, double lon) { //It uses the data hard-code
 short GeoidalOpen() {
 	if(egm96data!=NULL) return 2; //The data seems already loaded do nothing
 	FILE *egm96dataFile=NULL;
-	egm96dataFile=fopen("/mnt/sdcard/AirNavigator/egm96s.dem","rb");
+	char *egmPath;
+	asprintf(&egmPath,"%segm96s.dem",BASE_PATH);
+	egm96dataFile=fopen(egmPath,"rb");
+	free(egmPath);
 	if(egm96dataFile==NULL) {
 		logText("ERROR: Unable to open the egm96 geoidal separation data file.\n");
 		return 0;
