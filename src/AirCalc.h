@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 6/11/2013
+// Last change : 9/11/2013
 // Description : Header of AirCalc.c
 //============================================================================
 
@@ -54,6 +54,7 @@ double Deg2Rad(double deg);
 double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, double *d);
 double calcGreatCircleRoute(double lat1, double lon1, double lat2, double lon2, double *d);
 double calcGreatCircleCourse(double lat1, double lon1, double lat2, double lon2);
+double calcGreatCircleFinalCourse(double lat1, double lon1, double lat2, double lon2);
 int calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, double atd, double d, double *latI, double *lonI);
 short isAngleBetween(double low, double angle, double hi);
 double calcGCCrossTrackError(double lat1, double lon1, double lon2, double latX, double lonX, double course12, double *atd);
@@ -67,6 +68,6 @@ int calcHeadingGroundSpeed(double crs, double wd, double tas, double ws, double 
 double calcCourseGroundSpeed(double hd, double wd, double tas, double ws, double *gs);
 void calcHeadCrossWindComp(double ws, double wd, double rd, double *hw, double *xw);
 void calcBisector(double currCourse, double nextCourse, double *bisector, double *bisectorOpposite);
-short bisectorOverpassed(double currCourse, double nextCourse, double actualCurrCourse);
+short bisectorOverpassed(double currCourse, double actualCurrCourse, double bisector1, double bisector2);
 
 #endif

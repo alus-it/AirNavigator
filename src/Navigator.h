@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 3/11/2013
+// Last change : 9/11/2013
 // Description : Header of the navigation manager: Navigator.c
 //============================================================================
 
@@ -24,16 +24,19 @@
 #define STATUS_NAV_BUSY     8
 
 typedef struct wp {
-	int seqNo;           //sequence number
-	char *name;          //name of the WP
-	double latitude;     //rad
-	double longitude;    //rad
-	double altitude;     //meter
-	double dist;         //distance to to this WP in rad
-	double trueCourse;   //initial true course to to this WP in rad
-	double arrTimestamp; //arrival to this WP timestamp in seconds (from h 0:00)
-	struct wp *prev;     //Pointer to the previous waypoint in the list
-	struct wp *next;     //Pointer to the next waypoint in the list
+	int seqNo;            //sequence number
+	char *name;           //name of the WP
+	double latitude;      //rad
+	double longitude;     //rad
+	double altitude;      //meter
+	double dist;          //distance to to this WP in rad
+	double initialCourse; //initial true course to to this WP in rad
+	double finalCourse;   //final true course to this WP in rad
+	double bisector1;     //bisector in rad between this leg and the next
+	double bisector2;     //opposite bisector to bisector1 in rad
+	double arrTimestamp;  //arrival to this WP timestamp in seconds (from h 0:00)
+	struct wp *prev;      //Pointer to the previous waypoint in the list
+	struct wp *next;      //Pointer to the next waypoint in the list
 } *wayPoint;
 
 int NavLoadFlightPlan(char* GPXfile);

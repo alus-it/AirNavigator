@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 6/11/2013
+// Last change : 9/11/2013
 // Description : Collection of functions for air navigation calculation
 //============================================================================
 
@@ -147,6 +147,10 @@ double calcGreatCircleRoute(double lat1, double lon1, double lat2, double lon2, 
 
 double calcGreatCircleCourse(double lat1, double lon1, double lat2, double lon2) { //not require pre-computation of distance
 	return absAngle(atan2(sin(lon1-lon2)*cos(lat2),cos(lat1)*sin(lat2)-sin(lat1)*cos(lat2)*cos(lon1-lon2)));
+}
+
+double calcGreatCircleFinalCourse(double lat1, double lon1, double lat2, double lon2) {
+	return absAngle(atan2(sin(lon2-lon1)*cos(lat1),cos(lat2)*sin(lat1)-sin(lat2)*cos(lat1)*cos(lon2-lon1))+M_PI);
 }
 
 double calcAngularDist(double lat1, double lon1, double lat2, double lon2) {
@@ -343,9 +347,7 @@ void calcBisector(double currCourse, double nextCourse, double *bisector, double
 	*bisectorOpposite=absAngle(*bisector+M_PI);
 }
 
-short bisectorOverpassed(double currCourse, double nextCourse, double actualCurrCourse) {
-	double bisector1, bisector2;
-	calcBisector(currCourse,nextCourse,&bisector1,&bisector2);
+short bisectorOverpassed(double currCourse, double actualCurrCourse, double bisector1, double bisector2) {
 	if(absAngle(currCourse-bisector1)<M_PI) //if currCourse is between bisector1 and bisector2 (bisector1 used as 0)
 		return isAngleBetween(bisector2,actualCurrCourse,bisector1);
 	else //currCourse is between bisector2 and bisector1

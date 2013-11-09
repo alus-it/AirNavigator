@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 2/11/2013
+// Last change : 9/11/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -59,12 +59,15 @@ void NavCalculateRoute() {
 	dest=currWP;
 	currWP=dept->next;
 	do {
-		currWP->trueCourse=calcGreatCircleRoute(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude,&currWP->dist);
+		currWP->initialCourse=calcGreatCircleRoute(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude,&currWP->dist);
+		currWP->finalCourse=calcGreatCircleFinalCourse(currWP->prev->latitude,currWP->prev->longitude,currWP->latitude,currWP->longitude);
 		double remainDist=Rad2Km(currWP->dist);
 		totalDistKm+=remainDist;
 		fprintf(routeLog,"* Travel from %s to %s\n",currWP->prev->name,currWP->name);
-		fprintf(routeLog,"Initial course to WP: %06.2f°\n",Rad2Deg(currWP->trueCourse));
+		fprintf(routeLog,"Initial course to WP: %07.3f°\n",Rad2Deg(currWP->initialCourse));
+		fprintf(routeLog,"Final   course to WP: %07.3f°\n",Rad2Deg(currWP->finalCourse));
 		fprintf(routeLog,"Horizontal distance to WP is: %.3f Km\n",remainDist);
+		if(currWP->prev!=dept) calcBisector(currWP->prev->finalCourse,currWP->initialCourse,&currWP->prev->bisector1,&currWP->prev->bisector2); //calc bisectors for prev WP
 		double timeHours=remainDist/config.cruiseSpeed; //hours
 		if(currWP==dept->next) PrintNavRemainingDistWP(remainDist,config.cruiseSpeed,timeHours);
 		int hours,mins;
@@ -76,7 +79,6 @@ void NavCalculateRoute() {
 		double altDiff=currWP->altitude-currWP->prev->altitude;
 		double slope=altDiff/1000/remainDist;
 		fprintf(routeLog,"Slope: %.2f %%\n",slope*100);
-		//double lineDist=sqrt(pow(remainDist,2)+pow(altDiff/1000,2));
 		double climb=altDiff/(timeHours*3600); // m/s
 		fprintf(routeLog,"Estimated climb rate: %.2f m/s  %.0f Ft/min\n\n",climb,ms2FtMin(climb)); //just to have an idea
 		currWP=currWP->next;
@@ -371,11 +373,11 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			break;
 		case STATUS_NAV_TO_WPT: {
 			double atd, trackErr;
-			trackErr=Rad2m(calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->trueCourse,&atd));
+			trackErr=Rad2m(calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->initialCourse,&atd));
 			if(atd>=0) remainDist=currWP->dist-atd;
 			else remainDist=currWP->dist+fabs(atd); //negative ATD: we are still before the prev WP
 			actualTrueCourse=calcGreatCircleCourse(lat,lon,currWP->latitude,currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
-			if(atd>=0 && (bisectorOverpassed(currWP->trueCourse,currWP->next->trueCourse,actualTrueCourse) || atd>=currWP->dist)) { //consider this WP as reached
+			if(atd>=0 && (atd>=currWP->dist || bisectorOverpassed(currWP->finalCourse,actualTrueCourse,currWP->bisector1,currWP->bisector2))) { //consider this WP as reached
 				currWP->arrTimestamp=timestamp;
 				prevWPsTotDist+=Rad2Km(currWP->dist);
 				currWP=currWP->next;
@@ -396,7 +398,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 		} break;
 		case STATUS_NAV_TO_DST: {
 			double atd, trackErr;
-			trackErr=Rad2m(calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->trueCourse,&atd));
+			trackErr=Rad2m(calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->initialCourse,&atd));
 			if(atd>=0) remainDist=currWP->dist-atd;
 			else remainDist=currWP->dist+fabs(atd); //negative ATD: we are still before the prev WP
 			if(atd>=currWP->dist) { //consider destination as reached (90 degrees bisector)
@@ -446,12 +448,12 @@ void NavSkipCurrentWayPoint() {
 		float timestamp=gps.timestamp;
 		currWP->arrTimestamp=timestamp; //we put the arrival timestamp when we skip it
 		double atd;
-		calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->trueCourse,&atd);
+		calcGCCrossTrackError(currWP->prev->latitude,currWP->prev->longitude,currWP->longitude,lat,lon,currWP->initialCourse,&atd);
 		prevWPsTotDist+=Rad2Km(atd); //we add only the ATD
 		totalDistKm-=Rad2Km(currWP->dist)-Rad2Km(atd); //from the total substract the skipped reamaining dst
 		totalDistKm-=currWP->next->dist; //from the total substract the dst from skipped wp to the next
 		currWP=currWP->next; //jump to the next
-		currWP->trueCourse=calcGreatCircleRoute(lat,lon,currWP->latitude,currWP->longitude,&currWP->dist); //recalc course
+		currWP->initialCourse=calcGreatCircleRoute(lat,lon,currWP->latitude,currWP->longitude,&currWP->dist); //recalc course
 		totalDistKm+=Rad2Km(currWP->dist); //we add the new dst form current pos to the next WP
 		if(currWP!=dest) status=STATUS_NAV_TO_WPT;
 		else status=STATUS_NAV_TO_DST;
