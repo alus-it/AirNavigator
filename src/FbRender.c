@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 3/11/2013
+// Last change : 10/11/2013
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -310,8 +310,6 @@ void FbRender_Scroll(int target_y, int source_y, int height) {
 	memmove(fbbackp+target_y*screen.height*2,fbbackp+source_y*screen.height*2,height*screen.height*2);
 }
 
-
-
 unsigned long FixSqrt(unsigned long x) {
 	unsigned long r,nr,m;
 	r=0;
@@ -380,6 +378,70 @@ void FillRect(int ulx, int uly, int drx, int dry, unsigned short color) {
 	int y,lenght=drx-ulx;
 	for(y=uly;y<=dry;y++) DrawHorizontalLine(ulx,y,lenght,color);
 }
+
+//TODO: to be implemented and tested...
+/*void FillQuadrangle(int ax, int ay, int bx, int by, int cx, int cy, int dx, int dy, unsigned short color) {
+	int coord[4][2]={{ax,ay},{bx,by},{cx,cy},{dx,dy}};
+	int n[2]={0,screen.height};
+	int s[2]={0,0};
+	int w[2]={screen.width,0};
+	int e[2]={0,0};
+	int i;
+	for(i=0;i<4;i++) {
+		if(coord[i][1]<n[1]) {n[0]=coord[i][0]; n[1]=coord[i][1];}
+		if(coord[i][1]>s[1]) {s[0]=coord[i][0]; s[1]=coord[i][1];}
+		if(coord[i][0]<w[0]) {w[0]=coord[i][0]; w[1]=coord[i][1];}
+		if(coord[i][0]>e[0]) {e[0]=coord[i][0]; e[1]=coord[i][1];}
+	}
+
+
+	if(w[0]!=n[0] && n[0]!=e[0] && w[0]!=s[0] && s[0]!=e[0]) {
+		double wnm=(double)(n[1]-w[1])/(double)(n[0]-w[0]);
+		double wnq=w[1]-wnm*w[0];
+		double nem=(double)(e[1]-n[1])/(double)(e[0]-n[0]);
+		double neq=n[1]-nem*n[0];
+		double wsm=(double)(s[1]-w[1])/(double)(s[0]-w[0]);
+		double wsq=w[1]-wsm*w[0];
+		double sem=(double)(e[1]-s[1])/(double)(e[0]-s[0]);
+		double seq=s[1]-sem*s[0];
+		int j;
+		if(n[0]>s[0]) {
+			for(i=w[0];i<s[0];i++) {
+				int start=(int)round(wnm*i+wnq);
+				int end=(int)round(wsm*i+wsq);
+				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+			}
+			for(i=s[0];i<n[0];i++) {
+				int start=(int)round(wnm*i+wnq);
+				int end=(int)round(sem*i+seq);
+				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+			}
+			for(i=n[0];i<e[0];i++) {
+				int start=(int)round(nem*i+neq);
+				int end=(int)round(sem*i+seq);
+				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+			}
+		} else {
+			for(i=w[0];i<n[0];i++) {
+				int start=(int)round(wnm*i+wnq);
+				int end=(int)round(wsm*i+wsq);
+				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+			}
+			for(i=n[0];i<s[0];i++) {
+				int start=(int)round(nem*i+neq);
+				int end=(int)round(wsm*i+wsq);
+				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+			}
+			for(i=s[0];i<e[0];i++) {
+				int start=(int)round(nem*i+neq);
+				int end=(int)round(sem*i+seq);
+				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+			}
+		}
+	} else {
+		//in this case we have to verify if it is a normal rectangle
+	}
+}*/
 
 void PrintPosition(int latD, int latM, double latS, short N, int lonD, int lonM, double lonS, short E) {
 	if(screen.height!=240) {

@@ -512,7 +512,7 @@ int parseGGA(char* ascii) {
 			return 1;
 		}
 		return 0;
-	} else updateFixMode(MODE_NO_FIX);
+	} else updateFixMode(MODE_NO_FIX); //TODO: Even if there is no fix but the time can be available and displayed...
 	return 0;
 }
 

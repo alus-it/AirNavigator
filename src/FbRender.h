@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 3/11/2013
+// Last change : 10/11/2013
 // Description : Header of FbRender.c the FrameBuffer renderer
 //============================================================================
 
@@ -51,6 +51,7 @@ void FillCircle(int cx, int cy, int aRad, unsigned short color);
 void PutLinePoint(int x, int y, unsigned short color, int width);
 void DrawTwoPointsLine(int ax, int ay, int bx, int by, unsigned short color);
 void FillRect(int ulx, int uly, int drx, int dry, unsigned short color);
+//void FillQuadrangle(int ax, int ay, int bx, int by, int cx, int cy, int dx, int dy, unsigned short color);
 void PrintPosition(int latD, int latM, double latS, short N, int lonD, int lonM, double lonS, short E);
 void PrintSpeed(double speedKmh, double speedKnots);
 void PrintAltitude(double altMt, double altFt);

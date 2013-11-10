@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 04/12/2011
+// Last change : 9/11/2011
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -157,30 +157,72 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	double angle=course-direction;
 	if(angle<0) angle+=360;
 	angle=Deg2Rad(angle);
-	int pex=cx; //course indicator
-	int pey=major_mark;
-	int pix=cx;
-	int piy=cdi_border;
+	int pex=cx-1; //course indicator left
+	int pey=major_mark+2;
+	int pix=cx-1;
+	int piy=cdi_border+1;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
-	pex=cx; //first side of the arrow
+	pex=cx; //course indicator central
+	pey=major_mark;
+	pix=cx;
+	piy=cdi_border;
+	rotatePoint(cx,cy,&pex,&pey,angle);
+	rotatePoint(cx,cy,&pix,&piy,angle);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
+	pex=cx+1; //course indicator right
+	pey=major_mark+2;
+	pix=cx+1;
+	piy=cdi_border+1;
+	rotatePoint(cx,cy,&pex,&pey,angle);
+	rotatePoint(cx,cy,&pix,&piy,angle);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
+	pex=cx; //first side of the arrow central
 	pey=major_mark;
 	pix=cx-arrow_side;
 	piy=arrow_end;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
-	pex=cx; //other side of the arrow
+	pex=cx+1; //first side of the right central
+	pey=major_mark+2;
+	pix=cx-arrow_side+1;
+	piy=arrow_end;
+	rotatePoint(cx,cy,&pex,&pey,angle);
+	rotatePoint(cx,cy,&pix,&piy,angle);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
+	pex=cx-1; //other side of the arrow left
+	pey=major_mark+2;
+	pix=cx+arrow_side-1;
+	piy=arrow_end;
+	rotatePoint(cx,cy,&pex,&pey,angle);
+	rotatePoint(cx,cy,&pix,&piy,angle);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
+	pex=cx; //other side of the arrow central
 	pey=major_mark;
 	pix=cx+arrow_side;
 	piy=arrow_end;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
-	pex=cx; //other side of the course indicator
+	pex=cx-1; //other side of the course indicator left
+	pey=major_mark;
+	pix=cx-1;
+	piy=cdi_border;
+	rotatePoint(cx,cy,&pex,&pey,angle+M_PI);
+	rotatePoint(cx,cy,&pix,&piy,angle+M_PI);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
+	pex=cx; //other side of the course central
 	pey=major_mark;
 	pix=cx;
+	piy=cdi_border-1;
+	rotatePoint(cx,cy,&pex,&pey,angle+M_PI);
+	rotatePoint(cx,cy,&pix,&piy,angle+M_PI);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
+	pex=cx+1; //other side of the course indicator right
+	pey=major_mark;
+	pix=cx+1;
 	piy=cdi_border;
 	rotatePoint(cx,cy,&pex,&pey,angle+M_PI);
 	rotatePoint(cx,cy,&pix,&piy,angle+M_PI);
@@ -195,10 +237,24 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 		DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.cdiScale);
 	}
 	int dev=calcPixelDeviation(cdi); //Course Deviation Indicator
-	pex=cx+dev;
+	pex=cx+dev-1; //CDI left
+	pey=cdi_border+1;
+	pix=cx+dev-1;
+	piy=cdi_end-1;
+	rotatePoint(cx,cy,&pex,&pey,angle);
+	rotatePoint(cx,cy,&pix,&piy,angle);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.cdi);
+	pex=cx+dev; //CDI center
 	pey=cdi_border;
 	pix=cx+dev;
 	piy=cdi_end;
+	rotatePoint(cx,cy,&pex,&pey,angle);
+	rotatePoint(cx,cy,&pix,&piy,angle);
+	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.cdi);
+	pex=cx+dev+1; //CDI right
+	pey=cdi_border+1;
+	pix=cx+dev+1;
+	piy=cdi_end-1;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.cdi);
@@ -209,16 +265,16 @@ void diplayCDIvalue(double cdiMt) {
 	switch(config.trackErrUnit) {
 		case FT:
 			cdi=m2Ft(cdi);
-			if(cdi>=MILE_FT) FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%6.2f Mi",cdi/MILE_FT); //Display in miles
-			else FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%5.0f Ft",fabs(cdi));
+			if(cdi>=MILE_FT) FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f Mi",cdi/MILE_FT); //Display in miles
+			else FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%5.0f Ft",fabs(cdi));
 			break;
 		case NM:
-			FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%6.2f NM",m2Nm(cdi));
+			FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f NM",m2Nm(cdi));
 			break;
 		case MT:
 		default:
-			if(cdi>=1000) FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%6.2f Km",cdi/1000); //Display in Km
-			else FbRender_BlitText(cx-12,cy+30,colorSchema.cdi,colorSchema.background,0,"%5.0fm",fabs(cdi));
+			if(cdi>=1000) FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f Km",cdi/1000); //Display in Km
+			else FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%5.0fm",fabs(cdi));
 			/* no break */
 	}
 }
@@ -237,10 +293,10 @@ void HSIdraw(double direction, double course, double cdiMt) {
 			drawCDI(direction,course,cdiMt);
 		} //else no need to repaint the HSI
 	}
-	FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
+	FbRender_BlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
 	//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
 	diplayCDIvalue(cdiMt);
-	FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
+	FbRender_BlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
 	FbRender_Flush();
 }
 
@@ -253,10 +309,10 @@ void HSIupdateDir(double direction,double magneticDirection) {
 	} //else no need to repaint the HSI
 	actualDir=direction;
 	actualMagDir=magneticDirection;
-	FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
+	FbRender_BlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
 	//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",magneticDirection);
 	diplayCDIvalue(actualCDI);
-	FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",actualCourse);
+	FbRender_BlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",actualCourse);
 }
 
 void HSIupdateCDI(double course, double cdi) {
@@ -264,10 +320,10 @@ void HSIupdateCDI(double course, double cdi) {
 		FillCircle(cx,cy,cir,colorSchema.background); //clear the internal part of the compass
 		drawLabels(previousDir);
 		drawCDI(actualDir,course,cdi);
-		FbRender_BlitText(cx-12,cy-50,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",actualDir);
+		FbRender_BlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",actualDir);
 		//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
 		diplayCDIvalue(cdi);
-		FbRender_BlitText(cx-12,cy+40,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
+		FbRender_BlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
 	} //else no need to repaint the HSI
 }
 
