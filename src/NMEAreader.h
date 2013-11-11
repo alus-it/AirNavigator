@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 24/9/2013
+// Last change : 11/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -37,6 +37,7 @@
 #define MODE_NO_FIX  1
 #define MODE_2D_FIX  2
 #define MODE_3D_FIX  3
+#define MODE_GPS_FIX 4 //This is the fix from GGA we don't know if it is 2D or 3D
 
 #define MAX_NUM_SAT 24
 

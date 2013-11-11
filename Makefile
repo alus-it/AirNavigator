@@ -6,7 +6,7 @@
 # Copyright : (C) 2010-2013 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 2/11/2013
+# Last change : 11/11/2013
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -86,7 +86,7 @@ $(BIN)HSI.o: $(SRC)HSI.c $(SRC)HSI.h $(SRC)FbRender.h $(SRC)AirCalc.h $(SRC)Conf
 $(BIN)BlackBox.o: $(SRC)BlackBox.c $(SRC)BlackBox.h $(SRC)Configuration.h $(SRC)AirCalc.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)FbRender.o: $(SRC)FbRender.c $(SRC)FbRender.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)Configuration.h
+$(BIN)FbRender.o: $(SRC)FbRender.c $(SRC)FbRender.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)NMEAreader.h $(SRC)Configuration.h
 	$(CC) $(CFLAGS) -DLINUX_TARGET -I $(INC) $< -o $@
 
 $(BIN)Configuration.o: $(SRC)Configuration.c $(SRC)Configuration.h $(SRC)AirNavigator.h $(SRC)FbRender.h $(LIBSRC)libroxml/roxml.h

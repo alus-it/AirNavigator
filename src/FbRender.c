@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 10/11/2013
+// Last change : 11/11/2013
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -26,6 +26,7 @@
 #include "FbRender.h"
 #include "Navigator.h"
 #include "AirCalc.h"
+#include "NMEAreader.h"
 #include "Configuration.h"
 
 #define CHAR_WIDTH    8
@@ -649,14 +650,19 @@ void PrintDate(int day, int month, int year) {
 }
 
 void PrintNumOfSats(int activeSats, int satsInView) {
-	FbRender_BlitText(screen.height+28,250,colorSchema.text,colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
+	unsigned short color;
+	if(activeSats>3) color=colorSchema.text; //green
+	else if(activeSats==3) color=colorSchema.cdi; //yellow
+	else color=colorSchema.warning; //red
+	FbRender_BlitText(screen.height+28,250,color,colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
 }
 
 void PrintFixMode(int fixMode) {
 	switch(fixMode) {
-		case 3: FbRender_BlitText(screen.height+28,260,colorSchema.text,colorSchema.background,0,"FIX: 3D mode"); break;
-		case 2: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: 2D mode"); break;
-		case 1: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: No Fix "); break;
+		case MODE_GPS_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: GPS Fix"); break;
+		case MODE_3D_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.text,colorSchema.background,0,"FIX: 3D mode"); break;
+		case MODE_2D_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: 2D mode"); break;
+		case MODE_NO_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: No Fix "); break;
 		default: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: Unknown"); break;
 	}
 }

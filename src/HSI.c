@@ -185,16 +185,16 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
-	pex=cx+1; //first side of the right central
+	pex=cx-1; //first side of the right left
 	pey=major_mark+2;
-	pix=cx-arrow_side+1;
+	pix=cx-arrow_side-1;
 	piy=arrow_end;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.routeIndicator);
-	pex=cx-1; //other side of the arrow left
+	pex=cx+1; //other side of the arrow right
 	pey=major_mark+2;
-	pix=cx+arrow_side-1;
+	pix=cx+arrow_side+1;
 	piy=arrow_end;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
@@ -238,21 +238,21 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	}
 	int dev=calcPixelDeviation(cdi); //Course Deviation Indicator
 	pex=cx+dev-1; //CDI left
-	pey=cdi_border+1;
+	pey=cdi_border+2;
 	pix=cx+dev-1;
 	piy=cdi_end-1;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.cdi);
 	pex=cx+dev; //CDI center
-	pey=cdi_border;
+	pey=cdi_border+1;
 	pix=cx+dev;
 	piy=cdi_end;
 	rotatePoint(cx,cy,&pex,&pey,angle);
 	rotatePoint(cx,cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,colorSchema.cdi);
 	pex=cx+dev+1; //CDI right
-	pey=cdi_border+1;
+	pey=cdi_border+2;
 	pix=cx+dev+1;
 	piy=cdi_end-1;
 	rotatePoint(cx,cy,&pex,&pey,angle);

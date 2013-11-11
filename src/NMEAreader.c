@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 24/9/2013
+// Last change : 11/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -16,8 +16,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <pthread.h>
-//#include <sys/file.h>
- #include <fcntl.h>
+#include <fcntl.h>
 #include "AirNavigator.h"
 #include "Configuration.h"
 #include "AirCalc.h"
@@ -31,8 +30,7 @@
 #define BUFFER_SIZE         (4096*6)
 #define MAX_SENTENCE_LENGTH 255
 
-//#define DEBUG
-//#define DEBUG_PRINT_SENTENCES
+//#define PRINT_SENTENCES
 
 long BAUD;
 int DATABITS,STOPBITS,PARITYON,PARITY;
@@ -62,6 +60,7 @@ void updateNumOfActiveSats(int workingSats) {
 
 void updateFixMode(int fixMode) {
 	if(gps.fixMode!=fixMode) {
+		if(fixMode==MODE_GPS_FIX && (gps.fixMode==MODE_2D_FIX || gps.fixMode==MODE_3D_FIX)) return;
 		gps.fixMode=fixMode;
 		PrintFixMode(fixMode);
 		if(fixMode==MODE_NO_FIX) FbRender_Flush(); //because we want to show it immediately
@@ -262,12 +261,13 @@ void updateDate(int newDay, int newMonth, int newYear) {
 	}
 }
 
-void updateTime(int newHour, int newMin, float newSec) {
+void updateTime(int newHour, int newMin, float newSec, short flushImmediately) {
 	if(gps.second!=newSec) {
 		gps.hour=newHour;
 		gps.minute=newMin;
 		gps.second=newSec;
 		PrintTime(gps.hour,gps.minute,gps.second);
+		if(flushImmediately) FbRender_Flush();
 	}
 }
 
@@ -374,7 +374,7 @@ void update() {
 	if(GGAfound) {
 		posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,newerTimestamp);
 		altChanged=updateAltitude(altB,altUnitB,newerTimestamp);
-		updateTime(timeHourB,timeMinB,timeSecB);
+		updateTime(timeHourB,timeMinB,timeSecB,0);
 		updateNumOfTotalSatsInView(SatsInViewB);
 		if(GSAfound) {
 			updateNumOfActiveSats(SatsInUseB);
@@ -384,7 +384,7 @@ void update() {
 	if(RMCfound) {
 		if(!GGAfound) {
 			posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,newerTimestamp);
-			updateTime(timeHourB,timeMinB,timeSecB);
+			updateTime(timeHourB,timeMinB,timeSecB,0);
 		}
 		updateSpeed(groundSpeedKnotsB,newerTimestamp);
 		updateDirection(trueTrackB,magneticVariationB,magneticVariationToEastB,newerTimestamp);
@@ -476,43 +476,37 @@ int parseGGA(char* ascii) {
 	if(strlen(field)>0) sscanf(field,"%f",&diffAge);
 	field=strsep(&ascii,","); //Differential reference station ID, the last one
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&diffRef);
-#ifdef DEBUG
-	logText("GGA %d:%d:%.3f\n",timeHour,timeMin,timeSec);
-#endif //DEBUG
+	float timestamp=timeHour*3600+timeMin*60+timeSec;
+	if(timestamp<newerTimestamp) return 0; //the sentence is old
 	if(quality!=Q_NO_FIX) {
-		float timestamp=timeHour*3600+timeMin*60+timeSec;
-		if(timestamp<newerTimestamp) return 0; //the sentence is old
-		else {
-			if(timestamp>newerTimestamp) { //this is a new one sentence
-				newerTimestamp=timestamp;
-				GGAfound=1;
-				RMCfound=0;
-				GSAfound=0;
-			} else { //timestamp==newerTimestamp
-				if(GGAfound) return 0;
-				else GGAfound=1;
-			}
-			altB=alt;
-			altUnitB=altUnit;
-			latGraB=latGra;
-			latMinB=latMin;
-			latNorthB=latNorth;
-			lonGraB=lonGra;
-			lonMinB=lonMin;
-			lonEastB=lonEast;
-			timeHourB=timeHour;
-			timeMinB=timeMin;
-			timeSecB=timeSec;
-			hdopB=hDilutionPrecision;
-			SatsInViewB=numOfSatellites;
-			if(gps.fixMode==MODE_NO_FIX) {
-				if(numOfSatellites>3) updateFixMode(MODE_3D_FIX);
-				else updateFixMode(MODE_2D_FIX);
-			}
-			return 1;
+		if(timestamp>newerTimestamp) { //this is a new one sentence
+			newerTimestamp=timestamp;
+			GGAfound=1;
+			RMCfound=0;
+			GSAfound=0;
+		} else { //timestamp==newerTimestamp
+			if(GGAfound) return 0;
+			else GGAfound=1;
 		}
-		return 0;
-	} else updateFixMode(MODE_NO_FIX); //TODO: Even if there is no fix but the time can be available and displayed...
+		altB=alt;
+		altUnitB=altUnit;
+		latGraB=latGra;
+		latMinB=latMin;
+		latNorthB=latNorth;
+		lonGraB=lonGra;
+		lonMinB=lonMin;
+		lonEastB=lonEast;
+		timeHourB=timeHour;
+		timeMinB=timeMin;
+		timeSecB=timeSec;
+		hdopB=hDilutionPrecision;
+		SatsInViewB=numOfSatellites;
+		updateFixMode(MODE_GPS_FIX);
+		return 1;
+	} else { //there is no fix...
+		updateFixMode(MODE_NO_FIX); //show that there is no fix
+		if(timestamp>newerTimestamp) updateTime(timeHour,timeMin,timeSec,1); //show the time
+	}
 	return 0;
 }
 
@@ -603,9 +597,6 @@ int parseRMC(char* ascii) {
 		field=strsep(&ascii,","); //FAA Indicator (optional)
 		if(field!=NULL) if(strlen(field)>0) faa=field[0];
 	}
-#ifdef DEBUG
-	logText("RMC %d:%d:%.3f\n",timeHour,timeMin,timeSec);
-#endif //DEBUG
 	if(isValid) {
 		float timestamp=timeHour*3600+timeMin*60+timeSec;
 		if(gps.day!=-65&&timeDay!=gps.day) {
@@ -684,9 +675,6 @@ int parseGSA(char* ascii) {
 	if(strlen(field)>0) sscanf(field,"%f",&hdop);
 	field=strsep(&ascii,","); //VDOP, the last one
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%f",&vdop);
-#ifdef DEBUG
-	logText("GSA Signal PDOP: %f HDOP: %f VDOP: %f\n",pdop,hdop,vdop);
-#endif //DEBUG
 	updateFixMode(mode);
 	if(mode!=MODE_NO_FIX) {
 		if(GSAfound) return 0;
@@ -820,9 +808,6 @@ int parseGSV(char* ascii) {
  if(strlen(field)>0) sscanf(field,"%d",&newBeaconDataRate);
  field=strsep(&ascii,","); //Channel, the last one
  if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&newChannel);
- #ifdef DEBUG
- logText("MSS Signal Strength: %d dB, SNR: %d dB, Beacon Frequency: %f kHz, Beacon Data Rate: %d B/s, Channel: %d\n",newSignalStrength,newSNR,newBeaconFreq,newBeaconDataRate,newChannel);
- #endif //DEBUG
  if(newChannel!=-1) {
  signalStrength=newSignalStrength;
  SNR=newSNR;
@@ -854,9 +839,6 @@ int parseGSV(char* ascii) {
  if(strlen(field)>0) sscanf(field,"%d",&localZone);
  field=strsep(&ascii,","); // Local zone minutes, the last one
  if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&localZoneMin);
- #ifdef DEBUG
- logText("ZDA %d/%d/%d %2d:%2d:%2.3f zone:%d:%d\n",timeDay,timeMonth,timeYear,timeHour,timeMin,timeSec,localZone,localZoneMin);
- #endif //DEBUG
  if(localZoneMin!=-1) {
  updateDate(timeDay,timeMonth,timeYear);
  updateTime(timeHour,timeMin,timeSec);
@@ -918,9 +900,6 @@ int parseGSV(char* ascii) {
  if(field!=NULL) if(strlen(field)>0) faa=field[0];
  }
  }
- #ifdef DEBUG
- logText("VTG True track: %f, Magnetic track: %f, Speed: %f Knots %f Km/h \n",trueTrack,magneticTrack,groundSpeedKnots,groundSpeedKmh);
- #endif //DEBUG
  if(faa!=FAA_NOTVAL&&groundSpeedKmh>=0) {
  updateGroundSpeedAndDirection(groundSpeedKmh,groundSpeedKnots,trueTrack,magneticTrack);
  return 1;
@@ -986,9 +965,6 @@ int parseGSV(char* ascii) {
  field=strsep(&ascii,","); //FAA Indicator (optional)
  if(field!=NULL) if(strlen(field)>0) faa=field[0];
  }
- #ifdef DEBUG
- logText("GLL %d:%d:%.3f\n",timeHour,timeMin,timeSec);
- #endif //DEBUG
  if(isValid) {
  float timestamp=timeHour*3600+timeMin*60+timeSec;
  updatePosition(latGra,latMin,latNorth,lonGra,lonMin,lonEast,timestamp,timeHour,timeMin,timeSec);
@@ -1035,22 +1011,11 @@ int parseGSV(char* ascii) {
  }
  return 1;
  }
- #ifdef DEBUG
- logText("GBS %d:%d:%.3f latErr: %f m, lonErr: %f m, altErr: %f m\n",timeHour,timeMin,timeSec,latitudeError,longitudeError,altitudeError);
- #endif //DEBUG
  return 0;
  } */
 
 int parse(char* ascii, long timestamp) {
-	if(strlen(ascii)<6) {
-#ifdef DEBUG
-		logText("Received too short sentence: %s\n",ascii);
-#endif
-		return -1;
-	}
-#ifdef DEBUG
-	if(ascii[0]!='$') logText("$ expected as first char but first char is: %c\n",ascii[0]);
-#endif
+	if(strlen(ascii)<6) return -1; //Received too short sentence
 	int r=2;
 	switch(ascii[3]){
 		case 'G': //GGA GSA GSV GLL GBS
@@ -1083,10 +1048,8 @@ int parse(char* ascii, long timestamp) {
 			//if(ascii[4]=='T'&&ascii[5]=='G') r=parseVTG(ascii+7);
 			//break;
 	}
-#ifdef DEBUG
-	if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
-	else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
-#endif
+	//if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
+	//else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
 	free(ascii);
 	return 1;
 }
@@ -1154,10 +1117,10 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 								for(j=1;j<rcvdBytesOfSentence-3;j++)
 									checksum=checksum^sentence[j];
 								if(getCRCintValue(sentence,rcvdBytesOfSentence)==checksum) { //right CRC
-#ifdef DEBUG_PRINT_SENTENCES //DEBUG print the sentence
+#ifdef PRINT_SENTENCES //Print all the sentences received
 										sentence[rcvdBytesOfSentence]='\0';
 										logText("%s\n",sentence);
-#endif //DEBUG
+#endif
 									sentence[rcvdBytesOfSentence-3]='\0'; //put terminator cut off checksum
 									parse(strdup(sentence),timestamp);
 								}
