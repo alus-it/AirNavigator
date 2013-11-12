@@ -25,7 +25,7 @@
 #include "Configuration.h"
 #include "AirCalc.h"
 #include "NMEAreader.h"
-#include "FbRender.h"
+#include "FBrender.h"
 #include "HSI.h"
 #include "AirNavigator.h"
 
@@ -100,7 +100,7 @@ void NavCalculateRoute() {
 	prevWPsTotDist=0;
 	status=STATUS_TO_START_NAV;
 	PrintNavStatus(status,dept->next->name);
-	FbRender_Flush();
+	FBrenderFlush();
 }
 
 int NavLoadFlightPlan(char* GPXfile) {
@@ -293,7 +293,7 @@ void NavFindNextWP(double lat, double lon) {
 	if(currWP==dest) status=STATUS_NAV_TO_DST;
 	PrintNavStatus(status,currWP->name);
 	logText("Next waypoint is: %s\n\n\n",currWP->name);
-	FbRender_Flush();
+	FBrenderFlush();
 }
 
 void NavStartNavigation(float timestamp) { //timestamp have to be the real time when we start the travel
@@ -315,7 +315,7 @@ void NavStartNavigation(float timestamp) { //timestamp have to be the real time 
 		status=STATUS_WAIT_FIX;
 	}
 	PrintNavStatus(status,currWP->name);
-	FbRender_Flush();
+	FBrenderFlush();
 }
 
 void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {

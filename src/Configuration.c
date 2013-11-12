@@ -16,7 +16,7 @@
 #include <libroxml/roxml.h>
 #include "Configuration.h"
 #include "AirNavigator.h"
-#include "FbRender.h"
+#include "FBrender.h"
 
 void initConfig() { //Initializes the confog struct with the default values
 	config.distUnit=KM;

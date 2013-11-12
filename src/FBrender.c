@@ -1,12 +1,12 @@
 //============================================================================
-// Name        : FbRender.c
+// Name        : FBrender.c
 // Since       : 8/7/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 11/11/2013
+// Last change : 12/11/2013
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -23,7 +23,7 @@
 #include <sys/ioctl.h>
 #include <linux/fb.h>
 
-#include "FbRender.h"
+#include "FBrender.h"
 #include "Navigator.h"
 #include "AirCalc.h"
 #include "NMEAreader.h"
@@ -45,11 +45,11 @@ unsigned short Color(int r, int g, int b) {
 	return (b>>3)+((g>>2)*32)+((r>>3)*2048);// (gray>>2)<<5;
 }
 
-int FbRender_Bpp() {
+int FBrenderBpp() {
 	return vinfo.bits_per_pixel;
 }
 
-short FbRender_Open() {
+short FBrenderOpen() {
 	fbfd=open("/dev/fb",O_RDWR);
 	if(!fbfd) { //open the framebuffer
 		printf("FATAL ERROR: Impossible to open the framebuffer.\n");
@@ -88,7 +88,7 @@ short FbRender_Open() {
 	return 1;
 }
 
-void FbRender_Close() {
+void FBrenderClose() {
 	if(isOpen!=1) return;
 	if(fbfd>0) {
 		munmap(fbp,screensize);
@@ -98,7 +98,7 @@ void FbRender_Close() {
 	fbfd=-1;
 }
 
-void FbRender_Clear(int aFromY, int aNrLines, unsigned short aColor) {
+void FBrenderClear(int aFromY, int aNrLines, unsigned short aColor) {
 	unsigned short *ptr=(unsigned short*)(fbbackp+aFromY*((vinfo.xres*vinfo.bits_per_pixel)/8));
 	unsigned short *endp=ptr+aNrLines*((vinfo.xres*vinfo.bits_per_pixel)/16);
 	while(ptr<endp) {
@@ -109,7 +109,7 @@ void FbRender_Clear(int aFromY, int aNrLines, unsigned short aColor) {
 	}
 }
 
-inline void FbRender_PutPixel(int x, int y, unsigned short color) {
+inline void FBrenderPutPixel(int x, int y, unsigned short color) {
 	unsigned short *ptr=(unsigned short*)(fbbackp+y*((vinfo.xres*vinfo.bits_per_pixel)/8));
 	ptr+=x;
 	*ptr=color;
@@ -214,7 +214,7 @@ static const unsigned char asciiTable[]={0x00,0x00,0x00,0x00,0x00,//0x00,
 		0x78,0x46,0x41,0x46,0x78,//0x00
 		};
 
-void FbRender_BlitCharacter(int x, int y, unsigned short aColor, unsigned short aBackColor, char character) {
+void FBrenderBlitCharacter(int x, int y, unsigned short aColor, unsigned short aBackColor, char character) {
 	unsigned char data0,data1,data2,data3,data4;
 	if(x<0||y<0) return;
 	if(x>screen.width-CHAR_WIDTH-1||y>screen.height-7) return;
@@ -248,7 +248,7 @@ void FbRender_BlitCharacter(int x, int y, unsigned short aColor, unsigned short 
 	}
 }
 
-void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char character) {
+void FBrenderBlitCharacterItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char character) {
 	unsigned char data0,data1,data2,data3,data4;
 	if(x<0||y<0) return;
 	if(x>screen.width-CHAR_WIDTH-1||y>screen.height-7) return;
@@ -282,7 +282,7 @@ void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned 
 	}
 }
 
-int FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, unsigned short italic, const char *args, ...) {
+int FBrenderBlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, unsigned short italic, const char *args, ...) {
 	int done=-1;
 	if(args!=NULL) {
 		va_list arg;
@@ -292,8 +292,8 @@ int FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackC
 		if(done) {
 			int i=0;
 			while(str[i]) {
-				if(italic) FbRender_BlitCharacterItalic(x,y,aColor,aBackColor,str[i]);
-				else FbRender_BlitCharacter(x,y,aColor,aBackColor,str[i]);
+				if(italic) FBrenderBlitCharacterItalic(x,y,aColor,aBackColor,str[i]);
+				else FBrenderBlitCharacter(x,y,aColor,aBackColor,str[i]);
 				x+=CHAR_WIDTH;
 				i++;
 			}
@@ -303,11 +303,11 @@ int FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackC
 	return done;
 }
 
-void FbRender_Flush() {
+void FBrenderFlush() {
 	memcpy(fbp,fbbackp,screensize);
 }
 
-void FbRender_Scroll(int target_y, int source_y, int height) {
+void FBrenderScroll(int target_y, int source_y, int height) {
 	memmove(fbbackp+target_y*screen.height*2,fbbackp+source_y*screen.height*2,height*screen.height*2);
 }
 
@@ -337,7 +337,7 @@ void DrawHorizontalLine(int X, int Y, int width, unsigned short color) {
 		X=iClipMin;
 	}
 	if(w>iClipMax-X) w=iClipMax-X; // clip right margin
-	while(w-->0) FbRender_PutPixel(X++,Y,color); // put the pixels...
+	while(w-->0) FBrenderPutPixel(X++,Y,color); // put the pixels...
 }
 
 void FillCircle(int cx, int cy, int aRad, unsigned short color) {
@@ -352,7 +352,7 @@ void FillCircle(int cx, int cy, int aRad, unsigned short color) {
 
 void PutLinePoint(int x, int y, unsigned short color, int width) {
 	if(width>1) FillCircle(x,y,width,color);
-	else FbRender_PutPixel(x,y,color);
+	else FBrenderPutPixel(x,y,color);
 }
 
 void DrawTwoPointsLine(int ax, int ay, int bx, int by, unsigned short color) {
@@ -361,17 +361,17 @@ void DrawTwoPointsLine(int ax, int ay, int bx, int by, unsigned short color) {
 		double q=ay-m*ax;
 		if(m<-1 || m>1) {
 			int y;
-			if(by>ay) for(y=ay;y<by;y++) FbRender_PutPixel(((int)round((y-q)/m)),y,color);
-			else for(y=by;y<ay;y++) FbRender_PutPixel(((int)round((y-q)/m)),y,color);
+			if(by>ay) for(y=ay;y<by;y++) FBrenderPutPixel(((int)round((y-q)/m)),y,color);
+			else for(y=by;y<ay;y++) FBrenderPutPixel(((int)round((y-q)/m)),y,color);
 		} else {
 			int x;
-			if(bx>ax) for(x=ax;x<bx;x++) FbRender_PutPixel(x,((int)round(m*x+q)),color);
-			else for(x=bx;x<ax;x++) FbRender_PutPixel(x,((int)round(m*x+q)),color);
+			if(bx>ax) for(x=ax;x<bx;x++) FBrenderPutPixel(x,((int)round(m*x+q)),color);
+			else for(x=bx;x<ax;x++) FBrenderPutPixel(x,((int)round(m*x+q)),color);
 		}
 	} else { //vertical line
 		int y;
-		if(by>ay) for(y=ay;y<by;y++) FbRender_PutPixel(ax,y,color);
-		else for(y=by;y<ay;y++) FbRender_PutPixel(bx,y,color);
+		if(by>ay) for(y=ay;y<by;y++) FBrenderPutPixel(ax,y,color);
+		else for(y=by;y<ay;y++) FBrenderPutPixel(bx,y,color);
 	}
 }
 
@@ -410,33 +410,33 @@ void FillRect(int ulx, int uly, int drx, int dry, unsigned short color) {
 			for(i=w[0];i<s[0];i++) {
 				int start=(int)round(wnm*i+wnq);
 				int end=(int)round(wsm*i+wsq);
-				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+				for(j=start;j<end;j++) FBrenderPutPixel(i,j,color);
 			}
 			for(i=s[0];i<n[0];i++) {
 				int start=(int)round(wnm*i+wnq);
 				int end=(int)round(sem*i+seq);
-				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+				for(j=start;j<end;j++) FBrenderPutPixel(i,j,color);
 			}
 			for(i=n[0];i<e[0];i++) {
 				int start=(int)round(nem*i+neq);
 				int end=(int)round(sem*i+seq);
-				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+				for(j=start;j<end;j++) FBrenderPutPixel(i,j,color);
 			}
 		} else {
 			for(i=w[0];i<n[0];i++) {
 				int start=(int)round(wnm*i+wnq);
 				int end=(int)round(wsm*i+wsq);
-				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+				for(j=start;j<end;j++) FBrenderPutPixel(i,j,color);
 			}
 			for(i=n[0];i<s[0];i++) {
 				int start=(int)round(nem*i+neq);
 				int end=(int)round(wsm*i+wsq);
-				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+				for(j=start;j<end;j++) FBrenderPutPixel(i,j,color);
 			}
 			for(i=s[0];i<e[0];i++) {
 				int start=(int)round(nem*i+neq);
 				int end=(int)round(sem*i+seq);
-				for(j=start;j<end;j++) FbRender_PutPixel(i,j,color);
+				for(j=start;j<end;j++) FBrenderPutPixel(i,j,color);
 			}
 		}
 	} else {
@@ -446,8 +446,8 @@ void FillRect(int ulx, int uly, int drx, int dry, unsigned short color) {
 
 void PrintPosition(int latD, int latM, double latS, short N, int lonD, int lonM, double lonS, short E) {
 	if(screen.height!=240) {
-		FbRender_BlitText(screen.height+28,2,colorSchema.text,colorSchema.background,0,"%3d %2d' %6.3f\" %c ",latD,latM,latS,N?'N':'S');
-		FbRender_BlitText(screen.height+28,12,colorSchema.text,colorSchema.background,0,"%3d %2d' %6.3f\" %c ",lonD,lonM,lonS,E?'E':'W');
+		FBrenderBlitText(screen.height+28,2,colorSchema.text,colorSchema.background,0,"%3d %2d' %6.3f\" %c ",latD,latM,latS,N?'N':'S');
+		FBrenderBlitText(screen.height+28,12,colorSchema.text,colorSchema.background,0,"%3d %2d' %6.3f\" %c ",lonD,lonM,lonS,E?'E':'W');
 	}
 }
 
@@ -455,26 +455,26 @@ void PrintSpeed(double speedKmh, double speedKnots) {
 	if(screen.height!=240) {
 		switch(config.speedUnit) {
 			case KNOTS:
-				FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f Knots",speedKnots);
+				FBrenderBlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f Knots",speedKnots);
 				break;
 			case MPH:
-				FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f MPH  ",Km2Miles(speedKmh));
+				FBrenderBlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f MPH  ",Km2Miles(speedKmh));
 				break;
 			case KMH:
 			default:
-				FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f Km/h ",speedKmh);
+				FBrenderBlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"GS: %7.2f Km/h ",speedKmh);
 				/* no break */
 		}
 	} else switch(config.speedUnit) {
 		case KNOTS:
-			FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f Knots",speedKnots);
+			FBrenderBlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f Knots",speedKnots);
 			break;
 		case MPH:
-			FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f MPH  ",Km2Miles(speedKmh));
+			FBrenderBlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f MPH  ",Km2Miles(speedKmh));
 			break;
 		case KMH:
 		default:
-			FbRender_BlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f Km/h ",speedKmh);
+			FBrenderBlitText(screen.height+28,32,colorSchema.text,colorSchema.background,0,"%.0f Km/h ",speedKmh);
 			/* no break */
 	}
 }
@@ -494,11 +494,11 @@ void PrintNavStatus(int status, char *WPname) {
 			default:                  statusName=strdup("Unknown       "); break;
 	}
 	if(screen.height!=240) {
-		FbRender_BlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"NAV: %s       ",statusName);
-		FbRender_BlitText(screen.height+28,62,colorSchema.text,colorSchema.background,0,"WPT: %s                 ",WPname);
+		FBrenderBlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"NAV: %s       ",statusName);
+		FBrenderBlitText(screen.height+28,62,colorSchema.text,colorSchema.background,0,"WPT: %s                 ",WPname);
 	} else {
-		FbRender_BlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"%s       ",statusName);
-		FbRender_BlitText(screen.height+28,62,colorSchema.text,colorSchema.background,0,"%s               ",WPname);
+		FBrenderBlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"%s       ",statusName);
+		FBrenderBlitText(screen.height+28,62,colorSchema.text,colorSchema.background,0,"%s               ",WPname);
 	}
 	free(statusName);
 }
@@ -507,61 +507,61 @@ void PrintNavRemainingDistWP(double distKm, double averageSpeedKmh, double hours
 	if(screen.height!=240) {
 		switch(config.distUnit) { //Distance To Go
 			case NM:
-				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f NM    ",Km2Nm(distKm));
+				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f NM    ",Km2Nm(distKm));
 				break;
 			case MI:
-				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Mi    ",Km2Miles(distKm));
+				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Mi    ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",distKm);
+				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",distKm);
 				/* no break */
 		}
 		switch(config.speedUnit) {
 			case KNOTS:
-				FbRender_BlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
 			case MPH:
-				FbRender_BlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
 				break;
 			case KMH:
 			default:
-				FbRender_BlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
+				FBrenderBlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
 				/* no break */
 		}
 	} else switch(config.distUnit) { //Distance To Go
 			case NM:
-				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f NM    ",Km2Nm(distKm));
+				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f NM    ",Km2Nm(distKm));
 				break;
 			case MI:
-				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f Mi    ",Km2Miles(distKm));
+				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f Mi    ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f Km    ",distKm);
+				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"%.2f Km    ",distKm);
 				/* no break */
 	}
 	if(hours<100 && hours>0) {
 		int hour,min;
 		float sec;
 		convertDecimal2DegMinSec(hours,&hour,&min,&sec); //Estimated Time Enroute
-		if(screen.height!=240) FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"ETE: %2d:%02d:%02.0f    ",hour,min,sec);
-		else FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"%2d:%02d    ",hour,min);
-	} else if(screen.height!=240) FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"ETE: --:--:--    ");
-		else FbRender_BlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"--:--    ");
+		if(screen.height!=240) FBrenderBlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"ETE: %2d:%02d:%02.0f    ",hour,min,sec);
+		else FBrenderBlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"%2d:%02d    ",hour,min);
+	} else if(screen.height!=240) FBrenderBlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"ETE: --:--:--    ");
+		else FBrenderBlitText(screen.height+28,102,colorSchema.text,colorSchema.background,0,"--:--    ");
 }
 
 void PrintNavDTG(double distRad) { //Distance To Go
 	switch(config.distUnit) {
 		case NM:
-			FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f NM    ",Rad2Nm(distRad));
+			FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f NM    ",Rad2Nm(distRad));
 			break;
 		case MI:
-			FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Mi    ",Rad2Mi(distRad));
+			FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Mi    ",Rad2Mi(distRad));
 			break;
 		case KM:
 		default:
-			FbRender_BlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",Rad2Km(distRad));
+			FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",Rad2Km(distRad));
 			/* no break */
 	}
 }
@@ -569,66 +569,66 @@ void PrintNavDTG(double distRad) { //Distance To Go
 void PrintNavTrackATD(double atdRad) {
 	if(screen.height!=240) switch(config.distUnit) {
 		case NM:
-			FbRender_BlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f NM  ",Rad2Nm(atdRad));
+			FBrenderBlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f NM  ",Rad2Nm(atdRad));
 			break;
 		case MI:
-			FbRender_BlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f Mi  ",Rad2Mi(atdRad));
+			FBrenderBlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f Mi  ",Rad2Mi(atdRad));
 			break;
 		case KM:
 		default:
-			FbRender_BlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f Km  ",Rad2Km(atdRad));
+			FBrenderBlitText(screen.height+28,82,colorSchema.text,colorSchema.background,0,"ATD: %7.3f Km  ",Rad2Km(atdRad));
 			/* no break */
 	}
 }
 
 void PrintAltitude(double altMt, double altFt) {
-	FbRender_BlitText(screen.height+28,133,colorSchema.text,colorSchema.background,0,"%.0f Ft   %.0f m    ",altFt,altMt);
+	FBrenderBlitText(screen.height+28,133,colorSchema.text,colorSchema.background,0,"%.0f Ft   %.0f m    ",altFt,altMt);
 }
 
 void PrintVerticalSpeed(double FtMin) {
-	//FbRender_BlitText(2,42,colorSchema.text,colorSchema.background,str,0,"VS: %.0f Ft/min   ",FtMin);
+	//FBrenderBlitText(2,42,colorSchema.text,colorSchema.background,str,0,"VS: %.0f Ft/min   ",FtMin);
 }
 
 void PrintTurnRate(double DegMin) {
-	//FbRender_BlitText(2,52,colorSchema.text,colorSchema.background,str,0,"TR: %.2f Deg/min  ",DegMin);
+	//FBrenderBlitText(2,52,colorSchema.text,colorSchema.background,str,0,"TR: %.2f Deg/min  ",DegMin);
 }
 
 void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double timeHours) {
 	if(screen.height!=240) {
 		switch(config.distUnit) {
 			case NM:
-				FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f NM     ",Km2Nm(distKm));
+				FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f NM     ",Km2Nm(distKm));
 				break;
 			case MI:
-				FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Mi     ",Km2Miles(distKm));
+				FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Mi     ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Km     ",distKm);
+				FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Km     ",distKm);
 				/* no break */
 		}
 		switch(config.speedUnit) {
 			case KNOTS:
-				FbRender_BlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
 			case MPH:
-				FbRender_BlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
 				break;
 			case KMH:
 			default:
-				FbRender_BlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
+				FBrenderBlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
 				/* no break */
 		}
 	} else switch(config.distUnit) {
 		case NM:
-			FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f NM     ",Km2Nm(distKm));
+			FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f NM     ",Km2Nm(distKm));
 			break;
 		case MI:
-			FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f Mi     ",Km2Miles(distKm));
+			FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f Mi     ",Km2Miles(distKm));
 			break;
 		case KM:
 		default:
-			FbRender_BlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f Km     ",distKm);
+			FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"%.2f Km     ",distKm);
 			/* no break */
 	}
 	//TODO: Continue here with the conversion to smaller screen
@@ -637,16 +637,16 @@ void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double time
 		int hour,min;
 		float sec;
 		convertDecimal2DegMinSec(timeHours,&hour,&min,&sec);
-		FbRender_BlitText(screen.height+28,192,colorSchema.text,colorSchema.background,0,"ETA: %2d:%02d:%02.0f    ",hour,min,sec);
-	} else FbRender_BlitText(screen.height+28,192,colorSchema.text,colorSchema.background,0,"ETA: --:--:--    "); //Estimated Time of Arrival
+		FBrenderBlitText(screen.height+28,192,colorSchema.text,colorSchema.background,0,"ETA: %2d:%02d:%02.0f    ",hour,min,sec);
+	} else FBrenderBlitText(screen.height+28,192,colorSchema.text,colorSchema.background,0,"ETA: --:--:--    "); //Estimated Time of Arrival
 }
 
-void PrintTime(int hour, int minute, float second) {
-	FbRender_BlitText(screen.height+28,240,colorSchema.text,colorSchema.background,0,"UTC: %02d:%02d:%02.0f",hour,minute,second);
+void PrintTime(int hour, int minute, float second, short waring) {
+	FBrenderBlitText(screen.height+28,240,waring?colorSchema.cdi:colorSchema.text,colorSchema.background,0,"UTC: %02d:%02d:%02.0f",hour,minute,second);
 }
 
 void PrintDate(int day, int month, int year) {
-	//FbRender_BlitText(2,230,colorSchema.text,colorSchema.background,0,"Date: %2d/%02d/%4d",day,month,year);
+	//FBrenderBlitText(2,230,colorSchema.text,colorSchema.background,0,"Date: %2d/%02d/%4d",day,month,year);
 }
 
 void PrintNumOfSats(int activeSats, int satsInView) {
@@ -654,19 +654,19 @@ void PrintNumOfSats(int activeSats, int satsInView) {
 	if(activeSats>3) color=colorSchema.text; //green
 	else if(activeSats==3) color=colorSchema.cdi; //yellow
 	else color=colorSchema.warning; //red
-	FbRender_BlitText(screen.height+28,250,color,colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
+	FBrenderBlitText(screen.height+28,250,color,colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
 }
 
 void PrintFixMode(int fixMode) {
 	switch(fixMode) {
-		case MODE_GPS_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: GPS Fix"); break;
-		case MODE_3D_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.text,colorSchema.background,0,"FIX: 3D mode"); break;
-		case MODE_2D_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: 2D mode"); break;
-		case MODE_NO_FIX: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: No Fix "); break;
-		default: FbRender_BlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: Unknown"); break;
+		case MODE_GPS_FIX: FBrenderBlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: GPS Fix"); break;
+		case MODE_3D_FIX: FBrenderBlitText(screen.height+28,260,colorSchema.text,colorSchema.background,0,"FIX: 3D mode"); break;
+		case MODE_2D_FIX: FBrenderBlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: 2D mode"); break;
+		case MODE_NO_FIX: FBrenderBlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: No Fix "); break;
+		default: FBrenderBlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: Unknown"); break;
 	}
 }
 
 void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition) {
-	//FbRender_BlitText(2,260,colorSchema.text,colorSchema.background,0,"DOP P:%4.1f H:%4.1f V:%4.1f",pDiluition,hDiluition,vDiluition);
+	//FBrenderBlitText(2,260,colorSchema.text,colorSchema.background,0,"DOP P:%4.1f H:%4.1f V:%4.1f",pDiluition,hDiluition,vDiluition);
 }

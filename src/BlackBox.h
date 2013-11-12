@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 03/12/2011
+// Last change : 12/11/2013
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
@@ -22,7 +22,7 @@
 #define MIN_DIST 0.00000109872 // 7 m in Rad
 
 void BlackBoxStart();
-short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec);
+short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, short dateChanged);
 short BlackBoxRecordAlt(double altMt);
 short BlackBoxRecordSpeed(double speedMTSec);
 short BlackBoxRecordCourse(double course);

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 11/11/2013
+// Last change : 12/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -22,7 +22,7 @@
 #include "AirCalc.h"
 #include "Geoidal.h"
 #include "NMEAreader.h"
-#include "FbRender.h"
+#include "FBrender.h"
 #include "HSI.h"
 #include "Navigator.h"
 #include "BlackBox.h"
@@ -63,7 +63,7 @@ void updateFixMode(int fixMode) {
 		if(fixMode==MODE_GPS_FIX && (gps.fixMode==MODE_2D_FIX || gps.fixMode==MODE_3D_FIX)) return;
 		gps.fixMode=fixMode;
 		PrintFixMode(fixMode);
-		if(fixMode==MODE_NO_FIX) FbRender_Flush(); //because we want to show it immediately
+		if(fixMode==MODE_NO_FIX) FBrenderFlush(); //because we want to show it immediately
 	}
 }
 
@@ -185,7 +185,7 @@ void initializeNMEAreader() {
 	readingNMEA=0;
 	updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
 	updateNumOfActiveSats(0);
-	FbRender_Flush();
+	FBrenderFlush();
 }
 
 short NMEAreaderIsReading() {
@@ -251,28 +251,30 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 	return updateAlt;
 }
 
-void updateDate(int newDay, int newMonth, int newYear) {
+short updateDate(int newDay, int newMonth, int newYear) {
 	if(gps.day!=newDay) {
 		gps.day=newDay;
 		gps.month=newMonth;
 		gps.year=newYear;
 		if(gps.year<2000) gps.year+=2000;
 		PrintDate(gps.day,gps.month,gps.year);
+		return 1;
 	}
+	return 0;
 }
 
-void updateTime(int newHour, int newMin, float newSec, short flushImmediately) {
-	if(gps.second!=newSec) {
+void updateTime(float timestamp, int newHour, int newMin, float newSec, short timeWithNoFix) {
+	if(gps.timestamp!=timestamp) {
+		gps.timestamp=timestamp;
 		gps.hour=newHour;
 		gps.minute=newMin;
 		gps.second=newSec;
-		PrintTime(gps.hour,gps.minute,gps.second);
-		if(flushImmediately) FbRender_Flush();
+		PrintTime(gps.hour,gps.minute,gps.second,timeWithNoFix);
+		if(timeWithNoFix) FBrenderFlush();
 	}
 }
 
-short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, float timestamp) {
-	gps.timestamp=timestamp;
+short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged) {
 	if(gps.latMinDecimal!=newlatMin||gps.lonMinDecimal!=newlonMin) {
 		gps.latDeg=newlatDeg;
 		gps.lonDeg=newlonDeg;
@@ -287,7 +289,7 @@ short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlon
 		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
 		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
 		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
-		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,timeHourB,timeMinB,timeSecB);
+		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,timeHourB,timeMinB,timeSecB,dateChaged);
 		return 1;
 	}
 	return 0;
@@ -308,7 +310,7 @@ void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float
 	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
 }
 
-void updateSpeed(float newSpeedKnots, float timestamp) {
+void updateSpeed(float newSpeedKnots) {
 	if(newSpeedKnots!=gps.speedKnots) {
 		gps.speedKnots=newSpeedKnots;
 		gps.speedKmh=Nm2Km(newSpeedKnots);
@@ -370,11 +372,12 @@ void updateDiluition(float pDiluition, float hDiluition, float vDiluition) {
 }
 
 void update() {
-	short posChanged=0,altChanged=0;
+	short dateChanged=0,posChanged=0,altChanged=0;
+	if(RMCfound) dateChanged=updateDate(timeDayB,timeMonthB,timeYearB); //pre-check if date is changed
 	if(GGAfound) {
-		posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,newerTimestamp);
+		updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
+		posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
 		altChanged=updateAltitude(altB,altUnitB,newerTimestamp);
-		updateTime(timeHourB,timeMinB,timeSecB,0);
 		updateNumOfTotalSatsInView(SatsInViewB);
 		if(GSAfound) {
 			updateNumOfActiveSats(SatsInUseB);
@@ -383,15 +386,14 @@ void update() {
 	}
 	if(RMCfound) {
 		if(!GGAfound) {
-			posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,newerTimestamp);
-			updateTime(timeHourB,timeMinB,timeSecB,0);
+			updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
+			posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
 		}
-		updateSpeed(groundSpeedKnotsB,newerTimestamp);
+		updateSpeed(groundSpeedKnotsB);
 		updateDirection(trueTrackB,magneticVariationB,magneticVariationToEastB,newerTimestamp);
-		updateDate(timeDayB,timeMonthB,timeYearB);
 	}
 	if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
-	FbRender_Flush();
+	FBrenderFlush();
 	BlackBoxCommit();
 	GGAfound=0;
 	RMCfound=0;
@@ -505,7 +507,7 @@ int parseGGA(char* ascii) {
 		return 1;
 	} else { //there is no fix...
 		updateFixMode(MODE_NO_FIX); //show that there is no fix
-		if(timestamp>newerTimestamp) updateTime(timeHour,timeMin,timeSec,1); //show the time
+		if(timestamp>newerTimestamp) updateTime(timestamp,timeHour,timeMin,timeSec,1); //show the time
 	}
 	return 0;
 }

@@ -315,7 +315,10 @@ Version 0.2.7
 	Listening for Touch Screen input now done in a separate thread
 
 Version 0.2.8
-	TODO....
+	Improved bisector algorithm and calculations
+	Make HSI direction arrow and CDI more visible
+	Display UTC time from GPS even without GPS fix
+	Bug fixed in the track recorder
 
 
 CONTACTS

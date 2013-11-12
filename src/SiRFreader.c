@@ -97,7 +97,7 @@ void updateFixMode(int fixMode) {
 	if(gps.fixMode!=fixMode) {
 		gps.fixMode=fixMode;
 		PrintFixMode(fixMode);
-		if(fixMode==MODE_NO_FIX) FbRender_Flush(); //because we want to show it immediately
+		if(fixMode==MODE_NO_FIX) FBrenderFlush(); //because we want to show it immediately
 	}
 }
 */
@@ -123,7 +123,7 @@ void initializeSiRF() {
 	readingSiRF=0;
 	//updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
 	//updateNumOfActiveSats(0);
-	//FbRender_Flush();
+	//FBrenderFlush();
 }
 
 short SiRFreaderIsreading() {

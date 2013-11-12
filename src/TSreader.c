@@ -1,13 +1,13 @@
 //============================================================================
-// Name        : TsScreen.c
+// Name        : TSreader.c
 // Since       : 3/11/2013
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 6/11/2013
-// Description : Touch screen manager
+// Last change : 12/11/2013
+// Description : Touch screen reader
 //============================================================================
 
 #include <stdlib.h>
@@ -20,19 +20,19 @@
 #include <barcelona/Barc_ts.h>
 #include <barcelona/Barc_gps.h>
 #include <barcelona/Barc_Battery.h>
-#include "TsScreen.h"
+#include "TSreader.h"
 #include "AirNavigator.h"
 
 
 volatile short readingTS=-1; //-1 means still not initialized
 static int tsfd=-1;
-pthread_t threadTsScreen;
+pthread_t threadTSreader;
 condVar_t condVar=NULL;
 TS_EVENT lastTouch;
-static int gps;
+//static int gps;
 
 
-void TsScreenRelease() {
+void TSreaderRelease() {
 	pthread_mutex_destroy(&condVar->lastTouchMutex);
 	pthread_cond_destroy(&condVar->lastTouchSignal);
 	free(condVar);
@@ -41,22 +41,22 @@ void TsScreenRelease() {
 	readingTS=-1;
 }
 
-void initializeTsScreen() {
+void initializeTSreader() {
 	condVar=(condVar_t)malloc(sizeof(struct condVarStruct));
 	if(pthread_mutex_init(&condVar->lastTouchMutex,NULL) || pthread_cond_init(&condVar->lastTouchSignal,NULL)) {
-		logText("TsScreen: ERROR while initializing mutex and condition variable\n");
-		TsScreenRelease();
+		logText("TSreader: ERROR while initializing mutex and condition variable\n");
+		TSreaderRelease();
 	}
 	tsfd=open("/dev/ts",O_RDONLY|O_NOCTTY|O_NONBLOCK);
 	if(tsfd<0) {
-		logText("TsScreen: ERROR can't open the device: /dev/ts\n");
-		TsScreenRelease();
+		logText("TSreader: ERROR can't open the device: /dev/ts\n");
+		TSreaderRelease();
 	}
 	ioctl(tsfd,TS_SET_RAW_OFF,NULL);
 	readingTS=0; //in this case we can start the thread
 }
 
-void* runTsScreen(void *arg) { //This is the thread listening for input on the touch screen
+void* runTSreader(void *arg) { //This is the thread listening for input on the touch screen
 	struct sigaction sa;
 	sa.sa_handler = NULL;
 	sa.sa_sigaction = NULL/*gotsig*/;
@@ -69,7 +69,7 @@ void* runTsScreen(void *arg) { //This is the thread listening for input on the t
 		FD_ZERO(&fdset);
 		FD_SET(tsfd, &fdset);
 		if(sigaction((int)arg, &sa, NULL)<0) { //register signal to kill the thread otherwise it will wait until next input
-			logText("TsScreen: ERROR while registering signal to stop listen thread.");
+			logText("TSreader: ERROR while registering signal to stop listen thread.");
 			readingTS=0;
 			pthread_exit(NULL);
 			return NULL;
@@ -91,36 +91,38 @@ void* runTsScreen(void *arg) { //This is the thread listening for input on the t
 	return NULL;
 }
 
-short TsScreenStart() {
-	if(readingTS==-1) initializeTsScreen();
+short TSreaderStart() {
+	if(readingTS==-1) initializeTSreader();
 	if(readingTS==0) {
 		readingTS=1;
-		if(pthread_create(&threadTsScreen,NULL,runTsScreen,(void*)SIGUSR1)) {
+		if(pthread_create(&threadTSreader,NULL,runTSreader,(void*)SIGUSR1)) {
 			readingTS=0;
-			logText("TsScreen: ERROR unable to create the reading thread.\n");
-			TsScreenRelease();
+			logText("TSreader: ERROR unable to create the reading thread.\n");
+			TSreaderRelease();
 		}
 	}
 	return readingTS;
 }
 
-void TsScreenClose() {
+void TSreaderClose() {
 	if(readingTS==1) {
 		readingTS=0;
-		pthread_kill(threadTsScreen,SIGUSR1); //send the signa to kill the thread
-		pthread_join(threadTsScreen,NULL); //wait for thread death
+		pthread_kill(threadTSreader,SIGUSR1); //send the signa to kill the thread
+		pthread_join(threadTSreader,NULL); //wait for thread death
 	}
-	TsScreenRelease();
+	TSreaderRelease();
 }
 
-condVar_t TsScreenGetCondVar() {
+condVar_t TSreaderGetCondVar() {
 	return condVar;
 }
 
-TS_EVENT TsScreenGetLastTouch() {
+TS_EVENT TSreaderGetLastTouch() {
 	return lastTouch;
 }
 
+/*
+//Other useful function for tomtom devices but not working
 short checkBattery(short *batVolt, short *refVolt, short *chargeCurr) {
 	int battery=open("/dev/battery",O_RDONLY|O_NOCTTY);
 	if(battery<0) return 0;
@@ -155,3 +157,4 @@ short enableGPS() {
 void disableGPS() {
 	if(gps>=0) close(gps);
 }
+*/

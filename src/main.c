@@ -21,8 +21,8 @@
 #include <pthread.h>
 #include "AirNavigator.h"
 #include "Configuration.h"
-#include "FbRender.h"
-#include "TsScreen.h"
+#include "FBrender.h"
+#include "TSreader.h"
 #include "NMEAreader.h"
 #include "Navigator.h"
 #include "AirCalc.h"
@@ -57,8 +57,8 @@ FILE *logFile=NULL;
 
 void releaseAll() {
 	if(logFile!=NULL) fclose(logFile);
-	TsScreenClose();
-	FbRender_Close();
+	TSreaderClose();
+	FBrenderClose();
 	pthread_exit(NULL);
 }
 
@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
 	logFile=fopen(logPath,"w"); //create log file
 	free(logPath);
 	if(logFile!=NULL) //if the log file has been created...
-		if(FbRender_Open()) //if the frame buffer render is started
-			if(TsScreenStart()) { //if the touch screen listening thread is started
+		if(FBrenderOpen()) //if the frame buffer render is started
+			if(TSreaderStart()) { //if the touch screen listening thread is started
 				initConfig(); //initialize the configuration with the default values
 				status=MAIN_STATUS_INITIALIZED;
 			} else logText("ERROR: Unable to start the Touch Screen manager!\n");
@@ -80,8 +80,8 @@ int main(int argc, char** argv) {
 		releaseAll();
 		exit(EXIT_FAILURE);
 	}
-	//FbRender_Flush();
-	FbRender_Flush();
+	//FBrenderFlush();
+	FBrenderFlush();
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
 
 	//Read TomTom model
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 	//DrawTwoPointsLine(20,10,210,200,0xFF00);
 	//DrawTwoPointsLine(30,10,220,200,0x0F00);
 	//DrawTwoPointsLine(40,10,230,200,0x00F0);
-	//FbRender_Flush();
+	//FBrenderFlush();
 
 	//Load configuration
 	loadConfig();
@@ -167,34 +167,34 @@ int main(int argc, char** argv) {
 	if(numGPXfiles>0) { //here we start to prepare the "menu" to select the route
 		status=MAIN_STATUS_SELECT_ROUTE;
 		currFile=fileList;
-		FbRender_BlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator  v. %s",VERSION);
-		FbRender_BlitText(100,30,colorSchema.magneticDir,colorSchema.background,0,"http://www.alus.it/airnavigator");
-		FbRender_BlitText(20,60,colorSchema.text,colorSchema.background,0,"Select a GPX flight plan:");
-		FbRender_BlitText(200,240,colorSchema.text,colorSchema.background,0,"LOAD");
+		FBrenderBlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator  v. %s",VERSION);
+		FBrenderBlitText(100,30,colorSchema.magneticDir,colorSchema.background,0,"http://www.alus.it/airnavigator");
+		FBrenderBlitText(20,60,colorSchema.text,colorSchema.background,0,"Select a GPX flight plan:");
+		FBrenderBlitText(200,240,colorSchema.text,colorSchema.background,0,"LOAD");
 	}
 	else status=MAIN_STATUS_NOT_LOADED;
 
 	short doExit=0;
-	condVar_t signal=TsScreenGetCondVar();
+	condVar_t signal=TSreaderGetCondVar();
 	TS_EVENT lastTouch;
 	short waitTouch=0;
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
 	while(!doExit) { //Main loop
-		if(waitTouch) { //if needed we wait for user input
+		if(waitTouch) { //if needed wait for user input
 			pthread_mutex_lock(&signal->lastTouchMutex);
 			pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user touches the screen
-			lastTouch=TsScreenGetLastTouch(); //get the coordinates of the touch
+			lastTouch=TSreaderGetLastTouch(); //get the coordinates of the touch
 			pthread_mutex_unlock(&signal->lastTouchMutex);
 		}
 		switch(status) { //Main status machine
 			case MAIN_STATUS_SELECT_ROUTE: { //Display a "menu" with the list of GPX files
 				if(numGPXfiles>0) {
-					FbRender_BlitText(20,70,colorSchema.cdi,colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
-					if(currFile->prev!=NULL) FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"<< Prev");
-					else FbRender_BlitText(20,240,colorSchema.text,colorSchema.background,0,"       ");
-					if(currFile->next!=NULL) FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
-					else FbRender_BlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
-					FbRender_Flush();
+					FBrenderBlitText(20,70,colorSchema.cdi,colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
+					if(currFile->prev!=NULL) FBrenderBlitText(20,240,colorSchema.text,colorSchema.background,0,"<< Prev");
+					else FBrenderBlitText(20,240,colorSchema.text,colorSchema.background,0,"       ");
+					if(currFile->next!=NULL) FBrenderBlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
+					else FBrenderBlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
+					FBrenderFlush();
 					if(waitTouch) {
 						if(lastTouch.y>200) {
 							if(lastTouch.x<80 && currFile->prev!=NULL) {
@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
 				}
 			} break;
 			case MAIN_STATUS_NOT_LOADED:
-				FbRender_Clear(0,screen.height,colorSchema.background); //draw the main screen
+				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
 
 				//Start the GPS using the traditional NMEA parser
@@ -228,16 +228,16 @@ int main(int argc, char** argv) {
 				logText("BlackBox recorder started.\n");
 
 				//Exit "button"
-				FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
-				FbRender_Flush();
+				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
+				FBrenderFlush();
 
 				waitTouch=1; //Here we wait for a touch on the exit button
 				status=MAIN_STATUS_WAIT_EXIT;
 				break;
 			case MAIN_STATUS_READY_TO_FLY:
-				FbRender_Clear(0,screen.height,colorSchema.background); //draw the main screen
+				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
-				if(NavLoadFlightPlan(toLoad)) logText("Flight plan loaded\n"); //Attempt to load
+				if(NavLoadFlightPlan(toLoad)) logText("Flight plan loaded successfully.\n"); //Attempt to load
 				else {
 					if(toLoad!=NULL) {
 						logText("ERROR: while opening: %s\n",toLoad);
@@ -290,8 +290,8 @@ int main(int argc, char** argv) {
 				logText("Navigation re-started.\n");
 
 				//Exit "button"
-				FbRender_BlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
-				FbRender_Flush();
+				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
+				FBrenderFlush();
 
 				waitTouch=1; //Here we wait for a touch on the exit button
 				status=MAIN_STATUS_WAIT_EXIT;

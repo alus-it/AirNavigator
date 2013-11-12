@@ -10,7 +10,6 @@
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
-//FIXME: problem detected: it happened only one time, the first 5-10 trkpnt's had wrong timestamp but creation time of track file was correct
 
 #define _GNU_SOURCE
 
@@ -23,7 +22,7 @@
 #include "Configuration.h"
 #include "AirCalc.h"
 
-double lastlat, lastlon, lastalt, minlat, minlon, maxlat, maxlon;
+double lastlat, lastlon, minlat, minlon, maxlat, maxlon;
 float currTimestamp,lastTimestamp;
 double updateDist; //here in rad
 int cyear,cmonth,cday,chour,cmin,csec; //creation time of the track file
@@ -34,12 +33,12 @@ short bbStatus=BBS_NOT_SET;
 
 void BlackBoxStart() {
 	if(bbStatus!=BBS_NOT_SET) return;
+	lastTimestamp=-config.recordTimeInterval;
 	trackPointCounter=0;
 	minlat=90;
 	minlon=180;
 	maxlat=-90;
 	maxlon=-180;
-	lastTimestamp=-config.recordTimeInterval;
 	updateDist=m2Rad(config.recordMinDist);
 	if(updateDist<MIN_DIST) updateDist=MIN_DIST;
 	struct tm time_str;
@@ -56,14 +55,14 @@ void BlackBoxStart() {
 }
 
 short openRecordingFile() {
-	if(bbStatus!=BBS_WAIT_FIX) return 0;
 	char *path;
 	asprintf(&path,"%sTracks/%s",BASE_PATH,filename);
 	tracklogFile=fopen(path,"w");
 	free(path);
 	if(tracklogFile==NULL) {
+		logText("BlackBox ERROR: Unable to write track file.\n");
 		BlackBoxClose();
-		return -1;
+		return 0;
 	}
 	fprintf(tracklogFile,"<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"yes\"?>\n"
 			"<gpx version=\"1.1\" creator=\"AirNavigator by Alus.it\"\n"
@@ -87,49 +86,47 @@ void BlackBoxResume() {
 	if(bbStatus==BBS_PAUSED && tracklogFile!=NULL) bbStatus=BBS_WAIT_POS;
 }
 
-short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec) {
+void recordPos(double lat, double lon, float timestamp, int hour, int min, float sec) {
+	trackPointCounter++;
+	lastlat=lat;
+	lastlon=lon;
+	lastTimestamp=timestamp;
+	lat=Rad2Deg(lat);
+	lon=-Rad2Deg(lon); //For the GPX standard East longitudes are positive
+	if(lat<minlat) minlat=lat;
+	if(lon<minlon) minlon=lon;
+	if(lat>maxlat) maxlat=lat;
+	if(lon>maxlon) maxlon=lon;
+	fprintf(tracklogFile,"<trkpt lat=\"%f\" lon=\"%f\">\n"
+			"<time>%d-%02d-%02dT%02d:%02d:%06.3fZ</time>\n",lat,lon,cyear,cmonth,cday,hour,min,sec);
+	bbStatus=BBS_WAIT_OPT;
+}
+
+short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, short dateChanged) {
 	short retval=0;
 	switch(bbStatus) {
+		case BBS_WAIT_FIX:
+			if(openRecordingFile()) recordPos(lat,lon,timestamp,hour,min,sec);
+			break;
 		case BBS_WAIT_POS: {
 			double deltaT;
+			if(dateChanged) lastTimestamp-=86400;
 			if(timestamp>lastTimestamp) deltaT=timestamp-lastTimestamp;
-			else if(timestamp!=lastTimestamp) {
-				deltaT=timestamp+86400-lastTimestamp; //update the date!
-				long currTime=time(NULL)+10800; //get current time + 3h just to avoid errors
-				struct tm time_str;
-				time_str=*localtime(&currTime); //to obtain day, month, year
-				cyear=time_str.tm_year+1900; //year
-				cmonth=time_str.tm_mon+1; //month
-				cday=time_str.tm_mday; //day
-			} else break;
+			else {
+				retval=0;
+				break;
+			}
 			if(deltaT>=config.recordTimeInterval) {
 				double deltaS;
 				deltaS=calcAngularDist(lat,lon,lastlat,lastlon);
 				if(deltaS>=updateDist) {
-					trackPointCounter++;
-					lastlat=lat;
-					lastlon=lon;
-					lastTimestamp=timestamp;
-					lat=Rad2Deg(lat);
-					lon=-Rad2Deg(lon); //For GPX standard East longitudes are positive
-					if(lat<minlat) minlat=lat;
-					if(lon<minlon) minlon=lon;
-					if(lat>maxlat) maxlat=lat;
-					if(lon>maxlon) maxlon=lon;
-					fprintf(tracklogFile,"<trkpt lat=\"%f\" lon=\"%f\">\n"
-						"<time>%d-%02d-%02dT%02d:%02d:%06.3fZ</time>\n",lat,lon,cyear,cmonth,cday,hour,min,sec);
-					bbStatus=BBS_WAIT_OPT;
+					recordPos(lat,lon,timestamp,hour,min,sec);
 					retval=1;
 				}
 			}
-		}
-			break;
+		} break;
 		case BBS_WAIT_OPT:
 			retval=BlackBoxCommit();
-			break;
-		case BBS_WAIT_FIX:
-			retval=openRecordingFile(lat,lon,timestamp,hour,min,sec);
-			if(retval==1) retval=BlackBoxRecordPos(lat,lon,timestamp,hour,min,sec); //if the opening of the track succeded the record the first point
 			break;
 		case BBS_NOT_SET: //do nothing
 		case BBS_PAUSED: //do nothing
@@ -140,7 +137,6 @@ short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int m
 
 short BlackBoxRecordAlt(double alt) {
 	if(bbStatus!=BBS_WAIT_OPT) return 0;
-	lastalt=alt;
 	fprintf(tracklogFile,"<ele>%.1f</ele>\n",alt);
 	return 1;
 }

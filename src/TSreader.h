@@ -1,17 +1,17 @@
 //============================================================================
-// Name        : TsScreen.h
+// Name        : TSreader.h
 // Since       : 3/11/2013
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 6/11/2013
-// Description : Header of TsScreen.c the touch screen manager
+// Last change : 12/11/2013
+// Description : Header of TSreader.c the touch screen reader
 //============================================================================
 
-#ifndef TSSCREEN_H_
-#define TSSCREEN_H_
+#ifndef TSREADER_H_
+#define TSREADER_H_
 
 #include <pthread.h>
 #include <barcelona/Barc_ts.h>
@@ -21,13 +21,15 @@ typedef struct condVarStruct {
 	pthread_cond_t lastTouchSignal;
 } *condVar_t;
 
-short TsScreenStart();
-void TsScreenClose();
-condVar_t TsScreenGetCondVar();
-TS_EVENT TsScreenGetLastTouch();
+short TSreaderStart();
+void TSreaderClose();
+condVar_t TSreaderGetCondVar();
+TS_EVENT TSreaderGetLastTouch();
 
+/*
 short checkBattery(short *batVolt, short *refVolt, short *chargeCurr);
 short enableGPS();
 void disableGPS();
+*/
 
-#endif /* TSSCREEN_H_ */
+#endif /* TSREADER_H_ */

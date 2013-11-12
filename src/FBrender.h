@@ -1,13 +1,13 @@
 //============================================================================
-// Name        : FbRender.h
+// Name        : FBrender.h
 // Since       : 8/7/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 10/11/2013
-// Description : Header of FbRender.c the FrameBuffer renderer
+// Last change : 12/11/2013
+// Description : Header of FBrender.c the FrameBuffer renderer
 //============================================================================
 
 #ifndef FBRENDER_H_
@@ -37,15 +37,15 @@ struct screenConfig screen;
 struct colorConfig colorSchema;
 
 inline unsigned short Color(int r, int g, int b);
-int FbRender_Bpp();
-void FbRender_Flush();
-short FbRender_Open();
-void FbRender_Close();
-void FbRender_Clear(int aFromY, int aNrLines, unsigned short aColor);
-void FbRender_BlitCharacter(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);
-void FbRender_BlitCharacterItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);
-int FbRender_BlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, unsigned short italic, const char *args, ...);
-void FbRender_PutPixel(int x, int y, unsigned short color);
+int FBrenderBpp();
+void FBrenderFlush();
+short FBrenderOpen();
+void FBrenderClose();
+void FBrenderClear(int aFromY, int aNrLines, unsigned short aColor);
+void FBrenderBlitCharacter(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);
+void FBrenderBlitCharacterItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);
+int FBrenderBlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, unsigned short italic, const char *args, ...);
+void FBrenderPutPixel(int x, int y, unsigned short color);
 void DrawHorizontalLine(int X, int Y, int width, unsigned short color);
 void FillCircle(int cx, int cy, int aRad, unsigned short color);
 void PutLinePoint(int x, int y, unsigned short color, int width);
@@ -58,7 +58,7 @@ void PrintAltitude(double altMt, double altFt);
 void PrintVerticalSpeed(double FtMin);
 void PrintTurnRate(double DegMin);
 void PrintDate(int day, int month, int year);
-void PrintTime(int hour, int minute, float second);
+void PrintTime(int hour, int minute, float second, short waring);
 void PrintFixMode(int fixMode);
 void PrintNumOfSats(int activeSats, int satsInView);
 void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition);

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/11/2011
+// Last change : 12/11/2011
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "HSI.h"
-#include "FbRender.h"
+#include "FBrender.h"
 #include "AirCalc.h"
 #include "Configuration.h"
 
@@ -120,7 +120,7 @@ void drawCompass(int dir) { //works with direction as integer
 		pix=cx; //Here we locate the label
 		piy=label_pos;
 		rotatePoint(cx,cy,&pix,&piy,angle);
-		FbRender_BlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,0,labels[i]);
+		FBrenderBlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,0,labels[i]);
 		int index2=index+5;
 		short minor=1,j;
 		for(j=0;j<5;index2+=5,j++,minor=!minor) {
@@ -146,7 +146,7 @@ void drawLabels(int dir) { //also here direction as integer
 		int pix=cx; //locate the label
 		int piy=label_pos;
 		rotatePoint(cx,cy,&pix,&piy,angle);
-		FbRender_BlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,0,labels[i]);
+		FBrenderBlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,0,labels[i]);
 	}
 }
 
@@ -265,16 +265,16 @@ void diplayCDIvalue(double cdiMt) {
 	switch(config.trackErrUnit) {
 		case FT:
 			cdi=m2Ft(cdi);
-			if(cdi>=MILE_FT) FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f Mi",cdi/MILE_FT); //Display in miles
-			else FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%5.0f Ft",fabs(cdi));
+			if(cdi>=MILE_FT) FBrenderBlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f Mi",cdi/MILE_FT); //Display in miles
+			else FBrenderBlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%5.0f Ft",fabs(cdi));
 			break;
 		case NM:
-			FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f NM",m2Nm(cdi));
+			FBrenderBlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f NM",m2Nm(cdi));
 			break;
 		case MT:
 		default:
-			if(cdi>=1000) FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f Km",cdi/1000); //Display in Km
-			else FbRender_BlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%5.0fm",fabs(cdi));
+			if(cdi>=1000) FBrenderBlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%6.2f Km",cdi/1000); //Display in Km
+			else FBrenderBlitText(5,screen.height-14,colorSchema.cdi,colorSchema.background,0,"%5.0fm",fabs(cdi));
 			/* no break */
 	}
 }
@@ -293,11 +293,11 @@ void HSIdraw(double direction, double course, double cdiMt) {
 			drawCDI(direction,course,cdiMt);
 		} //else no need to repaint the HSI
 	}
-	FbRender_BlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
-	//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
+	FBrenderBlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
+	//FBrenderBlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
 	diplayCDIvalue(cdiMt);
-	FbRender_BlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
-	FbRender_Flush();
+	FBrenderBlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
+	FBrenderFlush();
 }
 
 void HSIupdateDir(double direction,double magneticDirection) {
@@ -309,10 +309,10 @@ void HSIupdateDir(double direction,double magneticDirection) {
 	} //else no need to repaint the HSI
 	actualDir=direction;
 	actualMagDir=magneticDirection;
-	FbRender_BlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
-	//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",magneticDirection);
+	FBrenderBlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",direction);
+	//FBrenderBlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",magneticDirection);
 	diplayCDIvalue(actualCDI);
-	FbRender_BlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",actualCourse);
+	FBrenderBlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",actualCourse);
 }
 
 void HSIupdateCDI(double course, double cdi) {
@@ -320,10 +320,10 @@ void HSIupdateCDI(double course, double cdi) {
 		FillCircle(cx,cy,cir,colorSchema.background); //clear the internal part of the compass
 		drawLabels(previousDir);
 		drawCDI(actualDir,course,cdi);
-		FbRender_BlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",actualDir);
-		//FbRender_BlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
+		FBrenderBlitText(5,5,colorSchema.dirMarker,colorSchema.background,0,"%06.2f",actualDir);
+		//FBrenderBlitText(cx-12,cy-40,colorSchema.magneticDir,colorSchema.background,0,"%06.2f",actualMagDir);
 		diplayCDIvalue(cdi);
-		FbRender_BlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
+		FBrenderBlitText(5,20,colorSchema.routeIndicator,colorSchema.background,0,"%06.2f",course);
 	} //else no need to repaint the HSI
 }
 
@@ -337,7 +337,7 @@ void HSIdrawVSIscale(double altFt) {
 	int markerPx;
 	for(markerPx=round((maxScaleFt-markerFt)*0.26)+6;markerPx<PxAltScale+6&&markerFt>=0;markerPx+=13,markerFt-=50) { //1Ft=0.26Px
 		DrawTwoPointsLine(screen.height,markerPx,screen.height+6,markerPx,colorSchema.altScale);
-		if(markerFt==((markerFt/100)*100)) FbRender_BlitText(screen.height+7,markerPx-4,colorSchema.altScale,colorSchema.background,0,"%d",(int)(markerFt/100));
+		if(markerFt==((markerFt/100)*100)) FBrenderBlitText(screen.height+7,markerPx-4,colorSchema.altScale,colorSchema.background,0,"%d",(int)(markerFt/100));
 	}
 	DrawHorizontalLine(screen.height+12,cy-3,2,colorSchema.altMarker);
 	DrawHorizontalLine(screen.height+10,cy-2,4,colorSchema.altMarker);
@@ -359,29 +359,29 @@ void HSIupdateVSI(double newExpectedAltFt) {
 	expectedAltFt=expAlt;
 	FillRect(screen.height-7,1,screen.height,screen.height,colorSchema.background); //clean all
 	if(expAlt>currentAltFt+HalfAltScale) { //we're too low
-		FbRender_PutPixel(screen.height-7,2,colorSchema.warning);
+		FBrenderPutPixel(screen.height-7,2,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,3,3,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,4,5,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,5,7,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,6,5,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,7,3,colorSchema.warning);
-		FbRender_PutPixel(screen.height-7,8,colorSchema.warning);
+		FBrenderPutPixel(screen.height-7,8,colorSchema.warning);
 	} else if(expAlt<currentAltFt-HalfAltScale) { //we're too high
-		FbRender_PutPixel(screen.height-7,screen.height-8,colorSchema.warning);
+		FBrenderPutPixel(screen.height-7,screen.height-8,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,screen.height-7,3,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,screen.height-6,5,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,screen.height-5,7,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,screen.height-4,5,colorSchema.warning);
 		DrawHorizontalLine(screen.height-7,screen.height-3,3,colorSchema.warning);
-		FbRender_PutPixel(screen.height-7,screen.height-2,colorSchema.warning);
+		FBrenderPutPixel(screen.height-7,screen.height-2,colorSchema.warning);
 	} else { //we are on the 1000 Ft scale
 		int ypos=round((currentAltFt+HalfAltScale-expAlt)*0.26)+6;
-		FbRender_PutPixel(screen.height-7,ypos-3,colorSchema.vsi);
+		FBrenderPutPixel(screen.height-7,ypos-3,colorSchema.vsi);
 		DrawHorizontalLine(screen.height-7,ypos-2,3,colorSchema.vsi);
 		DrawHorizontalLine(screen.height-7,ypos-1,5,colorSchema.vsi);
 		DrawHorizontalLine(screen.height-7,ypos,7,colorSchema.vsi);
 		DrawHorizontalLine(screen.height-7,ypos+1,5,colorSchema.vsi);
 		DrawHorizontalLine(screen.height-7,ypos+2,3,colorSchema.vsi);
-		FbRender_PutPixel(screen.height-7,ypos+3,colorSchema.vsi);
+		FBrenderPutPixel(screen.height-7,ypos+3,colorSchema.vsi);
 	}
 }
