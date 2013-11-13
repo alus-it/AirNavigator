@@ -130,6 +130,7 @@ libclean:
 ### Make the zip files with the final distribution normal and standalone
 zip: all $(SYSTEMIMAGE)ttsystem $(SYSTEMIMAGE)config.xml
 	@rm -f $(DIST)*.zip
+	mkdir -p $(DIST)AirNavigator/Tracks
 	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPNAME).zip . ; cd ..;
 	cp $(SYSTEMIMAGE)ttsystem $(DIST)
 	mv $(DIST)AirNavigator/config.xml $(DIST)
