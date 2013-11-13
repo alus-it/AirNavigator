@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 7/11/2013
+// Last change : 13/11/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
@@ -32,7 +32,7 @@
 #include "Geoidal.h"
 
 #ifndef VERSION
-#define VERSION "0.2.8"
+#define VERSION "0.2.9"
 #endif
 
 #define MAIN_STATUS_NOT_INIT    -1
