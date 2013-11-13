@@ -52,7 +52,7 @@ ZIPNAME = AirNavigator_$(subst .,-,$(VERSION))
 ZIPSTANDNAME = AirNavigatorStandalone_$(subst .,-,$(VERSION))
 
 # Path of the ttsystem image file
-SYSTEMIMAGE = utility/standaloneImage/ttsystem
+SYSTEMIMAGE = utility/standaloneImage/
 
 
 ### Build dependencies
@@ -128,10 +128,13 @@ libclean:
 
 	
 ### Make the zip files with the final distribution normal and standalone
-zip: all $(SYSTEMIMAGE)
+zip: all $(SYSTEMIMAGE)ttsystem $(SYSTEMIMAGE)config.xml
 	@rm -f $(DIST)*.zip
 	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPNAME).zip . ; cd ..;
-	cp $(SYSTEMIMAGE) $(DIST)
+	cp $(SYSTEMIMAGE)ttsystem $(DIST)
+	mv $(DIST)AirNavigator/config.xml $(DIST)
+	cp $(SYSTEMIMAGE)config.xml $(DIST)AirNavigator/
 	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPSTANDNAME).zip ttsystem AirNavigator/* README.txt ; cd ..;
 	rm $(DIST)ttsystem
+	mv -f $(DIST)config.xml $(DIST)AirNavigator/
 
