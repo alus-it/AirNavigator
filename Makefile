@@ -6,7 +6,7 @@
 # Copyright : (C) 2010-2013 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 11/11/2013
+# Last change : 13/11/2013
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -47,8 +47,12 @@ LIB = $(DIST)AirNavigator/lib/
 LIBFILES = libroxml.so
 LIBS= $(patsubst %.so, $(LIB)%.so, $(LIBFILES))
 
-# Name of the ditribution zip file
+# Name of the ditributions zip files
 ZIPNAME = AirNavigator_$(subst .,-,$(VERSION))
+ZIPSTANDNAME = AirNavigatorStandalone_$(subst .,-,$(VERSION))
+
+# Path of the ttsystem image file
+SYSTEMIMAGE = utility/standaloneImage/ttsystem
 
 
 ### Build dependencies
@@ -123,7 +127,11 @@ libclean:
 	@rm -f $(LIB)*
 
 	
-### Make the zip file with the final distribution
-zip: all
+### Make the zip files with the final distribution normal and standalone
+zip: all $(SYSTEMIMAGE)
 	@rm -f $(DIST)*.zip
-	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPNAME).zip . ;cd ..;
+	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPNAME).zip . ; cd ..;
+	cp $(SYSTEMIMAGE) $(DIST)
+	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPSTANDNAME).zip ttsystem AirNavigator/* README.txt ; cd ..;
+	rm $(DIST)ttsystem
+
