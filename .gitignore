@@ -21,3 +21,8 @@
 .cproject
 .settings/*
 
+# Ignore make standalone image utilities executables and binaries
+/utility/standaloneImage/mkttimage
+/utility/standaloneImage/ttimgextract
+/utility/standaloneImage/ttsystem.1
+
