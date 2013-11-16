@@ -39,8 +39,6 @@ void initConfig() { //Initializes the confog struct with the default values
 	config.GPSparity=0;
 	config.tomtomModel=strdup("UNKNOWN");
 	config.serialNumber=strdup("UNKNOWN");
-
-	//Default color schema
 	colorSchema.background=0x0000; //black
 	colorSchema.compassRose=0xffff; //white
 	colorSchema.dirMarker=0xf000; //red

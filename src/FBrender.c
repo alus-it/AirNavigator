@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 12/11/2013
+// Last change : 17/11/2013
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -482,16 +482,17 @@ void PrintSpeed(double speedKmh, double speedKnots) {
 void PrintNavStatus(int status, char *WPname) {
 	char *statusName;
 	switch(status) {
-			case STATUS_NOT_INIT:     statusName=strdup("Nav not set   "); break;
-			case STATUS_NO_ROUTE_SET: statusName=strdup("No route set  "); break;
-			case STATUS_TO_START_NAV: statusName=strdup("Ready to start"); break;
-			case STATUS_WAIT_FIX:     statusName=strdup("Waiting FIX   "); break;
-			case STATUS_NAV_TO_DPT:   statusName=strdup("Nav to Depart."); break;
-			case STATUS_NAV_TO_WPT:   statusName=strdup("Nav to WPT    "); break;
-			case STATUS_NAV_TO_DST:   statusName=strdup("Nav to Dest.  ");   break;
-			case STATUS_END_NAV:      statusName=strdup("Nav ended     "); break;
-			case STATUS_NAV_BUSY:     statusName=strdup("Busy, planning"); break;
-			default:                  statusName=strdup("Unknown       "); break;
+			case NAV_STATUS_NOT_INIT:         statusName=strdup("Nav not set   "); break;
+			case NAV_STATUS_NO_ROUTE_SET:     statusName=strdup("No route set  "); break;
+			case NAV_STATUS_TO_START_NAV:     statusName=strdup("Ready to start"); break;
+			case NAV_STATUS_WAIT_FIX:         statusName=strdup("Waiting FIX   "); break;
+			case NAV_STATUS_NAV_TO_DPT:       statusName=strdup("Nav to Depart."); break;
+			case NAV_STATUS_NAV_TO_WPT:       statusName=strdup("Nav to WPT    "); break;
+			case NAV_STATUS_NAV_TO_DST:
+			case NAV_STATUS_NAV_TO_SINGLE_WP: statusName=strdup("Nav to Dest.  "); break;
+			case NAV_STATUS_END_NAV:          statusName=strdup("Nav ended     "); break;
+			case NAV_STATUS_NAV_BUSY:         statusName=strdup("Busy, planning"); break;
+			default:                          statusName=strdup("Unknown       "); break;
 	}
 	if(screen.height!=240) {
 		FBrenderBlitText(screen.height+28,52,colorSchema.text,colorSchema.background,0,"NAV: %s       ",statusName);
@@ -517,7 +518,7 @@ void PrintNavRemainingDistWP(double distKm, double averageSpeedKmh, double hours
 				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",distKm);
 				/* no break */
 		}
-		switch(config.speedUnit) {
+		if(averageSpeedKmh<0) switch(config.speedUnit) {
 			case KNOTS:
 				FBrenderBlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
@@ -607,7 +608,7 @@ void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double time
 				FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Km     ",distKm);
 				/* no break */
 		}
-		switch(config.speedUnit) {
+		if(averageSpeedKmh<0) switch(config.speedUnit) {
 			case KNOTS:
 				FBrenderBlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;

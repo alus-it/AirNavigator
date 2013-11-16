@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 13/11/2013
+// Last change : 16/11/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
@@ -37,12 +37,13 @@
 
 #define MAIN_STATUS_NOT_INIT    -1
 #define MAIN_STATUS_INITIALIZED  0
-#define MAIN_STATUS_NOT_LOADED   1
-#define MAIN_STATUS_SELECT_ROUTE 2
-#define MAIN_STATUS_READY_TO_FLY 3
-#define MAIN_STATUS_FLY_ROUTE    4
-#define MAIN_STATUS_FLY_REVERSED 5
-#define MAIN_STATUS_WAIT_EXIT    6
+#define MAIN_STATUS_START_GPS    1
+#define MAIN_STATUS_NOT_LOADED   2
+#define MAIN_STATUS_SELECT_ROUTE 3
+#define MAIN_STATUS_READY_TO_NAV 4
+#define MAIN_STATUS_FLY_ROUTE    5
+#define MAIN_STATUS_FLY_REVERSED 6
+#define MAIN_STATUS_WAIT_EXIT    7
 
 
 typedef struct fileName {
@@ -80,13 +81,11 @@ int main(int argc, char** argv) {
 		releaseAll();
 		exit(EXIT_FAILURE);
 	}
-	//FBrenderFlush();
 	FBrenderFlush();
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
 
-	//Read TomTom model
 	FILE *fd=NULL;
-	fd=fopen("/proc/barcelona/modelname","r");
+	fd=fopen("/proc/barcelona/modelname","r"); //Read TomTom model
 	if(fd==NULL) logText("ERROR: unable to read TomTom device model name.\n");
 	else {
 		char buf[30];
@@ -100,9 +99,8 @@ int main(int argc, char** argv) {
 		fclose(fd);
 	}
 
-	//Read serial number serial number
 	fd=NULL;
-	fd=fopen("/mnt/flash/sysfile/id","r");
+	fd=fopen("/mnt/flash/sysfile/id","r"); //Read device serial number
 	if(fd==NULL) logText("ERROR: unable to read TomTom device serial number ID.\n");
 	else {
 		char buf[30];
@@ -123,9 +121,7 @@ int main(int argc, char** argv) {
 	//DrawTwoPointsLine(40,10,230,200,0x00F0);
 	//FBrenderFlush();
 
-	//Load configuration
-	loadConfig();
-	logText("Configuration loaded.\n");
+	loadConfig(); //Load configuration
 
 	//Prepare the list of available flight plans found in the routes folder
 	fileEntry fileList=NULL, currFile=NULL; //the list of the found GPX flight plans and the pointer to the current one
@@ -163,22 +159,21 @@ int main(int argc, char** argv) {
 		else logText("List of GPX files created.\n");
 	} else logText("ERROR: could not open the Routes directory.\n");
 
-
-	if(numGPXfiles>0) { //here we start to prepare the "menu" to select the route
+	if(numGPXfiles>0) { //Start to prepare the "menu" to select the route
 		status=MAIN_STATUS_SELECT_ROUTE;
 		currFile=fileList;
 		FBrenderBlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator  v. %s",VERSION);
 		FBrenderBlitText(100,30,colorSchema.magneticDir,colorSchema.background,0,"http://www.alus.it/airnavigator");
 		FBrenderBlitText(20,60,colorSchema.text,colorSchema.background,0,"Select a GPX flight plan:");
 		FBrenderBlitText(200,240,colorSchema.text,colorSchema.background,0,"LOAD");
-	}
-	else status=MAIN_STATUS_NOT_LOADED;
+	} else status=MAIN_STATUS_START_GPS;
 
 	short doExit=0;
 	condVar_t signal=TSreaderGetCondVar();
-	TS_EVENT lastTouch;
-	short waitTouch=0;
+	TS_EVENT lastTouch; //data of the last event from the touch screen
+	short waitTouch=0; //flag to know if we are waining for user input on the touch screen
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
+	int numWPloaded=0; //the number of waypoints loaded from the selected flight plan
 	while(!doExit) { //Main loop
 		if(waitTouch) { //if needed wait for user input
 			pthread_mutex_lock(&signal->lastTouchMutex);
@@ -196,15 +191,15 @@ int main(int argc, char** argv) {
 					else FBrenderBlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
 					FBrenderFlush();
 					if(waitTouch) {
-						if(lastTouch.y>200) {
-							if(lastTouch.x<80 && currFile->prev!=NULL) {
+						if(lastTouch.y>200) { //user touched lower part of the screen
+							if(lastTouch.x<80 && currFile->prev!=NULL) { //user touched prev button
 								currFile=currFile->prev;
 								waitTouch=0;
-							} else if(lastTouch.x>200 && lastTouch.x<300) {
+							} else if(lastTouch.x>200 && lastTouch.x<300) { //user touched LOAD button
 								asprintf(&toLoad,"%s%s%s",BASE_PATH,"Routes/",currFile->name);
-								status=MAIN_STATUS_READY_TO_FLY;
+								status=MAIN_STATUS_START_GPS;
 								waitTouch=0;
-							} else if(lastTouch.x>350 && currFile->next!=NULL) {
+							} else if(lastTouch.x>350 && currFile->next!=NULL) { //user touched next button
 								currFile=currFile->next;
 								waitTouch=0;
 							}
@@ -212,87 +207,56 @@ int main(int argc, char** argv) {
 					} else waitTouch=1;
 				}
 			} break;
-			case MAIN_STATUS_NOT_LOADED:
+			case MAIN_STATUS_START_GPS: //Start reading from GPS and the track recorder
 				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
-
-				//Start the GPS using the traditional NMEA parser
-				if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n");
-				else logText("NMEAreader started.\n");
-				//Start the GPS using SiRFreader
-				//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n");
-				//else logText("SiRF reader started.\n");
-
-				//Start the track recorder
-				BlackBoxStart();
-				logText("BlackBox recorder started.\n");
-
-				//Exit "button"
-				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
+				if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n"); //Start the GPS using the traditional NMEA parser
+				//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n"); //... or start the GPS using the newer SiRF parser (not working yet)
+				BlackBoxStart(); //Start the track recorder
+				if(toLoad!=NULL) status=MAIN_STATUS_READY_TO_NAV;
+				else status=MAIN_STATUS_NOT_LOADED;
+				break;
+			case MAIN_STATUS_NOT_LOADED: //No route loaded, but display anyway data from GPS
+				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit"); //Exit "button"
 				FBrenderFlush();
-
-				waitTouch=1; //Here we wait for a touch on the exit button
+				waitTouch=1; //Wait for a touch on the exit button
 				status=MAIN_STATUS_WAIT_EXIT;
 				break;
-			case MAIN_STATUS_READY_TO_FLY:
-				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
-				HSIinitialize(0,0,0); //HSI initialization
-				if(NavLoadFlightPlan(toLoad)) logText("Flight plan loaded successfully.\n"); //Attempt to load
-				else {
+			case MAIN_STATUS_READY_TO_NAV: //A route is available to be flown
+				numWPloaded=NavLoadFlightPlan(toLoad); //Attempt to load the flight plan
+				if(numWPloaded<0) { //if load route failed
 					if(toLoad!=NULL) {
 						logText("ERROR: while opening: %s\n",toLoad);
 						free(toLoad);
-					}
-					else logText("ERROR: NULL pointer to the route file to be loaded.\n");
+					} else logText("ERROR: NULL pointer to the route file to be loaded.\n");
 					status=MAIN_STATUS_NOT_LOADED;
 					waitTouch=0;
 					break;
 				}
 				free(toLoad);
-
-				//Start the GPS using the traditional NMEA parser
-				if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n");
-				else logText("NMEAreader started.\n");
-				//Start the GPS using SiRFreader
-				//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n");
-				//else logText("SiRF reader started.\n");
-
-				//Start the track recorder
-				BlackBoxStart();
-				logText("BlackBox recorder started.\n");
 				waitTouch=1; //Here we wait for a touch to start the navigation
 				status=MAIN_STATUS_FLY_ROUTE;
 				break;
-			case MAIN_STATUS_FLY_ROUTE: {
-				//Here we start the navigation
-				float timestamp=gps.timestamp;
-				if(timestamp==-1) timestamp=getCurrentTime();
-				NavStartNavigation(timestamp);
-				logText("Navigation started.\n");
-				waitTouch=1; //Here we wait for a touch to reverse the route
-				status=MAIN_STATUS_FLY_REVERSED;
+			case MAIN_STATUS_FLY_ROUTE: { //Navigation can start
+				float timestamp=gps.timestamp; //Get actual time from GPS
+				if(timestamp==-1) timestamp=getCurrentTime(); //if not valid get it from internal clock
+				NavStartNavigation(timestamp); //Start the navigation
+				waitTouch=1; //Wait for a touch to reverse the route or to exit
+				if(numWPloaded>1) status=MAIN_STATUS_FLY_REVERSED; //if there is more than 1 WP reverse the route
+				else {  //otherwise...
+					FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit"); //... show exit button ...
+					status=MAIN_STATUS_WAIT_EXIT; // ...and wait that user presses it
+				}
 			} break;
-			case MAIN_STATUS_FLY_REVERSED: {
-				//Stop the recorder in order to finalize the track of the first way
-				BlackBoxClose();
-
-				//Here we reverse the route
-				NavReverseRoute();
-				logText("Flight plan reversed.\n");
-
-				//Start the track recorder for the return way
-				BlackBoxStart();
-				logText("BlackBox recorder restarted.\n");
-
+			case MAIN_STATUS_FLY_REVERSED: { //Flight plan can be reversed
+				BlackBoxClose(); //Stop the recorder in order to finalize the track of the first way
+				NavReverseRoute(); //reverse the route
+				BlackBoxStart(); //Restart the track recorder for the return way
 				float timestamp=gps.timestamp;
 				if(timestamp==-1) timestamp=getCurrentTime();
 				NavStartNavigation(timestamp);
-				logText("Navigation re-started.\n");
-
-				//Exit "button"
-				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit");
+				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit"); //Show exit "button"
 				FBrenderFlush();
-
 				waitTouch=1; //Here we wait for a touch on the exit button
 				status=MAIN_STATUS_WAIT_EXIT;
 			} break;
@@ -307,13 +271,10 @@ int main(int argc, char** argv) {
 
 	//Clean and Close all the stuff
 	NMEAreaderClose();
-	logText("GPS reader NMEA terminated.\n");
 	//SiRFreaderClose();
-	//logText("SiRF reader terminated.\n");
 	free(config.GPSdevName);
 	NavClose();
 	BlackBoxClose();
-	logText("BlackBox recorder closed.\n");
 	free(config.tomtomModel);
 	free(config.serialNumber);
 	if(numGPXfiles>0) do { //free the list of GPX files
