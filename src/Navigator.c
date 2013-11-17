@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/11/2013
+// Last change : 17/11/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -49,12 +49,16 @@ void NavConfigure() {
 	else status=oldStatus;
 }
 
-void NavCalculateRoute() {
-	if(numWayPoints<1 || dept==NULL || dept->next==NULL) return;
+short NavCalculateRoute() {
 	if(status==NAV_STATUS_NO_ROUTE_SET) {
 		status=NAV_STATUS_NAV_BUSY;
 		PrintNavStatus(status,"Unknown");
-	} else if(status!=NAV_STATUS_NAV_BUSY) return;
+	} else if(status!=NAV_STATUS_NAV_BUSY) return -1;
+	if(dept!=NULL) {
+		if(numWayPoints>1) {
+				if(dept->next==NULL) return -3;
+		} else if(numWayPoints!=1) return -4;
+	} else return -5;
 	totalDistKm=0;
 	prevWPsTotDist=0;
 	dest=currWP;
@@ -97,15 +101,17 @@ void NavCalculateRoute() {
 		PrintNavRemainingDistDST(totalDistKm,config.cruiseSpeed,time);
 		double fuelNeeded=config.fuelConsumption*totalTimeHours;
 		fprintf(routeLog,"TOTAL fuel needed: %.2f liters\n\n",fuelNeeded);
-		checkDaytime();
-		if(routeLog!=NULL) fclose(routeLog); //Close the route log file when not needed
-		status=NAV_STATUS_TO_START_NAV;
-		PrintNavStatus(status,dept->next->name);
+		checkDaytime(0);
+		currWP=dept->next;
 	} else { //numWayPoints==1
-		status=NAV_STATUS_TO_START_NAV;
-		PrintNavStatus(status,dest->name);
+		fprintf(routeLog,"* Route with only one waypoint: %s\n",currWP->name);
+		checkDaytime(1);
 	}
+	if(routeLog!=NULL) fclose(routeLog); //Close the route log file when not needed
+	status=NAV_STATUS_TO_START_NAV;
+	PrintNavStatus(status,currWP->name);
 	FBrenderFlush();
+	return 1;
 }
 
 int NavLoadFlightPlan(char* GPXfile) {
@@ -180,8 +186,11 @@ int NavLoadFlightPlan(char* GPXfile) {
 	}
 	roxml_release(RELEASE_ALL);
 	roxml_close(root);
-	logText("Loaded route with %d WayPoints.\n\n",wpcounter);
-	NavCalculateRoute();
+	if(NavCalculateRoute()<0) {
+		logText("ERROR: NavCalculateRoute FAILED.\n");
+		NavClearRoute();
+		return -3;
+	}
 	return wpcounter;
 }
 
@@ -225,14 +234,18 @@ int NavReverseRoute() {
 	currWP->prev=NULL;
 	dept=currWP;
 	currWP=dest;
-	routeLog=fopen(routeLogPath,"a+"); //Reopen the route log file to wrire about the reversed route
+	routeLog=fopen(routeLogPath,"a+"); //Reopen the route log file to write about the reversed route
 	if(routeLog==NULL) {
 		logText("ERROR not possible to write the route log file.\n");
-		status=NAV_STATUS_NO_ROUTE_SET;
+		NavClearRoute();
 		return 0;
 	}
 	fprintf(routeLog,"\n\n\nREVERSED ROUTE\n\n");
-	NavCalculateRoute();
+	if(NavCalculateRoute()<0) {
+		logText("ERROR: NavCalculateRoute FAILED!\n");
+		NavClearRoute();
+		return 0;
+	}
 	return 1;
 }
 
@@ -309,19 +322,15 @@ void NavFindNextWP(double lat, double lon) {
 void NavStartNavigation(float timestamp) { //timestamp have to be the real time when we start the travel
 	if(status!=NAV_STATUS_TO_START_NAV || timestamp<0) return;
 	short fixMode=gps.fixMode;
-	if(fixMode>MODE_NO_FIX) { //if we have a fix we give immediately the position to the nav...
-		double lat=gps.lat;
-		if(lat!=100) { //just to avoid the case when we have a fix but still not a position stored
-			double lon=gps.lon;
-			NavFindNextWP(lat,lon);
-			if(status==NAV_STATUS_NAV_TO_WPT || status==NAV_STATUS_NAV_TO_DST || status==NAV_STATUS_NAV_TO_SINGLE_WP) dept->arrTimestamp=timestamp; //record the starting time for whole route
-			NavUpdatePosition(lat,lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,timestamp);
-		} else {
-			currWP=dept->next;
-			status=NAV_STATUS_WAIT_FIX;
-		}
+	double lat=gps.lat;
+	if(fixMode>MODE_NO_FIX && lat!=100) { //if have fix give immediately the position to the nav. The lat!=100 is just to avoid the case of having fix but still not a position stored
+		double lon=gps.lon;
+		NavFindNextWP(lat,lon);
+		if(status==NAV_STATUS_NAV_TO_WPT || status==NAV_STATUS_NAV_TO_DST || status==NAV_STATUS_NAV_TO_SINGLE_WP) dept->arrTimestamp=timestamp; //record the starting time for whole route
+		NavUpdatePosition(lat,lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,timestamp);
 	} else {
-		currWP=dept->next;
+		if(numWayPoints>1) currWP=dept->next;
+		else currWP=dest;
 		status=NAV_STATUS_WAIT_FIX;
 	}
 	PrintNavStatus(status,currWP->name);
@@ -483,7 +492,7 @@ void NavSkipCurrentWayPoint() {
 	}
 }
 
-short checkDaytime() {
+short checkDaytime(short calcOnlyDest) {
 	short retVal=1;
 	double riseTime,setTime;
 	struct tm time_str;
@@ -494,38 +503,43 @@ short checkDaytime() {
 	int day=time_str.tm_mday; //day
 	int hour=time_str.tm_hour; //hour
 	int min=time_str.tm_min; //minute
-	fprintf(routeLog,"Check daytime on: %d/%02d/%d %2d:%02d\n",day,month,year,hour,min);
-	calcSunriseSunset(dept->latitude,dept->longitude,day,month,year,sunZenith,+1,&riseTime,&setTime);
-	if(riseTime==-1){
-		fprintf(routeLog,"WARNING: The sun never rises on the departure location (on the specified date).\n");
-		retVal=0;
-	}
-	double depTimeDecimal=hour+min*SIXTYTH;
-	if(depTimeDecimal<riseTime || depTimeDecimal>setTime) {
-		fprintf(routeLog,"WARNING: Departure at this time will be in the night.\n");
-		retVal=0;
-	}
+	double arrTimeDecimal=-1;
 	int rHour,rMin,sHour,sMin;
 	float rSec,sSec;
-	convertDecimal2DegMinSec(riseTime,&rHour,&rMin,&rSec);
-	convertDecimal2DegMinSec(setTime,&sHour,&sMin,&sSec);
-	fprintf(routeLog,"Departure location Sunrise: %2d:%02d, Sunset: %2d:%02d \n",rHour,rMin,sHour,sMin);
-	double arrTimeDecimal=depTimeDecimal+totalDistKm/config.cruiseSpeed;
-	if(arrTimeDecimal>24) {
-		timestamp+=arrTimeDecimal*3600;
-		time_str=*localtime(&timestamp); //to obtain day, month, year, hour and minute
-		year=time_str.tm_year+1900; //year
-		month=time_str.tm_mon+1; //month
-		day=time_str.tm_mday; //day
+	if(!calcOnlyDest) {
+		fprintf(routeLog,"Check daytime on: %d/%02d/%d %2d:%02d\n",day,month,year,hour,min);
+		calcSunriseSunset(dept->latitude,dept->longitude,day,month,year,sunZenith,+1,&riseTime,&setTime);
+		if(riseTime==-1){
+			fprintf(routeLog,"WARNING: The sun never rises on the departure location (on the specified date).\n");
+			retVal=0;
+		}
+		double depTimeDecimal=hour+min*SIXTYTH;
+		if(depTimeDecimal<riseTime || depTimeDecimal>setTime) {
+			fprintf(routeLog,"WARNING: Departure at this time will be in the night.\n");
+			retVal=0;
+		}
+		convertDecimal2DegMinSec(riseTime,&rHour,&rMin,&rSec);
+		convertDecimal2DegMinSec(setTime,&sHour,&sMin,&sSec);
+		fprintf(routeLog,"Departure location Sunrise: %2d:%02d, Sunset: %2d:%02d \n",rHour,rMin,sHour,sMin);
+		arrTimeDecimal=depTimeDecimal+totalDistKm/config.cruiseSpeed;
+		if(arrTimeDecimal>24) {
+			timestamp+=arrTimeDecimal*3600;
+			time_str=*localtime(&timestamp); //to obtain day, month, year, hour and minute
+			year=time_str.tm_year+1900; //year
+			month=time_str.tm_mon+1; //month
+			day=time_str.tm_mday; //day
+		}
 	}
 	calcSunriseSunset(dest->latitude,dest->longitude,day,month,year,sunZenith,+1,&riseTime,&setTime);
 	if(riseTime==-1){
 		fprintf(routeLog,"WARNING: The sun never rises on the arrival location (on the specified date).\n");
 		retVal=0;
 	}
-	if(arrTimeDecimal<riseTime || arrTimeDecimal>setTime) {
-		fprintf(routeLog,"WARNING: Arrival at this time will be in the night.\n");
-		retVal=0;
+	if(!calcOnlyDest) {
+		if(arrTimeDecimal<riseTime || arrTimeDecimal>setTime) {
+			fprintf(routeLog,"WARNING: Arrival at this time will be in the night.\n");
+			retVal=0;
+		} else retVal=-1; //we don't know the estimated time of arrival yet if we are working only with the destination
 	}
 	convertDecimal2DegMinSec(riseTime,&rHour,&rMin,&rSec);
 	convertDecimal2DegMinSec(setTime,&sHour,&sMin,&sSec);

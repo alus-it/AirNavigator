@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
 				break;
 			case MAIN_STATUS_READY_TO_NAV: //A route is available to be flown
 				numWPloaded=NavLoadFlightPlan(toLoad); //Attempt to load the flight plan
-				if(numWPloaded<0) { //if load route failed
+				if(numWPloaded<1) { //if load route failed
 					if(toLoad!=NULL) {
 						logText("ERROR: while opening: %s\n",toLoad);
 						free(toLoad);
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
 					status=MAIN_STATUS_NOT_LOADED;
 					waitTouch=0;
 					break;
-				}
+				} else logText("Loaded route with %d WayPoints.\n\n",numWPloaded);
 				free(toLoad);
 				waitTouch=1; //Here we wait for a touch to start the navigation
 				status=MAIN_STATUS_FLY_ROUTE;

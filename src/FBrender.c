@@ -518,7 +518,7 @@ void PrintNavRemainingDistWP(double distKm, double averageSpeedKmh, double hours
 				FBrenderBlitText(screen.height+28,72,colorSchema.text,colorSchema.background,0,"DTG: %7.3f Km    ",distKm);
 				/* no break */
 		}
-		if(averageSpeedKmh<0) switch(config.speedUnit) {
+		if(averageSpeedKmh>0) switch(config.speedUnit) {
 			case KNOTS:
 				FBrenderBlitText(screen.height+28,92,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
@@ -608,7 +608,7 @@ void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double time
 				FBrenderBlitText(screen.height+28,172,colorSchema.text,colorSchema.background,0,"Tot DTG: %7.3f Km     ",distKm);
 				/* no break */
 		}
-		if(averageSpeedKmh<0) switch(config.speedUnit) {
+		if(averageSpeedKmh>0) switch(config.speedUnit) {
 			case KNOTS:
 				FBrenderBlitText(screen.height+28,182,colorSchema.text,colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
