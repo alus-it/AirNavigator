@@ -30,6 +30,11 @@
 #include "AirNavigator.h"
 
 
+void NavConfigure(void);
+short NavCalculateRoute(void);
+void NavFindNextWP(double lat, double lon);
+void updateDtgEteEtaAs(double atd, float timestamp, double remainDist);
+
 int status=NAV_STATUS_NOT_INIT, numWayPoints=0;
 double trueCourse, previousAltitude=-1000;
 double totalDistKm, prevWPsTotDist; //Km
@@ -39,7 +44,7 @@ char *routeLogPath;
 FILE *routeLog=NULL;
 double sunZenith; //here in rad
 
-void NavConfigure() {
+void NavConfigure(void) {
 	int oldStatus=status;
 	status=NAV_STATUS_NAV_BUSY;
 	sunZenith=Deg2Rad(config.sunZenith); //rad
@@ -49,7 +54,7 @@ void NavConfigure() {
 	else status=oldStatus;
 }
 
-short NavCalculateRoute() {
+short NavCalculateRoute(void) {
 	if(status==NAV_STATUS_NO_ROUTE_SET) {
 		status=NAV_STATUS_NAV_BUSY;
 		PrintNavStatus(status,"Unknown");
@@ -95,10 +100,10 @@ short NavCalculateRoute() {
 		float secs;
 		convertDecimal2DegMinSec(totalTimeHours,&hours,&mins,&secs);
 		fprintf(routeLog,"TOTAL flight time: %2d:%02d:%02d\n",hours,mins,(int)secs);
-		float time=gps.timestamp;
-		if(time<0) time=getCurrentTime(); //In this case we don't have the time from GPS so we take it from the internal clock
-		time=time/3600+totalTimeHours; //hours, in order to obtain the ETA
-		PrintNavRemainingDistDST(totalDistKm,config.cruiseSpeed,time);
+		float timeCalc=gps.timestamp;
+		if(timeCalc<0) timeCalc=getCurrentTime(); //In this case we don't have the time from GPS so we take it from the internal clock
+		timeCalc=timeCalc/3600+totalTimeHours; //hours, in order to obtain the ETA
+		PrintNavRemainingDistDST(totalDistKm,config.cruiseSpeed,timeCalc);
 		double fuelNeeded=config.fuelConsumption*totalTimeHours;
 		fprintf(routeLog,"TOTAL fuel needed: %.2f liters\n\n",fuelNeeded);
 		checkDaytime(0);
@@ -214,7 +219,7 @@ void NavAddWayPoint(double latWP, double lonWP, double altWPmt, char *WPname) {
 	newWP->seqNo=numWayPoints++;
 }
 
-int NavReverseRoute() {
+int NavReverseRoute(void) {
 	if(status==NAV_STATUS_NAV_BUSY || status==NAV_STATUS_NO_ROUTE_SET || numWayPoints<2) return 0;
 	status=NAV_STATUS_NAV_BUSY;
 	PrintNavStatus(status,"Reversing...");
@@ -249,7 +254,7 @@ int NavReverseRoute() {
 	return 1;
 }
 
-void NavClearRoute() {
+void NavClearRoute(void) {
 	status=NAV_STATUS_NAV_BUSY;
 	PrintNavStatus(status,"Unknown");
 	if(numWayPoints!=0) {
@@ -266,7 +271,7 @@ void NavClearRoute() {
 	status=NAV_STATUS_NO_ROUTE_SET;
 }
 
-void NavClose() {
+void NavClose(void) {
 	NavClearRoute();
 	status=NAV_STATUS_NOT_INIT;
 }
@@ -307,8 +312,7 @@ void NavFindNextWP(double lat, double lon) {
 			prevWPsTotDist=0;
 			for(i=dept->next;i!=currWP;i=i->next) prevWPsTotDist+=i->dist;
 			prevWPsTotDist=Rad2Km(prevWPsTotDist);
-			double time=(prevWPsTotDist/config.cruiseSpeed)*3600; //time to reach the previous WP
-			currWP->prev->arrTimestamp=dept->arrTimestamp+time; //ETA to the previous WP
+			currWP->prev->arrTimestamp=dept->arrTimestamp+(prevWPsTotDist/config.cruiseSpeed)*3600; //ETA to the previous WP, adding the time to reach the previous WP
 		}
 		status=NAV_STATUS_NAV_TO_WPT;
 	}
@@ -339,15 +343,15 @@ void NavStartNavigation(float timestamp) { //timestamp have to be the real time 
 
 void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 	double averageSpeed; //Km/h
-	double time; //Hours
+	double timeVal; //Hours
 	if(timestamp>currWP->prev->arrTimestamp) { //to avoid infinite, null or negative speed and time
 		remainDist=Rad2Km(remainDist); //Km
 		if(atd>=0) {
 			averageSpeed=ms2Kmh(Rad2m(atd)/(timestamp-currWP->prev->arrTimestamp));
 			prevWpAvgSpeed=averageSpeed;
 		} else averageSpeed=prevWpAvgSpeed; //with negative ATDs we estimate using previous average speed
-		time=remainDist/averageSpeed; //ETE (remaining time) in hours
-		PrintNavRemainingDistWP(remainDist,averageSpeed,time);
+		timeVal=remainDist/averageSpeed; //ETE (remaining time) in hours
+		PrintNavRemainingDistWP(remainDist,averageSpeed,timeVal);
 	}
 	if(timestamp>dept->arrTimestamp) {
 		double totCoveredDistKm=prevWPsTotDist+Rad2Km(atd);
@@ -356,9 +360,9 @@ void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 			prevTotAvgSpeed=averageSpeed;
 		} else averageSpeed=prevTotAvgSpeed;
 		remainDist=totalDistKm-totCoveredDistKm; //Km
-		time=remainDist/averageSpeed; //hours
-		time+=timestamp/3600; //hours, in order to obtain the ETA
-		PrintNavRemainingDistDST(remainDist,averageSpeed,time);
+		timeVal=remainDist/averageSpeed; //hours
+		timeVal+=timestamp/3600; //hours, in order to obtain the ETA
+		PrintNavRemainingDistDST(remainDist,averageSpeed,timeVal);
 	}
 }
 
@@ -444,12 +448,12 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			actualTrueCourse=calcGreatCircleRoute(lat,lon,dest->latitude,dest->longitude,&remainDist); //calc just course and distance
 			PrintNavDTG(remainDist);
 			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
-			double time; //Hours
+			double timeVal; //Hours
 			remainDist=Rad2Km(remainDist); //Km
-			time=remainDist/gps.speedKmh; //ETE (remaining time) in hours
-			PrintNavRemainingDistWP(remainDist,-1,time);
-			time+=timestamp/3600; //hours, in order to obtain the ETA
-			PrintNavRemainingDistDST(remainDist,-1,time);
+			timeVal=remainDist/gps.speedKmh; //ETE (remaining time) in hours
+			PrintNavRemainingDistWP(remainDist,-1,timeVal);
+			timeVal+=timestamp/3600; //hours, in order to obtain the ETA
+			PrintNavRemainingDistDST(remainDist,-1,timeVal);
 		} break;
 		case NAV_STATUS_END_NAV: //We have reached or passed the destination
 			actualTrueCourse=calcGreatCircleRoute(lat,lon,dest->latitude,dest->longitude,&remainDist); //calc just course and distance
@@ -465,7 +469,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 	}
 }
 
-void NavSkipCurrentWayPoint() {
+void NavSkipCurrentWayPoint(void) {
 	if(status==NAV_STATUS_NAV_TO_WPT || status==NAV_STATUS_NAV_TO_DST) {
 		status=NAV_STATUS_NAV_BUSY;
 		PrintNavStatus(status,"Skipping next WP");
@@ -547,15 +551,15 @@ short checkDaytime(short calcOnlyDest) {
 	return retVal;
 }
 
-float getCurrentTime() {
+float getCurrentTime(void) {
 	struct tm time_str;
 	long currTime=time(NULL); //get current time
 	time_str=*localtime(&currTime);
 	int n=time_str.tm_hour; //hour
-	float time=n*3600;
+	float timeVal=n*3600;
 	n=time_str.tm_min; //minute
-	time+=n*60;
+	timeVal+=n*60;
 	n=time_str.tm_sec;
-	time+=n;
-	return time;
+	timeVal+=n;
+	return timeVal;
 }

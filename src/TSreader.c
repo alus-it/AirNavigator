@@ -24,6 +24,10 @@
 #include "AirNavigator.h"
 
 
+void TSreaderRelease(void);
+void initializeTSreader(void);
+void* runTSreader(void *arg);
+
 volatile short readingTS=-1; //-1 means still not initialized
 static int tsfd=-1;
 pthread_t threadTSreader;
@@ -32,7 +36,7 @@ TS_EVENT lastTouch;
 //static int gps;
 
 
-void TSreaderRelease() {
+void TSreaderRelease(void) {
 	pthread_mutex_destroy(&condVar->lastTouchMutex);
 	pthread_cond_destroy(&condVar->lastTouchSignal);
 	free(condVar);
@@ -41,7 +45,7 @@ void TSreaderRelease() {
 	readingTS=-1;
 }
 
-void initializeTSreader() {
+void initializeTSreader(void) {
 	condVar=(condVar_t)malloc(sizeof(struct condVarStruct));
 	if(pthread_mutex_init(&condVar->lastTouchMutex,NULL) || pthread_cond_init(&condVar->lastTouchSignal,NULL)) {
 		logText("TSreader: ERROR while initializing mutex and condition variable\n");

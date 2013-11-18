@@ -18,7 +18,7 @@
 #include "AirNavigator.h"
 #include "FBrender.h"
 
-void initConfig() { //Initializes the confog struct with the default values
+void initConfig(void) { //Initializes the confog struct with the default values
 	config.distUnit=KM;
 	config.trackErrUnit=MT;
 	config.speedUnit=KMH;
@@ -53,7 +53,7 @@ void initConfig() { //Initializes the confog struct with the default values
 	colorSchema.warning=0xf000; //red
 }
 
-void loadConfig() { //Load configuration
+void loadConfig(void) { //Load configuration
 	char *configPath;
 	asprintf(&configPath,"%sconfig.xml",BASE_PATH);
 	node_t* root=roxml_load_doc(configPath);
@@ -177,7 +177,7 @@ void loadConfig() { //Load configuration
 			if(part!=NULL) {
 				detail=roxml_get_chld(part,"colors",0);
 				if(detail!=NULL) {
-					int color;
+					unsigned int color;
 					attr=roxml_get_attr(detail,"background",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);

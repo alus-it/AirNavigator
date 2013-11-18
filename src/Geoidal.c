@@ -25,6 +25,10 @@
 #define EGM96_W 180
 #define EGM96SIZE EGM96_W * EGM96_H //16200
 
+
+double interpolation2d(double x, double y, double z11, double z12, double z21, double z22);
+double getEGM96data(int x, int y);
+
 const short geoid_data[GEOID_H][GEOID_W]={ //From: www.gliding.ch/manuels/flarm_obstacle_v3.00_en.pdf Source: US NIMA Technical Report ref: DMA TR 8350.2 Table 6.1
 /*       -180,-170,...                                                            ,0,                                 ...,180   */
 /*-90 */{ -30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30, -30,-30,-30,-30,-30,-30,-30,-30,-30,-30,-30}, //0

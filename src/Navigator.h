@@ -42,13 +42,13 @@ typedef struct wp {
 
 int NavLoadFlightPlan(char* GPXfile);
 void NavAddWayPoint(double latWP, double lonWP, double altWP, char *WPname);
-void NavClearRoute();
+void NavClearRoute(void);
 void NavUpdatePosition(double lat, double lon, double alt, double speed, double dir, float timestamp);
 short checkDaytime(short calcOnlyDest);
 void NavStartNavigation(float timestamp);
-int NavReverseRoute();
-void NavSkipCurrentWayPoint();
-float getCurrentTime();
-void NavClose();
+int NavReverseRoute(void);
+void NavSkipCurrentWayPoint(void);
+float getCurrentTime(void);
+void NavClose(void);
 
 #endif /*NAVIGATOR_H_*/

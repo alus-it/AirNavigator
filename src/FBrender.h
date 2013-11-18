@@ -37,10 +37,10 @@ struct screenConfig screen;
 struct colorConfig colorSchema;
 
 inline unsigned short Color(int r, int g, int b);
-int FBrenderBpp();
-void FBrenderFlush();
-short FBrenderOpen();
-void FBrenderClose();
+int FBrenderBpp(void);
+void FBrenderFlush(void);
+short FBrenderOpen(void);
+void FBrenderClose(void);
 void FBrenderClear(int aFromY, int aNrLines, unsigned short aColor);
 void FBrenderBlitCharacter(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);
 void FBrenderBlitCharacterItalic(int x, int y, unsigned short aColor, unsigned short aBackColor, char character);

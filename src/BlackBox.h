@@ -21,14 +21,14 @@
 
 #define MIN_DIST 0.00000109872 // 7 m in Rad
 
-void BlackBoxStart();
+void BlackBoxStart(void);
 short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, short dateChanged);
 short BlackBoxRecordAlt(double altMt);
 short BlackBoxRecordSpeed(double speedMTSec);
 short BlackBoxRecordCourse(double course);
-short BlackBoxCommit();
-void BlackBoxPause();
-void BlackBoxResume();
-void BlackBoxClose();
+short BlackBoxCommit(void);
+void BlackBoxPause(void);
+void BlackBoxResume(void);
+void BlackBoxClose(void);
 
 #endif /* BLACKBOX_H_ */

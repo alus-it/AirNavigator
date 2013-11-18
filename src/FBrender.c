@@ -31,6 +31,9 @@
 
 #define CHAR_WIDTH    8
 
+void FBrenderScroll(int target_y, int source_y, int height);
+unsigned long FixSqrt(unsigned long x);
+
 static int fbfd=-1;
 static struct fb_var_screeninfo vinfo;
 static struct fb_fix_screeninfo finfo;
@@ -45,11 +48,11 @@ unsigned short Color(int r, int g, int b) {
 	return (b>>3)+((g>>2)*32)+((r>>3)*2048);// (gray>>2)<<5;
 }
 
-int FBrenderBpp() {
+int FBrenderBpp(void) {
 	return vinfo.bits_per_pixel;
 }
 
-short FBrenderOpen() {
+short FBrenderOpen(void) {
 	fbfd=open("/dev/fb",O_RDWR);
 	if(!fbfd) { //open the framebuffer
 		printf("FATAL ERROR: Impossible to open the framebuffer.\n");
@@ -88,7 +91,7 @@ short FBrenderOpen() {
 	return 1;
 }
 
-void FBrenderClose() {
+void FBrenderClose(void) {
 	if(isOpen!=1) return;
 	if(fbfd>0) {
 		munmap(fbp,screensize);
@@ -303,7 +306,7 @@ int FBrenderBlitText(int x, int y, unsigned short aColor, unsigned short aBackCo
 	return done;
 }
 
-void FBrenderFlush() {
+void FBrenderFlush(void) {
 	memcpy(fbp,fbbackp,screensize);
 }
 

@@ -22,6 +22,10 @@
 #include "Configuration.h"
 #include "AirCalc.h"
 
+
+short openRecordingFile(void);
+void recordPos(double lat, double lon, float timestamp, int hour, int min, float sec);
+
 double lastlat, lastlon, minlat, minlon, maxlat, maxlon;
 float currTimestamp,lastTimestamp;
 double updateDist; //here in rad
@@ -31,7 +35,7 @@ long trackPointCounter;
 FILE *tracklogFile=NULL;
 short bbStatus=BBS_NOT_SET;
 
-void BlackBoxStart() {
+void BlackBoxStart(void) {
 	if(bbStatus!=BBS_NOT_SET) return;
 	lastTimestamp=-config.recordTimeInterval;
 	trackPointCounter=0;
@@ -54,7 +58,7 @@ void BlackBoxStart() {
 	bbStatus=BBS_WAIT_FIX;
 }
 
-short openRecordingFile() {
+short openRecordingFile(void) {
 	char *path;
 	asprintf(&path,"%sTracks/%s",BASE_PATH,filename);
 	tracklogFile=fopen(path,"w");
@@ -77,12 +81,12 @@ short openRecordingFile() {
 	return 1;
 }
 
-void BlackBoxPause() {
+void BlackBoxPause(void) {
 	if(bbStatus==BBS_WAIT_OPT) BlackBoxCommit();
 	bbStatus=BBS_PAUSED;
 }
 
-void BlackBoxResume() {
+void BlackBoxResume(void) {
 	if(bbStatus==BBS_PAUSED && tracklogFile!=NULL) bbStatus=BBS_WAIT_POS;
 }
 
@@ -153,14 +157,14 @@ short BlackBoxRecordCourse(double course) {
 	return 1;
 }
 
-short BlackBoxCommit() {
+short BlackBoxCommit(void) {
 	if(bbStatus!=BBS_WAIT_OPT) return 0;
 	fprintf(tracklogFile,"</trkpt>\n");
 	bbStatus=BBS_WAIT_POS;
 	return 1;
 }
 
-void BlackBoxClose() {
+void BlackBoxClose(void) {
 	BlackBoxCommit();
 	bbStatus=BBS_NOT_SET;
 	if(tracklogFile!=NULL) {

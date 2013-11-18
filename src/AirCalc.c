@@ -108,9 +108,9 @@ double lonDegMinSec2rad(int deg, int min, float sec, short E) {
 
 double absAngle(double angle) { //to put angle in the range between 0 and 2PI
 	if(isinf(angle)) return TWO_PI;
-	double absAngle=fmod(angle,TWO_PI);
-	if(absAngle<0) absAngle+=TWO_PI;
-	return absAngle;
+	double absangle=fmod(angle,TWO_PI);
+	if(absangle<0) absangle+=TWO_PI;
+	return absangle;
 }
 
 double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, double *d) { //Loxodrome

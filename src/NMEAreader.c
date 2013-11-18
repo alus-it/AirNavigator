@@ -67,7 +67,7 @@ void updateFixMode(int fixMode) {
 	}
 }
 
-void initializeNMEAreader() {
+void initializeNMEAreader(void) {
 	gps.timestamp=-1;
 	gps.speedKmh=-100;
 	gps.speedKnots=-100;
@@ -188,17 +188,17 @@ void initializeNMEAreader() {
 	FBrenderFlush();
 }
 
-short NMEAreaderIsReading() {
+short NMEAreaderIsReading(void) {
 	if(readingNMEA==-1) return 0; //in the case it is not initilized we are not reading..
 	return readingNMEA;
 }
 
-int getCRCintValue(char* sentence, int rcvdBytesOfSentence) {
+unsigned int getCRCintValue(char* sentence, int rcvdBytesOfSentence) {
 	if(rcvdBytesOfSentence<9) return -1;
 	char asciiCheksum[2]; //two digits
 	asciiCheksum[0]=sentence[rcvdBytesOfSentence-2];
 	asciiCheksum[1]=sentence[rcvdBytesOfSentence-1];
-	int checksum;
+	unsigned int checksum;
 	sscanf(asciiCheksum,"%x",&checksum); //read as hex
 	return checksum;
 }
@@ -371,7 +371,7 @@ void updateDiluition(float pDiluition, float hDiluition, float vDiluition) {
 	}
 }
 
-void update() {
+void update(void) {
 	short dateChanged=0,posChanged=0,altChanged=0;
 	if(RMCfound) dateChanged=updateDate(timeDayB,timeMonthB,timeYearB); //pre-check if date is changed
 	if(GGAfound) {
@@ -1114,7 +1114,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 					case '\n':
 						if(lineFeedExpected&&rcvdBytesOfSentence>3) { //to avoid overflow errors
 							if(sentence[rcvdBytesOfSentence-3]=='*') { //CRC check
-								int checksum=0;
+								unsigned int checksum=0;
 								int j;
 								for(j=1;j<rcvdBytesOfSentence-3;j++)
 									checksum=checksum^sentence[j];
@@ -1150,7 +1150,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	return NULL;
 }
 
-short NMEAreaderStartRead() { //function to start the listening thread
+short NMEAreaderStartRead(void) { //function to start the listening thread
 	if(readingNMEA==-1) initializeNMEAreader();
 	if(!readingNMEA) {
 		readingNMEA=1;
@@ -1162,11 +1162,11 @@ short NMEAreaderStartRead() { //function to start the listening thread
 	return readingNMEA;
 }
 
-void NMEAreaderStopRead() {
+void NMEAreaderStopRead(void) {
 	if(readingNMEA==1) readingNMEA=0;
 }
 
-void NMEAreaderClose() {
+void NMEAreaderClose(void) {
 	NMEAreaderStopRead();
 	GeoidalClose();
 	pthread_join(thread,NULL); //wait for thread death

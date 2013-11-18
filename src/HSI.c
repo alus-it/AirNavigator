@@ -20,6 +20,15 @@
 #include "AirCalc.h"
 #include "Configuration.h"
 
+
+int HSIround(double d);
+void rotatePoint(int mx, int my, int *px, int *py, double angle);
+int calcPixelDeviation(double courseDevMt);
+void drawCompass(int dir);
+void drawLabels(int dir);
+void drawCDI(double direction, double course, double cdi);
+void diplayCDIvalue(double cdiMt);
+
 int cx,cy; //center
 int mark_start;
 int re; //external radius
@@ -105,11 +114,11 @@ int calcPixelDeviation(double courseDevMt) {
 void drawCompass(int dir) { //works with direction as integer
 	previousDir=dir;
 	FillCircle(cx,cy,re,colorSchema.background); //clear all the compass
-	int pex,pey,pix,piy,index;
+	int pex,pey,pix,piy,indexCompass;
 	short i;
-	for(i=0,index=dir;i<12;index+=30,i++) {
-		if(index>359) index-=360;
-		double angle=Deg2Rad(index);
+	for(i=0,indexCompass=dir;i<12;indexCompass+=30,i++) {
+		if(indexCompass>359) indexCompass-=360;
+		double angle=Deg2Rad(indexCompass);
 		pex=cx;
 		pey=mark_start;
 		pix=cx;
@@ -121,7 +130,7 @@ void drawCompass(int dir) { //works with direction as integer
 		piy=label_pos;
 		rotatePoint(cx,cy,&pix,&piy,angle);
 		FBrenderBlitText(pix-labelHalfWidth[i],piy-labelHalfHeight,colorSchema.compassRose,colorSchema.background,0,labels[i]);
-		int index2=index+5;
+		int index2=indexCompass+5;
 		short minor=1,j;
 		for(j=0;j<5;index2+=5,j++,minor=!minor) {
 			angle=Deg2Rad(index2);
@@ -138,11 +147,11 @@ void drawCompass(int dir) { //works with direction as integer
 }
 
 void drawLabels(int dir) { //also here direction as integer
-	int index;
+	int indexLabel;
 	short i;
-	for(i=0,index=dir;i<12;index+=30,i++) {
-		if(index>359) index-=360;
-		double angle=Deg2Rad(index);
+	for(i=0,indexLabel=dir;i<12;indexLabel+=30,i++) {
+		if(indexLabel>359) indexLabel-=360;
+		double angle=Deg2Rad(indexLabel);
 		int pix=cx; //locate the label
 		int piy=label_pos;
 		rotatePoint(cx,cy,&pix,&piy,angle);

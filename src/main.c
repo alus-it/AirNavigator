@@ -45,7 +45,6 @@
 #define MAIN_STATUS_FLY_REVERSED 6
 #define MAIN_STATUS_WAIT_EXIT    7
 
-
 typedef struct fileName {
 	int seqNo;             //sequence number
 	char *name;            //name of the file
@@ -53,15 +52,10 @@ typedef struct fileName {
 	struct fileName *next; //Pointer to the next filename in the list
 } *fileEntry;
 
+void releaseAll(void);
+
 pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
 FILE *logFile=NULL;
-
-void releaseAll() {
-	if(logFile!=NULL) fclose(logFile);
-	TSreaderClose();
-	FBrenderClose();
-	pthread_exit(NULL);
-}
 
 int main(int argc, char** argv) {
 	int status=MAIN_STATUS_NOT_INIT;
@@ -286,6 +280,13 @@ int main(int argc, char** argv) {
 	logText("Releasing all... Goodbye!\n");
 	releaseAll();
 	exit(EXIT_SUCCESS);
+}
+
+void releaseAll(void) {
+	if(logFile!=NULL) fclose(logFile);
+	TSreaderClose();
+	FBrenderClose();
+	pthread_exit(NULL);
 }
 
 int logText(const char *texts, ...) {

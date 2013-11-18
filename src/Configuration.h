@@ -18,7 +18,7 @@ enum lengthMeasureUnit {
 	NM,  //Distance in Nautical Miles
 	MI,  //Distance in Imperial Miles
 	MT,  //Length in Meters
-	FT,  //Length in Feet
+	FT  //Length in Feet
 };
 
 enum speedMesureUnit {
@@ -50,7 +50,7 @@ struct configuration {
 
 struct configuration config;
 
-void initConfig();
-void loadConfig();
+void initConfig(void);
+void loadConfig(void);
 
 #endif //CONFIGURATION_H__

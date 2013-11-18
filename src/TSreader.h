@@ -21,15 +21,15 @@ typedef struct condVarStruct {
 	pthread_cond_t lastTouchSignal;
 } *condVar_t;
 
-short TSreaderStart();
-void TSreaderClose();
-condVar_t TSreaderGetCondVar();
-TS_EVENT TSreaderGetLastTouch();
+short TSreaderStart(void);
+void TSreaderClose(void);
+condVar_t TSreaderGetCondVar(void);
+TS_EVENT TSreaderGetLastTouch(void);
 
 /*
 short checkBattery(short *batVolt, short *refVolt, short *chargeCurr);
-short enableGPS();
-void disableGPS();
+short enableGPS(void);
+void disableGPS(void);
 */
 
 #endif /* TSREADER_H_ */

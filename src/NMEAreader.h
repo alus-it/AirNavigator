@@ -73,9 +73,9 @@ struct GPSdata {
 
 struct GPSdata gps;
 
-short NMEAreaderStartRead();
-short NMEAreaderIsReading();
-void NMEAreaderStopRead();
-void NMEAreaderClose();
+short NMEAreaderStartRead(void);
+short NMEAreaderIsReading(void);
+void NMEAreaderStopRead(void);
+void NMEAreaderClose(void);
 
 #endif

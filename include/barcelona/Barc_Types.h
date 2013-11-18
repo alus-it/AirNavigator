@@ -6,7 +6,7 @@
 /* 
 modification history 
 -------------------- 
-01a,3oct03,rks  written. 
+01a,3oct03,rksï¿½ï¿½written. 
 */ 
  
 #ifndef __INCBarc_Typesh
@@ -30,7 +30,7 @@ extern "C" {
 
 /* This one for user space */
 
-# define PDEBUG(fmt, args...) fprintf(stderr, fmt, ## args)
+//# define PDEBUG(fmt, args...) fprintf(stderr, fmt, ## args)
 
 # endif
 #else

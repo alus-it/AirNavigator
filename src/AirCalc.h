@@ -51,6 +51,7 @@ double Rad2Nm(double rad);
 double Rad2Mi(double rad);
 double Rad2Deg(double rad);
 double Deg2Rad(double deg);
+double absAngle(double angle);
 double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, double *d);
 double calcGreatCircleRoute(double lat1, double lon1, double lat2, double lon2, double *d);
 double calcGreatCircleCourse(double lat1, double lon1, double lat2, double lon2);
