@@ -32,6 +32,28 @@
 
 //#define PRINT_SENTENCES
 
+void updateNumOfTotalSatsInView(int totalSats);
+void updateNumOfActiveSats(int workingSats);
+void updateFixMode(int fixMode);
+void initializeNMEAreader(void);
+unsigned int getCRCintValue(char* sentence, int rcvdBytesOfSentence);
+short updateAltitude(float newAltitude, char altUnit, float timestamp);
+short updateDate(int newDay, int newMonth, int newYear);
+void updateTime(float timestamp, int newHour, int newMin, float newSec, short timeWithNoFix);
+short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged);
+void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float newTrueTrack, float newMagneticTrack);
+void updateSpeed(float newSpeedKnots);
+void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, float timestamp);
+void updateHdiluition(float hDiluition);
+void updateDiluition(float pDiluition, float hDiluition, float vDiluition);
+void update(void);
+int parseGGA(char* ascii);
+int parseRMC(char* ascii);
+int parseGSA(char* ascii);
+int parseGSV(char* ascii);
+int parse(char* ascii, long timestamp);
+void* run(void *ptr);
+
 long BAUD;
 int DATABITS,STOPBITS,PARITYON,PARITY;
 pthread_t thread;

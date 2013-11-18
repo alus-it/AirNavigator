@@ -22,10 +22,8 @@ CC = arm-linux-gcc
 STRIP = arm-linux-strip
 
 # Compiler and linker options
-#WARN_CFLAGS =  
-
-
-CFLAGS = -c -O3 -fPIC -mcpu=arm920t -std=gnu99 -pedantic -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wno-unused-parameter #-Werror
+WARN_CFLAGS = -std=gnu99 -pedantic -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wno-unused-parameter -Werror
+CFLAGS = -c -O3 -fPIC -mcpu=arm920t $(WARN_CFLAGS)
 LFLAGS = -lm -lpthread
 
 # Source and binary paths

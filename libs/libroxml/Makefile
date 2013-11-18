@@ -10,7 +10,8 @@
 # ============================================================================
 
 CC = arm-linux-gcc
-CFLAGS = -c -O3 -fPIC -Wall
+WARN_CFLAGS = -std=gnu99 -pedantic -Wall -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wno-unused-parameter -Werror
+CFLAGS = -c -O3 -fPIC -mcpu=arm920t $(WARN_CFLAGS)
 
 all: libroxml.so
 
