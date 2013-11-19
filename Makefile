@@ -6,7 +6,7 @@
 # Copyright : (C) 2010-2013 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 15/11/2013
+# Last change : 19/11/2013
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -129,16 +129,16 @@ libclean:
 	make -C $(LIBSRC)libroxml clean
 	@rm -f $(LIB)*
 
-	
+
 ### Make the zip files with the final distribution normal and standalone
 zip: all $(SYSTEMIMAGE)ttsystem $(SYSTEMIMAGE)config.xml
 	@rm -f $(DIST)*.zip
 	mkdir -p $(DIST)AirNavigator/Tracks
-	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPNAME).zip . ; cd ..;
+	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" -r $(ZIPNAME).zip . ; cd ..;
 	cp $(SYSTEMIMAGE)ttsystem $(DIST)
 	mv $(DIST)AirNavigator/config.xml $(DIST)
 	cp $(SYSTEMIMAGE)config.xml $(DIST)AirNavigator/
-	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" "*CVS*" "*Thumbs.db*" -r $(ZIPSTANDNAME).zip ttsystem AirNavigator/* README.txt ; cd ..;
+	cd $(DIST); zip -9 -T -x "*.git*" "*.svn*" -r $(ZIPSTANDNAME).zip ttsystem AirNavigator/* README.txt ; cd ..;
 	rm $(DIST)ttsystem
 	mv -f $(DIST)config.xml $(DIST)AirNavigator/
 
