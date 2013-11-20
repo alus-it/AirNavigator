@@ -48,6 +48,7 @@
 #define SAT_AZIMUTH   2 //azimuth in degrees to true north (000-359)
 #define SAT_SNR       3 //SNR in dB (00-99)
 
+
 struct GPSdataSiRF {
 	float timestamp; //timestamp of the data in sec from the beginning of the day
 	double speedKmh,speedKnots; //ground speeds in Km/h and knots
@@ -85,12 +86,13 @@ struct GPSdataSiRF {
 };
 
 
+
 struct GPSdataSiRF gpsSiRF;
 
-short SiRFreaderStartRead();
-short SiRFreaderIsReading();
-void SiRFreaderStopRead();
-void SiRFreaderClose();
+short SiRFreaderStart(void);
+short SiRFreaderIsReading(void);
+void SiRFreaderStop(void);
+void SiRFreaderClose(void);
 
 
 #endif /* SIRFREADER_H_ */

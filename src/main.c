@@ -28,7 +28,7 @@
 #include "AirCalc.h"
 #include "BlackBox.h"
 #include "HSI.h"
-//#include "SiRFreader.h"
+#include "SiRFreader.h"
 #include "Geoidal.h"
 
 #ifndef VERSION
@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
 				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
 				if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n"); //Start the GPS using the traditional NMEA parser
-				//if(!SiRFreaderStartRead()) logText("ERROR: SiRFreader failed to start.\n"); //... or start the GPS using the newer SiRF parser (not working yet)
+				//if(!SiRFreaderStart()) logText("ERROR: SiRFreader failed to start.\n"); //... or start the GPS using the newer SiRF parser (not working yet)
 				BlackBoxStart(); //Start the track recorder
 				if(toLoad!=NULL) status=MAIN_STATUS_READY_TO_NAV;
 				else status=MAIN_STATUS_NOT_LOADED;

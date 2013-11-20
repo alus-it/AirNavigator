@@ -70,6 +70,11 @@ struct geodetic_nav_data {
 	uint8_t addModeInfo;
 };
 
+void initializeSiRF(void);
+inline uint16_t endian16_swap(uint16_t val);
+inline uint32_t endian32_swap(uint32_t val);
+void processPayload(char *payload, int len, long timestamp);
+void* runThread(void *ptr);
 
 pthread_t thread;
 volatile short readingSiRF=-1; //-1 means still not initialized
@@ -77,32 +82,7 @@ volatile short readingSiRF=-1; //-1 means still not initialized
 //float altTimestamp=0,dirTimestamp=0,newerTimestamp=0;
 //int numOfGSVmsg=0,GSVmsgSeqNo=0,GSVsatSeqNo,GSVtotalSatInView;
 
-
-/*
-void updateNumOfTotalSatsInView(int totalSats) {
-	if(gps.satsInView!=totalSats) {
-		gps.satsInView=totalSats;
-		PrintNumOfSats(gps.activeSats,gps.satsInView);
-	}
-}
-
-void updateNumOfActiveSats(int workingSats) {
-	if(gps.activeSats!=workingSats) {
-		gps.activeSats=workingSats;
-		PrintNumOfSats(gps.activeSats,gps.satsInView);
-	}
-}
-
-void updateFixMode(int fixMode) {
-	if(gps.fixMode!=fixMode) {
-		gps.fixMode=fixMode;
-		PrintFixMode(fixMode);
-		if(fixMode==MODE_NO_FIX) FBrenderFlush(); //because we want to show it immediately
-	}
-}
-*/
-
-void initializeSiRF() {
+void initializeSiRF(void) {
 	gpsSiRF.timestamp=-1;
 	gpsSiRF.speedKmh=-100;
 	gpsSiRF.speedKnots=-100;
@@ -126,181 +106,14 @@ void initializeSiRF() {
 	//FBrenderFlush();
 }
 
-short SiRFreaderIsreading() {
+short SiRFreaderIsReading(void) {
 	if(readingSiRF==-1) return 0; //in the case it is not initilized we are not reading..
 	return readingSiRF;
 }
 
 
-/*
-short updateAltitude(float newAltitude, char altUnit, float timestamp) {
-	float newAltitudeMt,newAltitudeFt;
-	short updateAlt=0;
-	if(altUnit=='M') {
-		if(newAltitude!=gps.altMt) {
-			updateAlt=1;
-			newAltitudeMt=newAltitude;
-			newAltitudeFt=m2Ft(newAltitude);
-		}
-	} else if(altUnit=='F') {
-		if(newAltitude!=gps.altFt) {
-			updateAlt=1;
-			newAltitudeFt=newAltitude;
-			newAltitudeMt=Ft2m(newAltitude);
-		}
-	} else {
-		//logText("ERROR: Unknown altitude unit: %c\n",altUnit);
-
-		return 0;
-	}
-	altTimestamp=timestamp;
-	if(updateAlt) {
-		gps.altMt=newAltitudeMt;
-		gps.altFt=newAltitudeFt;
-		double deltaMt=wgs84_to_msl_delta(Rad2Deg(gps.lat),Rad2Deg(gps.lon));
-		newAltitudeMt-=deltaMt;
-		newAltitudeFt-=m2Ft(deltaMt);
-		HSIdrawVSIscale(newAltitudeFt);
-		PrintAltitude(newAltitudeMt,newAltitudeFt);
-		if(altTimestamp!=0) {
-			float deltaT;
-			if(timestamp>altTimestamp) deltaT=timestamp-altTimestamp;
-			else if(timestamp!=altTimestamp) {
-				deltaT=timestamp+86400-altTimestamp;
-				float deltaH=newAltitudeFt-gps.altFt;
-				gps.climbFtMin=deltaH/(deltaT/60);
-				PrintVerticalSpeed(gps.climbFtMin);
-			}
-		}
-		gps.realAltMt=newAltitudeMt;
-		gps.realAltFt=newAltitudeFt;
-	} else if(gps.climbFtMin!=0) { //altitude remained the same: put the variometer to 0
-		gps.climbFtMin=0;
-		PrintVerticalSpeed(0);
-	}
-	BlackBoxRecordAlt(gps.realAltMt);
-	return updateAlt;
-}
-
-void updateDate(int newDay, int newMonth, int newYear) {
-	if(gps.day!=newDay) {
-		gps.day=newDay;
-		gps.month=newMonth;
-		gps.year=newYear;
-		if(gps.year<2000) gps.year+=2000;
-		PrintDate(gps.day,gps.month,gps.year);
-	}
-}
-
-void updateTime(int newHour, int newMin, float newSec) {
-	if(gps.second!=newSec) {
-		gps.hour=newHour;
-		gps.minute=newMin;
-		gps.second=newSec;
-		PrintTime(gps.hour,gps.minute,gps.second);
-	}
-}
-
-short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, float timestamp) {
-	gps.timestamp=timestamp;
-	if(gps.latMinDecimal!=newlatMin||gps.lonMinDecimal!=newlonMin) {
-		gps.latDeg=newlatDeg;
-		gps.lonDeg=newlonDeg;
-		gps.latMinDecimal=newlatMin;
-		gps.lonMinDecimal=newlonMin;
-		gps.isLatN=newisLatN;
-		gps.isLonE=newisLonE;
-		gps.lat=latDegMin2rad(gps.latDeg,gps.latMinDecimal,gps.isLatN);
-		gps.lon=lonDegMin2rad(gps.lonDeg,gps.lonMinDecimal,gps.isLonE);
-		int latMin,lonMin;
-		double latSec,lonSec;
-		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
-		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
-		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
-		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,timeHourB,timeMinB,timeSecB);
-		return 1;
-	}
-	return 0;
-}
-
-void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float newTrueTrack, float newMagneticTrack) {
-	if(newSpeedKnots!=gps.speedKnots) {
-		gps.speedKnots=newSpeedKnots;
-		gps.speedKmh=newSpeedKmh;
-		PrintSpeed(newSpeedKmh,newSpeedKnots);
-	}
-	if(newSpeedKmh>2) if(newTrueTrack!=gps.trueTrack) {
-		gps.trueTrack=newTrueTrack;
-		gps.magneticTrack=newMagneticTrack;
-		HSIupdateDir(newTrueTrack,newMagneticTrack);
-	}
-	BlackBoxRecordSpeed(Kmh2ms(newSpeedKmh));
-	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
-}
-
-void updateSpeed(float newSpeedKnots, float timestamp) {
-	if(newSpeedKnots!=gps.speedKnots) {
-		gps.speedKnots=newSpeedKnots;
-		gps.speedKmh=Knots2Kmh(newSpeedKnots);
-		PrintSpeed(gps.speedKmh,gps.speedKnots);
-	}
-	BlackBoxRecordSpeed(Kmh2ms(gps.speedKmh));
-}
-
-void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, float timestamp) {
-	if(gps.speedKmh>2) if(newTrueTrack!=gps.trueTrack) {
-		gps.magneticVariation=magneticVar;
-		gps.isMagVarToEast=isVarToEast;
-		if(newTrueTrack<90&&newTrueTrack>270) { //sono sopra
-			if(isVarToEast) gps.magneticTrack=newTrueTrack+magneticVar;
-			else gps.magneticTrack=newTrueTrack-magneticVar;
-		} else { //sono sotto
-			if(isVarToEast) gps.magneticTrack=newTrueTrack-magneticVar;
-			else gps.magneticTrack=newTrueTrack+magneticVar;
-		}
-		HSIupdateDir(newTrueTrack,gps.magneticTrack);
-		if(dirTimestamp!=0&&gps.speedKmh>10) {
-			float deltaT;
-			if(timestamp>dirTimestamp) deltaT=timestamp-dirTimestamp;
-			else if(timestamp!=dirTimestamp) deltaT=timestamp+86400-dirTimestamp;
-			else return;
-			float deltaA=newTrueTrack-gps.trueTrack;
-			gps.turnRateDegSec=deltaA/deltaT;
-			gps.turnRateDegMin=gps.turnRateDegSec*60;
-			PrintTurnRate(gps.turnRateDegMin);
-		}
-		gps.trueTrack=newTrueTrack;
-	} else {
-		if(gps.turnRateDegSec!=0) {
-			gps.turnRateDegSec=0;
-			gps.turnRateDegMin=0;
-			PrintTurnRate(0);
-		}
-	}
-	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
-	dirTimestamp=timestamp;
-}
-
-void updateHdiluition(float hDiluition) {
-	if(gps.hdop!=hDiluition) {
-		gps.hdop=hDiluition;
-		PrintDiluitions(gps.pdop,gps.hdop,gps.vdop);
-	}
-}
-
-void updateDiluition(float pDiluition, float hDiluition, float vDiluition) {
-	if(gps.pdop!=pDiluition||gps.hdop!=hDiluition||gps.vdop!=vDiluition) {
-		gps.pdop=pDiluition;
-		gps.hdop=hDiluition;
-		gps.vdop=vDiluition;
-		PrintDiluitions(pDiluition,hDiluition,vDiluition);
-	}
-}
-
-*/
-
 /** 16 bits endianess hleper */
-inline uint16_t endian16_swap(uint16_t val){
+inline uint16_t endian16_swap(uint16_t val) {
     uint16_t temp;
     temp = val & 0xFF;
     temp = (val >> 8) | (temp << 8);
@@ -308,7 +121,7 @@ inline uint16_t endian16_swap(uint16_t val){
 }
 
 /** 32 bits endianess hleper */
-inline uint32_t endian32_swap(uint32_t val){
+inline uint32_t endian32_swap(uint32_t val) {
     uint32_t temp;
     temp = ( val >> 24) | ((val & 0x00FF0000) >> 8) |  ((val & 0x0000FF00) << 8) | ((val & 0x000000FF) << 24);
     return temp;
@@ -397,7 +210,11 @@ void* runThread(void *ptr) { //listening function, it will be ran in a separate 
 			logText("Red: %d Bytes.\n",redBytes);
 
 			timestamp=time(NULL); //get the timestamp of last char sequence received
-			for(i=0;i<redBytes;i++) { logText("%x ",buf[i]); switch(frameStatus) { //for each byte received in the buffer
+
+			for(i=0;i<redBytes;i++) {
+				logText("%x ",buf[i]);
+
+			switch(frameStatus) { //for each byte received in the buffer
 				case 0: //waiting for start sequence
 					if(buf[i]==0xA0) frameStatus=1; //found first byte of start sequence
 					break;
@@ -460,7 +277,7 @@ void* runThread(void *ptr) { //listening function, it will be ran in a separate 
 	return NULL;
 }
 
-short SiRFreaderStartRead() { //function to start the listening thread
+short SiRFreaderStart(void) { //function to start the listening thread
 if(readingSiRF==-1) initializeSiRF();
 	if(!readingSiRF) {
 		readingSiRF=1;
@@ -472,15 +289,11 @@ if(readingSiRF==-1) initializeSiRF();
 	return readingSiRF;
 }
 
-void SiRFreaderStopRead() {
+void SiRFreaderStop(void) {
 	if(readingSiRF==1) readingSiRF=0;
 }
 
-void waitEndReadSiRF() {
+void SiRFreaderClose(void) {
+	SiRFreaderStop();
 	if(!readingSiRF) pthread_join(thread,NULL); //wait for thread death
-}
-
-void SiRFreaderClose() {
-	SiRFreaderStopRead();
-	waitEndReadSiRF();
 }

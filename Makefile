@@ -37,7 +37,7 @@ LIBSRC = libs/
 INC = include/
 
 # Source and object files lists
-CFILES = main.c FBrender.c TSreader.c AirCalc.c BlackBox.c HSI.c Navigator.c NMEAreader.c Configuration.c Geoidal.c
+CFILES = main.c FBrender.c TSreader.c AirCalc.c BlackBox.c HSI.c Navigator.c NMEAreader.c SiRFreader.c Configuration.c Geoidal.c
 OBJS = $(patsubst %.c, $(BIN)%.o, $(CFILES))
 
 # Final distribution destination folder
@@ -75,7 +75,7 @@ $(LIBS): | $(LIB)
 $(LIB):
 	mkdir -p $(LIB)
 
-$(BIN)main.o: $(SRC)main.c $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)FBrender.h $(SRC)TSreader.h $(SRC)NMEAreader.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
+$(BIN)main.o: $(SRC)main.c $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)FBrender.h $(SRC)TSreader.h $(SRC)NMEAreader.h $(SRC)SiRFreader.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
 	$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' -I $(INC) $< -o $@
 
 $(BIN)NMEAreader.o: $(SRC)NMEAreader.c $(SRC)NMEAreader.h $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
