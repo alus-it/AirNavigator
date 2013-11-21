@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 16/11/2013
+// Last change : 21/11/2013
 // Description : main() function of the program for TomTom devices
 //============================================================================
 
@@ -65,10 +65,8 @@ int main(int argc, char** argv) {
 	free(logPath);
 	if(logFile!=NULL) //if the log file has been created...
 		if(FBrenderOpen()) //if the frame buffer render is started
-			if(TSreaderStart()) { //if the touch screen listening thread is started
-				initConfig(); //initialize the configuration with the default values
-				status=MAIN_STATUS_INITIALIZED;
-			} else logText("ERROR: Unable to start the Touch Screen manager!\n");
+			if(TSreaderStart()) status=MAIN_STATUS_INITIALIZED; //if the touch screen listening thread is started
+			else logText("ERROR: Unable to start the Touch Screen manager!\n");
 		else logText("ERROR: Unable to start the Frame Buffer renderer!\n");
 	else printf("ERROR: Unable to create the logFile file!\n");
 	if(status!=MAIN_STATUS_INITIALIZED) {
@@ -77,34 +75,38 @@ int main(int argc, char** argv) {
 	}
 	FBrenderFlush();
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
-
+	short allOK=1;
 	FILE *fd=NULL;
 	fd=fopen("/proc/barcelona/modelname","r"); //Read TomTom model
-	if(fd==NULL) logText("ERROR: unable to read TomTom device model name.\n");
-	else {
+	if(fd!=NULL) {
 		char buf[30];
 		char *ret=fgets(buf,29,fd);
 		if(ret==buf) {
-			free(config.tomtomModel);
 			if(buf[strlen(buf)-1]=='\n') buf[strlen(buf)-1]='\0';
 			config.tomtomModel=strdup(buf);
 			logText("TomTom model name: %s\n",config.tomtomModel);
-		} else logText("ERROR: unable to read TomTom device model name.\n");
+		} else allOK=0;
 		fclose(fd);
+	} else allOK=0;
+	if(!allOK) {
+		logText("ERROR: unable to read TomTom device model name.\n");
+		config.tomtomModel=strdup("UNKNOWN");
+		allOK=1;
 	}
-
 	fd=NULL;
 	fd=fopen("/mnt/flash/sysfile/id","r"); //Read device serial number
-	if(fd==NULL) logText("ERROR: unable to read TomTom device serial number ID.\n");
-	else {
+	if(fd!=NULL) {
 		char buf[30];
 		char *ret=fgets(buf,29,fd);
 		if(ret==buf) {
-			free(config.serialNumber);
 			config.serialNumber=strdup(buf);
 			logText("TomTom device serial number ID: %s\n",config.serialNumber);
-		} else logText("ERROR: unable to read TomTom device serial number ID.\n");
+		} else allOK=0;
 		fclose(fd);
+	} else allOK=0;
+	if(!allOK) {
+		logText("ERROR: unable to read TomTom device serial number ID.\n");
+		config.serialNumber=strdup("UNKNOWN");
 	}
 	logText("Screen resolution: %dx%d pixel\n",screen.width,screen.height); //logFile screen resolution
 
@@ -150,7 +152,7 @@ int main(int argc, char** argv) {
 		}
 		closedir(dir);
 		if(numGPXfiles==0) logText("WARNING: No GPX flight plans found.\n");
-		else logText("List of GPX files created.\n");
+		else logText("Created list of %d GPX files.\n",numGPXfiles);
 	} else logText("ERROR: could not open the Routes directory.\n");
 
 	if(numGPXfiles>0) { //Start to prepare the "menu" to select the route

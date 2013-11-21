@@ -18,40 +18,29 @@
 #include "AirNavigator.h"
 #include "FBrender.h"
 
-void initConfig(void) { //Initializes the confog struct with the default values
-	config.distUnit=KM;
-	config.trackErrUnit=MT;
-	config.speedUnit=KMH;
-	config.vSpeedUnit=FTMIN;
-	config.cruiseSpeed=100;
-	config.stallSpeed=55; //speeds in Km/h
-	config.fuelConsumption=15; //liters per hour
-	config.takeOffdiffAlt=60; //meter
-	config.trackErrorTolearnce=5;
-	config.deptDistTolerance=1000; //meter
-	config.sunZenith=96; //deg Civil Sun Zenith
-	config.recordTimeInterval=5; //sec
-	config.recordMinDist=10; //meters
-	config.GPSdevName=strdup("/var/run/gpsfeed");
-	config.GPSbaudRate=115200;
-	config.GPSdataBits=8;
-	config.GPSstopBits=1;
-	config.GPSparity=0;
-	config.tomtomModel=strdup("UNKNOWN");
-	config.serialNumber=strdup("UNKNOWN");
-	colorSchema.background=0x0000; //black
-	colorSchema.compassRose=0xffff; //white
-	colorSchema.dirMarker=0xf000; //red
-	colorSchema.magneticDir=0x00f0; //blue
-	colorSchema.routeIndicator=0x0f00; //green
-	colorSchema.cdi=0xff00; //yellow
-	colorSchema.cdiScale=0xffff;
-	colorSchema.altScale=0xffff;
-	colorSchema.vsi=0xffff;
-	colorSchema.altMarker=0xffff;
-	colorSchema.text=0x0f00; //green
-	colorSchema.warning=0xf000; //red
-}
+struct configuration config = { //Default values
+	.distUnit=KM,
+	.trackErrUnit=MT,
+	.speedUnit=KMH,
+	.vSpeedUnit=FTMIN,
+	.cruiseSpeed=100,
+	.stallSpeed=55, //speeds in Km/h
+	.fuelConsumption=15, //liters per hour
+	.takeOffdiffAlt=60, //meter
+	.trackErrorTolearnce=5,
+	.deptDistTolerance=1000, //meter
+	.sunZenith=96, //deg Civil Sun Zenith
+	.recordTimeInterval=5, //sec
+	.recordMinDist=10, //meters
+	.GPSdevName=NULL,
+	.GPSbaudRate=115200,
+	.GPSdataBits=8,
+	.GPSstopBits=1,
+	.GPSparity=0,
+	.tomtomModel=NULL,
+	.serialNumber=NULL
+};
+
 
 void loadConfig(void) { //Load configuration
 	char *configPath;

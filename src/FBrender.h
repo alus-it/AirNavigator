@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 12/11/2013
+// Last change : 21/11/2013
 // Description : Header of FBrender.c the FrameBuffer renderer
 //============================================================================
 
@@ -15,7 +15,7 @@
 
 struct screenConfig {
 	int height,width; //size of screen in pixel
-};
+} screen;
 
 struct colorConfig {
 	unsigned short background;
@@ -31,8 +31,6 @@ struct colorConfig {
 	unsigned short text;
 	unsigned short warning;
 };
-
-struct screenConfig screen;
 
 struct colorConfig colorSchema;
 

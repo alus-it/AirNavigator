@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 8/2/2013
+// Last change : 21/11/2013
 // Description : Header of Config with the shared config data struct
 //============================================================================
 
@@ -50,7 +50,6 @@ struct configuration {
 
 struct configuration config;
 
-void initConfig(void);
 void loadConfig(void);
 
 #endif //CONFIGURATION_H__

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 12/11/2013
+// Last change : 21/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -31,11 +31,12 @@
 #define MAX_SENTENCE_LENGTH 255
 
 //#define PRINT_SENTENCES
+//#define PARSE_ALL_SENTENCES
 
 void updateNumOfTotalSatsInView(int totalSats);
 void updateNumOfActiveSats(int workingSats);
 void updateFixMode(int fixMode);
-void initializeNMEAreader(void);
+void configureNMEAreader(void);
 unsigned int getCRCintValue(char* sentence, int rcvdBytesOfSentence);
 short updateAltitude(float newAltitude, char altUnit, float timestamp);
 short updateDate(int newDay, int newMonth, int newYear);
@@ -51,8 +52,35 @@ int parseGGA(char* ascii);
 int parseRMC(char* ascii);
 int parseGSA(char* ascii);
 int parseGSV(char* ascii);
+#ifdef PARSE_ALL_SENTENCES
+int parseGBS(char* ascii);
+int parseMSS(char* ascii);
+int parseZDA(char* ascii);
+int parseVTG(char* ascii);
+int parseGLL(char* ascii);
+#endif
 int parse(char* ascii, long timestamp);
 void* run(void *ptr);
+
+struct GPSdata gps = {
+	.timestamp=-1,
+	.speedKmh=-100,
+	.speedKnots=-100,
+	.altMt=-100,
+	.altFt=-100,
+	.realAltMt=-100,
+	.realAltFt=-100,
+	.trueTrack=-500,
+	.day=-65,
+	.second=-65,
+	.latMinDecimal=-70,
+	.lonMinDecimal=-70,
+	.lat=100,
+	.pdop=50,
+	.hdop=50,
+	.vdop=50,
+	.fixMode=MODE_UNKNOWN
+};
 
 long BAUD;
 int DATABITS,STOPBITS,PARITYON,PARITY;
@@ -89,36 +117,20 @@ void updateFixMode(int fixMode) {
 	}
 }
 
-void initializeNMEAreader(void) {
-	gps.timestamp=-1;
-	gps.speedKmh=-100;
-	gps.speedKnots=-100;
-	gps.altMt=-100;
-	gps.altFt=-100;
-	gps.realAltMt=-100;
-	gps.realAltFt=-100;
-	gps.trueTrack=-500;
-	gps.day=-65;
-	gps.second=-65;
-	gps.latMinDecimal=-70;
-	gps.lonMinDecimal=-70;
-	gps.lat=100;
-	gps.pdop=50;
-	gps.hdop=50;
-	gps.vdop=50;
-	gps.fixMode=MODE_UNKNOWN;
+void configureNMEAreader(void) {
+	if(config.GPSdevName==NULL) config.GPSdevName=strdup("/var/run/gpsfeed"); //Default value
 	switch(config.GPSbaudRate){ //configuration of the serial port
 		case 230400:
 			BAUD=B230400;
 			break;
 		case 115200:
+		default:
 			BAUD=B115200;
 			break;
 		case 57600:
 			BAUD=B57600;
 			break;
 		case 38400:
-		default:
 			BAUD=B38400;
 			break;
 		case 19200:
@@ -808,235 +820,234 @@ int parseGSV(char* ascii) {
 	return 1;
 }
 
-/* From here a collection of others parse functions for others sentences
- * that are not used by the TomTom at the moment
- *
+#ifdef PARSE_ALL_SENTENCES //A collection of others parse functions for others sentences that are not used/useful by the TomTom at the moment
+int parseMSS(char* ascii) {
+	int newSignalStrength=-1;
+	int newSNR=-1;
+	float newBeaconFreq=0;
+	int newBeaconDataRate=-1;
+	int newChannel=-1;
+	char *field=strsep(&ascii,","); //Signal Strength
+	if(field==NULL) return (-1);
+	if(strlen(field)>0) sscanf(field,"%d",&newSignalStrength);
+	field=strsep(&ascii,","); //SNR
+	if(field==NULL) return (-2);
+	if(strlen(field)>0) sscanf(field,"%d",&newSNR);
+	field=strsep(&ascii,","); //Beacon Frequency
+	if(field==NULL) return (-3);
+	if(strlen(field)>0) sscanf(field,"%f",&newBeaconFreq);
+	field=strsep(&ascii,","); //Beacon Data Rate
+	if(field==NULL) return (-4);
+	if(strlen(field)>0) sscanf(field,"%d",&newBeaconDataRate);
+	field=strsep(&ascii,","); //Channel, the last one
+	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&newChannel);
+	if(newChannel!=-1) {
+//		signalStrength=newSignalStrength;
+//		SNR=newSNR;
+//		beaconFrequency=newBeaconFreq;
+//		beaconDataRate=newBeaconDataRate;
+//		channel=newChannel;
+		return 1;
+	} else return 0;
+}
 
- int parseMSS(char* ascii) {
- int newSignalStrength=-1;
- int newSNR=-1;
- float newBeaconFreq=0;
- int newBeaconDataRate=-1;
- int newChannel=-1;
- char *field=strsep(&ascii,","); //Signal Strength
- if(field==NULL) return (-1);
- if(strlen(field)>0) sscanf(field,"%d",&newSignalStrength);
- field=strsep(&ascii,","); //SNR
- if(field==NULL) return (-2);
- if(strlen(field)>0) sscanf(field,"%d",&newSNR);
- field=strsep(&ascii,","); //Beacon Frequency
- if(field==NULL) return (-3);
- if(strlen(field)>0) sscanf(field,"%f",&newBeaconFreq);
- field=strsep(&ascii,","); //Beacon Data Rate
- if(field==NULL) return (-4);
- if(strlen(field)>0) sscanf(field,"%d",&newBeaconDataRate);
- field=strsep(&ascii,","); //Channel, the last one
- if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&newChannel);
- if(newChannel!=-1) {
- signalStrength=newSignalStrength;
- SNR=newSNR;
- beaconFrequency=newBeaconFreq;
- beaconDataRate=newBeaconDataRate;
- channel=newChannel;
- return 1;
- } else return 0;
- }
+int parseZDA(char* ascii) {
+	int timeHour=-1,timeMin=-1,timeDay=-1,timeMonth=-1,timeYear=-1;
+	float timeSec=0;
+	int localZone=-1,localZoneMin=-1;
+	char *field=strsep(&ascii,","); //Hour, Minute, second hhmmss.sss
+	if(field==NULL) return (-1);
+	if(strlen(field)>0) sscanf(field,"%2d%2d%f",&timeHour,&timeMin,&timeSec);
+	field=strsep(&ascii,","); //Day
+	if(field==NULL) return (-2);
+	if(strlen(field)>0) sscanf(field,"%d",&timeDay);
+	field=strsep(&ascii,","); //Month
+	if(field==NULL) return (-3);
+	if(strlen(field)>0) sscanf(field,"%d",&timeMonth);
+	field=strsep(&ascii,","); //Year
+	if(field==NULL) return (-4);
+	if(strlen(field)>0) sscanf(field,"%d",&timeYear);
+	field=strsep(&ascii,","); //Local zone description, 00 to +- 13 hours
+	if(field==NULL) return (-2);
+	if(strlen(field)>0) sscanf(field,"%d",&localZone);
+	field=strsep(&ascii,","); // Local zone minutes, the last one
+	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&localZoneMin);
+	if(localZoneMin!=-1) {
+		float timestamp=timeHour*3600+timeMin*60+timeSec;
+		updateDate(timeDay,timeMonth,timeYear);
+		updateTime(timestamp,timeHour,timeMin,timeSec,0);
+		return 1;
+	} else {
+		return 0;
+	}
+}
 
- int parseZDA(char* ascii) {
- int timeHour=-1,timeMin=-1,timeDay=-1,timeMonth=-1,timeYear=-1;
- float timeSec=0;
- int localZone=-1,localZoneMin=-1;
- char *field=strsep(&ascii,","); //Hour, Minute, second hhmmss.sss
- if(field==NULL) return (-1);
- if(strlen(field)>0) sscanf(field,"%2d%2d%f",&timeHour,&timeMin,&timeSec);
- field=strsep(&ascii,","); //Day
- if(field==NULL) return (-2);
- if(strlen(field)>0) sscanf(field,"%d",&timeDay);
- field=strsep(&ascii,","); //Month
- if(field==NULL) return (-3);
- if(strlen(field)>0) sscanf(field,"%d",&timeMonth);
- field=strsep(&ascii,","); //Year
- if(field==NULL) return (-4);
- if(strlen(field)>0) sscanf(field,"%d",&timeYear);
- field=strsep(&ascii,","); //Local zone description, 00 to +- 13 hours
- if(field==NULL) return (-2);
- if(strlen(field)>0) sscanf(field,"%d",&localZone);
- field=strsep(&ascii,","); // Local zone minutes, the last one
- if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&localZoneMin);
- if(localZoneMin!=-1) {
- updateDate(timeDay,timeMonth,timeYear);
- updateTime(timeHour,timeMin,timeSec);
- return 1;
- } else {
- return 0;
- }
- }
+int parseVTG(char* ascii) {
+	float trueTrack=-1;
+	float magneticTrack=-1;
+	float groundSpeedKnots=-1;
+	float groundSpeedKmh=-1;
+	int faa=FAA_ABSENT;
+	short old=1;
+	char *field=strsep(&ascii,","); //True track
+	if(field==NULL) return (-1);
+	if(strlen(field)>0) sscanf(field,"%f",&trueTrack);
+	field=strsep(&ascii,","); //Second field, we don't know now...
+	if(field==NULL) return (-2);
+	int len=strlen(field);
+	char c;
+	if(len>0) {
+		if(len==1&&sscanf(field,"%c",&c)==1) if(c=='T') old=0; //new version
+		if(old) sscanf(field,"%f",&magneticTrack); //old version: read Magnetic track
+	}
+	if(!old) { //New version
+		field=strsep(&ascii,","); //Magnetic track
+		if(field==NULL) return (-3);
+		if(strlen(field)>0) sscanf(field,"%f",&magneticTrack);
+		field=strsep(&ascii,","); //M
+		if(field==NULL) return (-3);
+		if(strlen(field)==1&&sscanf(field,"%c",&c)==1) {
+			if(c!='M') return (-3);
+		} else return (-3);
+	}
+	field=strsep(&ascii,","); //Ground Speed Knots, both versions
+	if(field==NULL) return (-4);
+	if(strlen(field)>0) sscanf(field,"%f",&groundSpeedKnots);
+	if(!old) { //new version
+		field=strsep(&ascii,","); //N
+		if(field==NULL) return (-5);
+		if(strlen(field)==1&&sscanf(field,"%c",&c)==1) {
+			if(c!='N') return (-5);
+		} else return (-5);
+	}
+	field=strsep(&ascii,","); //Ground Speed Km/h, both versions
+	if(field!=NULL) {
+		if(strlen(field)>0) sscanf(field,"%f",&groundSpeedKmh);
+		if(!old) { //new version
+			field=strsep(&ascii,","); //K
+			if(field!=NULL) {
+				if(strlen(field)==1&&sscanf(field,"%c",&c)==1) {
+					if(c!='K') return (-7);
+				} else return (-7);
+			}
+			field=strsep(&ascii,","); //FAA Indicator (optional)
+			if(field!=NULL) if(strlen(field)>0) faa=field[0];
+		}
+	}
+	if(faa!=FAA_NOTVAL&&groundSpeedKmh>=0) {
+		updateGroundSpeedAndDirection(groundSpeedKmh,groundSpeedKnots,trueTrack,magneticTrack);
+		return 1;
+	} else return 0;
+}
 
- int parseVTG(char* ascii) {
- float trueTrack=-1;
- float magneticTrack=-1;
- float groundSpeedKnots=-1;
- float groundSpeedKmh=-1;
- int faa=FAA_ABSENT;
- short old=1;
- char *field=strsep(&ascii,","); //True track
- if(field==NULL) return (-1);
- if(strlen(field)>0) sscanf(field,"%f",&trueTrack);
- field=strsep(&ascii,","); //Second field, we don't know now...
- if(field==NULL) return (-2);
- int len=strlen(field);
- char c;
- if(len>0) {
- if(len==1&&sscanf(field,"%c",&c)==1) if(c=='T') old=0; //new version
- if(old) sscanf(field,"%f",&magneticTrack); //old version: read Magnetic track
- }
- if(!old) { //New version
- field=strsep(&ascii,","); //Magnetic track
- if(field==NULL) return (-3);
- if(strlen(field)>0) sscanf(field,"%f",&magneticTrack);
- field=strsep(&ascii,","); //M
- if(field==NULL) return (-3);
- if(strlen(field)==1&&sscanf(field,"%c",&c)==1) {
- if(c!='M') return (-3);
- } else return (-3);
- }
- field=strsep(&ascii,","); //Ground Speed Knots, both versions
- if(field==NULL) return (-4);
- if(strlen(field)>0) sscanf(field,"%f",&groundSpeedKnots);
- if(!old) { //new version
- field=strsep(&ascii,","); //N
- if(field==NULL) return (-5);
- if(strlen(field)==1&&sscanf(field,"%c",&c)==1) {
- if(c!='N') return (-5);
- } else return (-5);
- }
- field=strsep(&ascii,","); //Ground Speed Km/h, both versions
- if(field!=NULL) {
- if(strlen(field)>0) sscanf(field,"%f",&groundSpeedKmh);
- if(!old) { //new version
- field=strsep(&ascii,","); //K
- if(field!=NULL) {
- if(strlen(field)==1&&sscanf(field,"%c",&c)==1) {
- if(c!='K') return (-7);
- } else return (-7);
- }
- field=strsep(&ascii,","); //FAA Indicator (optional)
- if(field!=NULL) if(strlen(field)>0) faa=field[0];
- }
- }
- if(faa!=FAA_NOTVAL&&groundSpeedKmh>=0) {
- updateGroundSpeedAndDirection(groundSpeedKmh,groundSpeedKnots,trueTrack,magneticTrack);
- return 1;
- } else return 0;
- }
+int parseGLL(char* ascii) {
+	int timeHour=-1,timeMin=-1;
+	float timeSec=0;
+	int latGra=-1;
+	float latMin=0;
+	short latNorth=1;
+	int lonGra=-1;
+	float lonMin=0;
+	short lonEast=1;
+	short isValid=0;
+	char faa=FAA_ABSENT;
+	char *field=strsep(&ascii,","); //Latitude ddmm.mm
+	if(field==NULL) return (-1);
+	if(strlen(field)>0) sscanf(field,"%2d%f",&latGra,&latMin);
+	field=strsep(&ascii,","); //North or South
+	if(field==NULL) return (-2);
+	if(strlen(field)>0) switch(field[0]){
+		case 'N':
+			latNorth=1;
+			break;
+		case 'S':
+			latNorth=0;
+			break;
+		default:
+			return (-2);
+	}
+	field=strsep(&ascii,","); //Longitude dddmm.mm
+	if(field==NULL) return (-3);
+	if(strlen(field)>0) sscanf(field,"%3d%f",&lonGra,&lonMin);
+	field=strsep(&ascii,","); //East or West
+	if(field==NULL) return (-4);
+	if(strlen(field)>0) switch(field[0]){
+		case 'E':
+			lonEast=1;
+			break;
+		case 'W':
+			lonEast=0;
+			break;
+		default:
+			return (-4);
+	}
+	field=strsep(&ascii,","); //Hour, Minute, second hhmmss.sss
+	if(field==NULL) return (-5);
+	if(strlen(field)>0) sscanf(field,"%2d%2d%f",&timeHour,&timeMin,&timeSec);
+	field=strsep(&ascii,","); //Status, can be the last one
+	if(field!=NULL) {
+		if(strlen(field)>0) switch(field[0]){
+			case 'A':
+				isValid=1;
+				break;
+			case 'V':
+				isValid=0;
+				break;
+			default:
+				return (-6);
+		}
+		field=strsep(&ascii,","); //FAA Indicator (optional)
+		if(field!=NULL) if(strlen(field)>0) faa=field[0];
+	}
+	if(isValid) {
+		float timestamp=timeHour*3600+timeMin*60+timeSec;
+		updatePosition(latGra,latMin,latNorth,lonGra,lonMin,lonEast,0);
+		updateTime(timestamp,timeHour,timeMin,timeSec,0);
+		return 1;
+	} else {
+		return 0;
+	}
+}
 
- int parseGLL(char* ascii) {
- int timeHour=-1,timeMin=-1;
- float timeSec=0;
- int latGra=-1;
- float latMin=0;
- short latNorth=1;
- int lonGra=-1;
- float lonMin=0;
- short lonEast=1;
- short isValid=0;
- char faa=FAA_ABSENT;
- char *field=strsep(&ascii,","); //Latitude ddmm.mm
- if(field==NULL) return (-1);
- if(strlen(field)>0) sscanf(field,"%2d%f",&latGra,&latMin);
- field=strsep(&ascii,","); //North or South
- if(field==NULL) return (-2);
- if(strlen(field)>0) switch(field[0]){
- case 'N':
- latNorth=1;
- break;
- case 'S':
- latNorth=0;
- break;
- default:
- return (-2);
- }
- field=strsep(&ascii,","); //Longitude dddmm.mm
- if(field==NULL) return (-3);
- if(strlen(field)>0) sscanf(field,"%3d%f",&lonGra,&lonMin);
- field=strsep(&ascii,","); //East or West
- if(field==NULL) return (-4);
- if(strlen(field)>0) switch(field[0]){
- case 'E':
- lonEast=1;
- break;
- case 'W':
- lonEast=0;
- break;
- default:
- return (-4);
- }
- field=strsep(&ascii,","); //Hour, Minute, second hhmmss.sss
- if(field==NULL) return (-5);
- if(strlen(field)>0) sscanf(field,"%2d%2d%f",&timeHour,&timeMin,&timeSec);
- field=strsep(&ascii,","); //Status, can be the last one
- if(field!=NULL) {
- if(strlen(field)>0) switch(field[0]){
- case 'A':
- isValid=1;
- break;
- case 'V':
- isValid=0;
- break;
- default:
- return (-6);
- }
- field=strsep(&ascii,","); //FAA Indicator (optional)
- if(field!=NULL) if(strlen(field)>0) faa=field[0];
- }
- if(isValid) {
- float timestamp=timeHour*3600+timeMin*60+timeSec;
- updatePosition(latGra,latMin,latNorth,lonGra,lonMin,lonEast,timestamp,timeHour,timeMin,timeSec);
- updateTime(timeHour,timeMin,timeSec);
- return 1;
- } else {
- return 0;
- }
- }
-
- int parseGBS(char* ascii) {
- int timeHour=-1,timeMin=-1;
- float timeSec=0;
- float latitudeError=0;
- float longitudeError=0;
- float altitudeError=0;
- int mostFailedSatPRN=-1;
- float missedDetectionProb=0;
- float estBiasOfFailedSat=0;
- float stdDevOfBias=0;
- char *field=strsep(&ascii,","); //Hour, Minute, second hhmmss.sss
- if(field==NULL) return (-1);
- if(strlen(field)>0) sscanf(field,"%2d%2d%f",&timeHour,&timeMin,&timeSec);
- field=strsep(&ascii,","); //Expected error in latitude (meters)
- if(field==NULL) return (-2);
- if(strlen(field)>0) sscanf(field,"%f",&latitudeError);
- field=strsep(&ascii,","); //Expected error in longitude (meters)
- if(field==NULL) return (-3);
- if(strlen(field)>0) sscanf(field,"%f",&longitudeError);
- field=strsep(&ascii,","); //Expected error in altitude (meters)
- if(field==NULL) return (-4);
- if(strlen(field)>0) sscanf(field,"%f",&altitudeError);
- field=strsep(&ascii,","); //PRN of most likely failed satellite
- if(field==NULL) return (-5);
- if(strlen(field)>0) sscanf(field,"%d",&mostFailedSatPRN);
- field=strsep(&ascii,","); //Probability of missed detection for most likely failed satellite
- if(field!=NULL) {
- if(strlen(field)>0) sscanf(field,"%f",&missedDetectionProb);
- field=strsep(&ascii,","); //Estimate of bias in meters on most likely failed satellite
- if(field!=NULL) {
- if(strlen(field)>0) sscanf(field,"%f",&estBiasOfFailedSat);
- field=strsep(&ascii,","); //Standard deviation of bias estimate
- if(field!=NULL) if(strlen(field)>0) sscanf(field,"%f",&stdDevOfBias);
- }
- return 1;
- }
- return 0;
- } */
+int parseGBS(char* ascii) {
+	int timeHour=-1,timeMin=-1;
+	float timeSec=0;
+	float latitudeError=0;
+	float longitudeError=0;
+	float altitudeError=0;
+	int mostFailedSatPRN=-1;
+	float missedDetectionProb=0;
+	float estBiasOfFailedSat=0;
+	float stdDevOfBias=0;
+	char *field=strsep(&ascii,","); //Hour, Minute, second hhmmss.sss
+	if(field==NULL) return (-1);
+	if(strlen(field)>0) sscanf(field,"%2d%2d%f",&timeHour,&timeMin,&timeSec);
+	field=strsep(&ascii,","); //Expected error in latitude (meters)
+	if(field==NULL) return (-2);
+	if(strlen(field)>0) sscanf(field,"%f",&latitudeError);
+	field=strsep(&ascii,","); //Expected error in longitude (meters)
+	if(field==NULL) return (-3);
+	if(strlen(field)>0) sscanf(field,"%f",&longitudeError);
+	field=strsep(&ascii,","); //Expected error in altitude (meters)
+	if(field==NULL) return (-4);
+	if(strlen(field)>0) sscanf(field,"%f",&altitudeError);
+	field=strsep(&ascii,","); //PRN of most likely failed satellite
+	if(field==NULL) return (-5);
+	if(strlen(field)>0) sscanf(field,"%d",&mostFailedSatPRN);
+	field=strsep(&ascii,","); //Probability of missed detection for most likely failed satellite
+	if(field!=NULL) {
+		if(strlen(field)>0) sscanf(field,"%f",&missedDetectionProb);
+		field=strsep(&ascii,","); //Estimate of bias in meters on most likely failed satellite
+		if(field!=NULL) {
+			if(strlen(field)>0) sscanf(field,"%f",&estBiasOfFailedSat);
+			field=strsep(&ascii,","); //Standard deviation of bias estimate
+			if(field!=NULL) if(strlen(field)>0) sscanf(field,"%f",&stdDevOfBias);
+		}
+		return 1;
+	}
+	return 0;
+}
+#endif
 
 int parse(char* ascii, long timestamp) {
 	if(strlen(ascii)<6) return -1; //Received too short sentence
@@ -1051,29 +1062,35 @@ int parse(char* ascii, long timestamp) {
 					if(ascii[5]=='A') r=parseGSA(ascii+7); //GSA
 					else if(ascii[5]=='V') r=parseGSV(ascii+7); //GSV
 					break;
-					//case 'L': //GLL
-					//if(ascii[5]=='L') r=parseGLL(ascii+7);
-					//break;
-					//case 'B': //GBS
-					//if(ascii[5]=='S') r=parseGBS(ascii+7);
-					//break;
+#ifdef PARSE_ALL_SENTENCES
+				case 'L': //GLL
+					if(ascii[5]=='L') r=parseGLL(ascii+7);
+					break;
+				case 'B': //GBS
+					if(ascii[5]=='S') r=parseGBS(ascii+7);
+					break;
+#endif
 			}
 			break;
 		case 'R': //RMC
 			if(ascii[4]=='M'&&ascii[5]=='C') r=parseRMC(ascii+7);
 			break;
-			//case 'M': //MSS
-			//if(ascii[4]=='S'&&ascii[5]=='S') r=parseMSS(ascii+7);
-			//break;
-			//case 'Z': //ZDA
-			//if(ascii[4]=='D'&&ascii[5]=='A') r=parseZDA(ascii+7);
-			//break;
-			//case 'V': //VTG
-			//if(ascii[4]=='T'&&ascii[5]=='G') r=parseVTG(ascii+7);
-			//break;
+#ifdef PARSE_ALL_SENTENCES
+		case 'M': //MSS
+			if(ascii[4]=='S'&&ascii[5]=='S') r=parseMSS(ascii+7);
+			break;
+		case 'Z': //ZDA
+			if(ascii[4]=='D'&&ascii[5]=='A') r=parseZDA(ascii+7);
+			break;
+		case 'V': //VTG
+			if(ascii[4]=='T'&&ascii[5]=='G') r=parseVTG(ascii+7);
+			break;
+#endif
 	}
-	//if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
-	//else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
+#ifdef PARSE_ALL_SENTENCES
+	if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
+	else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
+#endif
 	free(ascii);
 	return 1;
 }
@@ -1081,7 +1098,6 @@ int parse(char* ascii, long timestamp) {
 void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	static int fd=-1;
 	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //read only, non blocking
-	//fd=open(config.GPSdevName,O_RDWR|O_NOCTTY|O_NONBLOCK); //read and write, non blocking
 	if(fd<0) {
 		fd=-1;
 		logText("ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
@@ -1100,20 +1116,8 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	tcsetattr(fd,TCSANOW,&newtio); // Set the new options for the port...
 	tcflush(fd,TCIFLUSH);
 	char buf[BUFFER_SIZE]; //buffer for where data is put
-	int maxfd;
+	int maxfd=fd+1;;
 	fd_set readfs;
-	maxfd=fd+1;
-	//Here we try to ask to receive GGA
-	//char str[]="PSRF103,00,00,01,01";
-	//int chk=0;
-	//for(int j=0;j<strlen(str);j++) chk=chk^str[j];
-	//char *cmd;
-	//asprintf(&cmd,"$%s*%02X\r\n",str,chk);
-	//int size=strlen(cmd);
-	//fprintf(logFileFile,"SENDING %d Bytes: %s",size,cmd);
-	//int writtenBytes=write(fd,cmd,size);
-	//if(writtenBytes!=size) fprintf(logFileFile,"ERROR in trasmission written Bytes: %d / %d \n",writtenBytes,size);
-	//End GGA request//////////////////////
 	long i,redBytes;
 	int rcvdBytesOfSentence=0;
 	char sentence[MAX_SENTENCE_LENGTH]={0};
@@ -1173,7 +1177,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 }
 
 short NMEAreaderStartRead(void) { //function to start the listening thread
-	if(readingNMEA==-1) initializeNMEAreader();
+	if(readingNMEA==-1) configureNMEAreader();
 	if(!readingNMEA) {
 		readingNMEA=1;
 		if(pthread_create(&thread,NULL,run,(void*)NULL)) {

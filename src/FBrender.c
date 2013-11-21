@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 17/11/2013
+// Last change : 21/11/2013
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -33,6 +33,21 @@
 
 void FBrenderScroll(int target_y, int source_y, int height);
 unsigned long FixSqrt(unsigned long x);
+
+struct colorConfig colorSchema = { //Default values
+	.background=0x0000, //black
+	.compassRose=0xffff, //white
+	.dirMarker=0xf000, //red
+	.magneticDir=0x00f0, //blue
+	.routeIndicator=0x0f00, //green
+	.cdi=0xff00, //yellow
+	.cdiScale=0xffff,
+	.altScale=0xffff,
+	.vsi=0xffff,
+	.altMarker=0xffff,
+	.text=0x0f00, //green
+	.warning=0xf000 //red
+};
 
 static int fbfd=-1;
 static struct fb_var_screeninfo vinfo;
