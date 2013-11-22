@@ -24,7 +24,7 @@
 #include "Navigator.h"
 #include "Configuration.h"
 #include "AirCalc.h"
-#include "NMEAreader.h"
+#include "GPSreceiver.h"
 #include "FBrender.h"
 #include "HSI.h"
 #include "AirNavigator.h"

@@ -6,8 +6,8 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 21/11/2013
-// Description : main() function of the program for TomTom devices
+// Last change : 22/11/2013
+// Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
 #define _GNU_SOURCE
@@ -23,13 +23,12 @@
 #include "Configuration.h"
 #include "FBrender.h"
 #include "TSreader.h"
-#include "NMEAreader.h"
+#include "GPSreceiver.h"
 #include "Navigator.h"
 #include "AirCalc.h"
 #include "BlackBox.h"
 #include "HSI.h"
-#include "SiRFreader.h"
-#include "Geoidal.h"
+//#include "Geoidal.h"
 
 #ifndef VERSION
 #define VERSION "0.2.9"
@@ -206,8 +205,7 @@ int main(int argc, char** argv) {
 			case MAIN_STATUS_START_GPS: //Start reading from GPS and the track recorder
 				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
-				if(!NMEAreaderStartRead()) logText("ERROR: NMEAreader failed to start.\n"); //Start the GPS using the traditional NMEA parser
-				//if(!SiRFreaderStart()) logText("ERROR: SiRFreader failed to start.\n"); //... or start the GPS using the newer SiRF parser (not working yet)
+				if(!GPSreceiverStart()) logText("ERROR: GPSreceiver failed to start.\n"); //Start reding from the GPSrecveiver
 				BlackBoxStart(); //Start the track recorder
 				if(toLoad!=NULL) status=MAIN_STATUS_READY_TO_NAV;
 				else status=MAIN_STATUS_NOT_LOADED;
@@ -266,8 +264,7 @@ int main(int argc, char** argv) {
 	}
 
 	//Clean and Close all the stuff
-	NMEAreaderClose();
-	//SiRFreaderClose();
+	GPSreceiverClose();
 	free(config.GPSdevName);
 	NavClose();
 	BlackBoxClose();

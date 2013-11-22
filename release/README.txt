@@ -319,6 +319,12 @@ Version 0.2.8
 	Make HSI direction arrow and CDI more visible
 	Display UTC time from GPS even without GPS fix
 	Bug fixed in the track recorder
+	
+Version 0.2.9
+	Added possibility to use route with only one way point (as final destination)
+	Executable optimized for TomTom processor ARM 920T
+	...
+	TODO...
 
 
 CONTACTS

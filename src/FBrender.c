@@ -22,11 +22,10 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
-
 #include "FBrender.h"
 #include "Navigator.h"
 #include "AirCalc.h"
-#include "NMEAreader.h"
+#include "GPSreceiver.h"
 #include "Configuration.h"
 
 #define CHAR_WIDTH    8

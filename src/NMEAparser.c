@@ -1,53 +1,33 @@
 //============================================================================
-// Name        : NMEAreader.c
+// Name        : NMEAparser.c
 // Since       : 9/2/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 21/11/2013
-// Description : Reads from a NMEA serial device NMEA sentences and parse them
+// Last change : 22/11/2013
+// Description : Parses NMEA sentences from a GPS device
 //============================================================================
+
+//#define PARSE_ALL_SENTENCES
+//#define PRINT_SENTENCES
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <termios.h>
-#include <pthread.h>
-#include <fcntl.h>
+#include "NMEAparser.h"
 #include "AirNavigator.h"
-#include "Configuration.h"
+#include "GPSreceiver.h"
+#include "Navigator.h"
 #include "AirCalc.h"
-#include "Geoidal.h"
-#include "NMEAreader.h"
+#include "BlackBox.h"
 #include "FBrender.h"
 #include "HSI.h"
-#include "Navigator.h"
-#include "BlackBox.h"
+#include "Geoidal.h"
 
-#define BUFFER_SIZE         (4096*6)
-#define MAX_SENTENCE_LENGTH 255
 
-//#define PRINT_SENTENCES
-//#define PARSE_ALL_SENTENCES
-
-void updateNumOfTotalSatsInView(int totalSats);
-void updateNumOfActiveSats(int workingSats);
-void updateFixMode(int fixMode);
-void configureNMEAreader(void);
-unsigned int getCRCintValue(char* sentence, int rcvdBytesOfSentence);
-short updateAltitude(float newAltitude, char altUnit, float timestamp);
-short updateDate(int newDay, int newMonth, int newYear);
-void updateTime(float timestamp, int newHour, int newMin, float newSec, short timeWithNoFix);
-short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged);
-void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float newTrueTrack, float newMagneticTrack);
-void updateSpeed(float newSpeedKnots);
-void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, float timestamp);
-void updateHdiluition(float hDiluition);
-void updateDiluition(float pDiluition, float hDiluition, float vDiluition);
-void update(void);
+int parseNMEAsentence(char* ascii);
 int parseGGA(char* ascii);
 int parseRMC(char* ascii);
 int parseGSA(char* ascii);
@@ -59,33 +39,13 @@ int parseZDA(char* ascii);
 int parseVTG(char* ascii);
 int parseGLL(char* ascii);
 #endif
-int parse(char* ascii, long timestamp);
-void* run(void *ptr);
+unsigned int getCRCintValue(void);
+void updateFromNMEAdata(void);
+short updateAltitude(float newAltitude, char altUnit, float timestamp);
+void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, float timestamp);
+short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged);
 
-struct GPSdata gps = {
-	.timestamp=-1,
-	.speedKmh=-100,
-	.speedKnots=-100,
-	.altMt=-100,
-	.altFt=-100,
-	.realAltMt=-100,
-	.realAltFt=-100,
-	.trueTrack=-500,
-	.day=-65,
-	.second=-65,
-	.latMinDecimal=-70,
-	.lonMinDecimal=-70,
-	.lat=100,
-	.pdop=50,
-	.hdop=50,
-	.vdop=50,
-	.fixMode=MODE_UNKNOWN
-};
-
-long BAUD;
-int DATABITS,STOPBITS,PARITYON,PARITY;
-pthread_t thread;
-volatile short readingNMEA=-1; //-1 means still not initialized
+//TODO: reorganize all those global vars in a struct
 float altTimestamp=0,dirTimestamp=0,newerTimestamp=0;
 short GGAfound=0,RMCfound=0,GSAfound=0;
 float altB,latMinB,lonMinB,timeSecB,groundSpeedKnotsB,trueTrackB,magneticVariationB,pdopB,hdopB,vdopB;
@@ -94,147 +54,147 @@ int latGraB,lonGraB,timeHourB,timeMinB,SatsInViewB,SatsInUseB,timeDayB,timeMonth
 short latNorthB,lonEastB,magneticVariationToEastB;
 int numOfGSVmsg=0,GSVmsgSeqNo=0,GSVsatSeqNo,GSVtotalSatInView;
 
-void updateNumOfTotalSatsInView(int totalSats) {
-	if(gps.satsInView!=totalSats) {
-		gps.satsInView=totalSats;
-		PrintNumOfSats(gps.activeSats,gps.satsInView);
-	}
+//FIXME: those three must be reinitialized in case the parser is restarted! Check!
+int rcvdBytesOfSentence=0;
+char sentence[MAX_SENTENCE_LENGTH]={0};
+short lineFeedExpected=1;
+
+
+void NMEAparserProcessBuffer(unsigned char *buf, long redBytes) {
+	for(long i=0;i<redBytes;i++) switch(buf[i]) {
+		case '$':
+			if(rcvdBytesOfSentence==0) sentence[rcvdBytesOfSentence++]='$';
+			break;
+		case '\r':
+			if(rcvdBytesOfSentence>0) lineFeedExpected=1;
+			break;
+		case '\n':
+			if(lineFeedExpected&&rcvdBytesOfSentence>3) { //to avoid overflow errors
+				if(sentence[rcvdBytesOfSentence-3]=='*') { //CRC check
+					unsigned int checksum=0;
+					int j;
+					for(j=1;j<rcvdBytesOfSentence-3;j++)
+						checksum=checksum^sentence[j];
+					if(getCRCintValue()==checksum) { //right CRC
+#ifdef PRINT_SENTENCES //Print all the sentences received
+							sentence[rcvdBytesOfSentence]='\0';
+							logText("%s\n",sentence);
+#endif
+						sentence[rcvdBytesOfSentence-3]='\0'; //put terminator to cut off checksum
+						parseNMEAsentence(strdup(sentence));
+					}
+				} //end of CRC check, ignore all if CRC is wrong
+				rcvdBytesOfSentence=0;
+				lineFeedExpected=0;
+			}
+			break;
+		default:
+			if(rcvdBytesOfSentence>0) { //add chars to the sentence
+				if(rcvdBytesOfSentence<MAX_SENTENCE_LENGTH) sentence[rcvdBytesOfSentence++]=buf[i];
+				else { //to avoid buffer overflow
+					rcvdBytesOfSentence=0;
+					lineFeedExpected=0;
+				}
+			}
+			break;
+	} //end of switch(each byte) of just received sequence
+	updateFromNMEAdata();
 }
 
-void updateNumOfActiveSats(int workingSats) {
-	if(gps.activeSats!=workingSats) {
-		gps.activeSats=workingSats;
-		PrintNumOfSats(gps.activeSats,gps.satsInView);
+int parseNMEAsentence(char* ascii) {
+	if(strlen(ascii)<6) return -1; //Received too short sentence
+	int r=2;
+	switch(ascii[3]){
+		case 'G': //GGA GSA GSV GLL GBS
+			switch(ascii[4]){
+				case 'G': //GGA
+					if(ascii[5]=='A') r=parseGGA(ascii+7);
+					break;
+				case 'S': //GSA GSV
+					if(ascii[5]=='A') r=parseGSA(ascii+7); //GSA
+					else if(ascii[5]=='V') r=parseGSV(ascii+7); //GSV
+					break;
+#ifdef PARSE_ALL_SENTENCES
+				case 'L': //GLL
+					if(ascii[5]=='L') r=parseGLL(ascii+7);
+					break;
+				case 'B': //GBS
+					if(ascii[5]=='S') r=parseGBS(ascii+7);
+					break;
+#endif
+			}
+			break;
+		case 'R': //RMC
+			if(ascii[4]=='M'&&ascii[5]=='C') r=parseRMC(ascii+7);
+			break;
+#ifdef PARSE_ALL_SENTENCES
+		case 'M': //MSS
+			if(ascii[4]=='S'&&ascii[5]=='S') r=parseMSS(ascii+7);
+			break;
+		case 'Z': //ZDA
+			if(ascii[4]=='D'&&ascii[5]=='A') r=parseZDA(ascii+7);
+			break;
+		case 'V': //VTG
+			if(ascii[4]=='T'&&ascii[5]=='G') r=parseVTG(ascii+7);
+			break;
+#endif
 	}
+#ifdef PARSE_ALL_SENTENCES
+	if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
+	else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
+#endif
+	free(ascii);
+	return 1;
 }
 
-void updateFixMode(int fixMode) {
-	if(gps.fixMode!=fixMode) {
-		if(fixMode==MODE_GPS_FIX && (gps.fixMode==MODE_2D_FIX || gps.fixMode==MODE_3D_FIX)) return;
-		gps.fixMode=fixMode;
-		PrintFixMode(fixMode);
-		if(fixMode==MODE_NO_FIX) FBrenderFlush(); //because we want to show it immediately
+void updateFromNMEAdata(void) {
+	short dateChanged=0,posChanged=0,altChanged=0;
+	if(RMCfound) dateChanged=updateDate(timeDayB,timeMonthB,timeYearB); //pre-check if date is changed
+	if(GGAfound) {
+		updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
+		posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
+		altChanged=updateAltitude(altB,altUnitB,newerTimestamp);
+		updateNumOfTotalSatsInView(SatsInViewB);
+		if(GSAfound) {
+			updateNumOfActiveSats(SatsInUseB);
+			updateDiluition(pdopB,hdopB,vdopB);
+		} else updateHdiluition(hdopB);
 	}
-}
-
-void configureNMEAreader(void) {
-	if(config.GPSdevName==NULL) config.GPSdevName=strdup("/var/run/gpsfeed"); //Default value
-	switch(config.GPSbaudRate){ //configuration of the serial port
-		case 230400:
-			BAUD=B230400;
-			break;
-		case 115200:
-		default:
-			BAUD=B115200;
-			break;
-		case 57600:
-			BAUD=B57600;
-			break;
-		case 38400:
-			BAUD=B38400;
-			break;
-		case 19200:
-			BAUD=B19200;
-			break;
-		case 9600:
-			BAUD=B9600;
-			break;
-		case 4800:
-			BAUD=B4800;
-			break;
-		case 2400:
-			BAUD=B2400;
-			break;
-		case 1800:
-			BAUD=B1800;
-			break;
-		case 1200:
-			BAUD=B1200;
-			break;
-		case 600:
-			BAUD=B600;
-			break;
-		case 300:
-			BAUD=B300;
-			break;
-		case 200:
-			BAUD=B200;
-			break;
-		case 150:
-			BAUD=B150;
-			break;
-		case 134:
-			BAUD=B134;
-			break;
-		case 110:
-			BAUD=B110;
-			break;
-		case 75:
-			BAUD=B75;
-			break;
-		case 50:
-			BAUD=B50;
-			break;
-	} //end of switch baud_rate
-	switch(config.GPSdataBits){
-		case 8:
-		default:
-			DATABITS=CS8;
-			break;
-		case 7:
-			DATABITS=CS7;
-			break;
-		case 6:
-			DATABITS=CS6;
-			break;
-		case 5:
-			DATABITS=CS5;
-			break;
-	} //end of switch data_bits
-	switch(config.GPSstopBits){
-		case 1:
-		default:
-			STOPBITS=0;
-			break;
-		case 2:
-			STOPBITS=CSTOPB;
-			break;
-	} //end of switch stop bits
-	switch(config.GPSparity){
-		case 0:
-		default: //none
-			PARITYON=0;
-			PARITY=0;
-			break;
-		case 1: //odd
-			PARITYON=PARENB;
-			PARITY=PARODD;
-			break;
-		case 2: //even
-			PARITYON=PARENB;
-			PARITY=0;
-			break;
-	} //end of switch parity
-	GeoidalOpen();
-	readingNMEA=0;
-	updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
-	updateNumOfActiveSats(0);
+	if(RMCfound) {
+		if(!GGAfound) {
+			updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
+			posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
+		}
+		updateSpeed(groundSpeedKnotsB);
+		updateDirection(trueTrackB,magneticVariationB,magneticVariationToEastB,newerTimestamp);
+	}
+	if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
 	FBrenderFlush();
+	BlackBoxCommit();
+	GGAfound=0;
+	RMCfound=0;
+	GSAfound=0;
 }
 
-short NMEAreaderIsReading(void) {
-	if(readingNMEA==-1) return 0; //in the case it is not initilized we are not reading..
-	return readingNMEA;
-}
-
-unsigned int getCRCintValue(char* sentence, int rcvdBytesOfSentence) {
-	if(rcvdBytesOfSentence<9) return -1;
-	char asciiCheksum[2]; //two digits
-	asciiCheksum[0]=sentence[rcvdBytesOfSentence-2];
-	asciiCheksum[1]=sentence[rcvdBytesOfSentence-1];
-	unsigned int checksum;
-	sscanf(asciiCheksum,"%x",&checksum); //read as hex
-	return checksum;
+short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged) {
+	if(gps.latMinDecimal!=newlatMin||gps.lonMinDecimal!=newlonMin) {
+		gps.latDeg=newlatDeg;
+		gps.lonDeg=newlonDeg;
+		gps.latMinDecimal=newlatMin;
+		gps.lonMinDecimal=newlonMin;
+		gps.isLatN=newisLatN;
+		gps.isLonE=newisLonE;
+		gps.lat=latDegMin2rad(gps.latDeg,gps.latMinDecimal,gps.isLatN);
+		gps.lon=lonDegMin2rad(gps.lonDeg,gps.lonMinDecimal,gps.isLonE);
+		int latMin,lonMin;
+		double latSec,lonSec;
+		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
+		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
+		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
+		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,timeHourB,timeMinB,timeSecB,dateChaged);
+		return 1;
+	}
+	return 0;
 }
 
 short updateAltitude(float newAltitude, char altUnit, float timestamp) {
@@ -285,74 +245,6 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 	return updateAlt;
 }
 
-short updateDate(int newDay, int newMonth, int newYear) {
-	if(gps.day!=newDay) {
-		gps.day=newDay;
-		gps.month=newMonth;
-		gps.year=newYear;
-		if(gps.year<2000) gps.year+=2000;
-		PrintDate(gps.day,gps.month,gps.year);
-		return 1;
-	}
-	return 0;
-}
-
-void updateTime(float timestamp, int newHour, int newMin, float newSec, short timeWithNoFix) {
-	if(gps.timestamp!=timestamp) {
-		gps.timestamp=timestamp;
-		gps.hour=newHour;
-		gps.minute=newMin;
-		gps.second=newSec;
-		PrintTime(gps.hour,gps.minute,gps.second,timeWithNoFix);
-		if(timeWithNoFix) FBrenderFlush();
-	}
-}
-
-short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged) {
-	if(gps.latMinDecimal!=newlatMin||gps.lonMinDecimal!=newlonMin) {
-		gps.latDeg=newlatDeg;
-		gps.lonDeg=newlonDeg;
-		gps.latMinDecimal=newlatMin;
-		gps.lonMinDecimal=newlonMin;
-		gps.isLatN=newisLatN;
-		gps.isLonE=newisLonE;
-		gps.lat=latDegMin2rad(gps.latDeg,gps.latMinDecimal,gps.isLatN);
-		gps.lon=lonDegMin2rad(gps.lonDeg,gps.lonMinDecimal,gps.isLonE);
-		int latMin,lonMin;
-		double latSec,lonSec;
-		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
-		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
-		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
-		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,timeHourB,timeMinB,timeSecB,dateChaged);
-		return 1;
-	}
-	return 0;
-}
-
-void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float newTrueTrack, float newMagneticTrack) {
-	if(newSpeedKnots!=gps.speedKnots) {
-		gps.speedKnots=newSpeedKnots;
-		gps.speedKmh=newSpeedKmh;
-		PrintSpeed(newSpeedKmh,newSpeedKnots);
-	}
-	if(newSpeedKmh>2) if(newTrueTrack!=gps.trueTrack) {
-		gps.trueTrack=newTrueTrack;
-		gps.magneticTrack=newMagneticTrack;
-		HSIupdateDir(newTrueTrack,newMagneticTrack);
-	}
-	BlackBoxRecordSpeed(Kmh2ms(newSpeedKmh));
-	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
-}
-
-void updateSpeed(float newSpeedKnots) {
-	if(newSpeedKnots!=gps.speedKnots) {
-		gps.speedKnots=newSpeedKnots;
-		gps.speedKmh=Nm2Km(newSpeedKnots);
-		PrintSpeed(gps.speedKmh,gps.speedKnots);
-	}
-	BlackBoxRecordSpeed(Kmh2ms(gps.speedKmh));
-}
-
 void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, float timestamp) {
 	if(gps.speedKmh>2) {
 		if(newTrueTrack!=gps.trueTrack) {
@@ -387,51 +279,6 @@ void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, f
 	}
 	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
 	dirTimestamp=timestamp;
-}
-
-void updateHdiluition(float hDiluition) {
-	if(gps.hdop!=hDiluition) {
-		gps.hdop=hDiluition;
-		PrintDiluitions(gps.pdop,gps.hdop,gps.vdop);
-	}
-}
-
-void updateDiluition(float pDiluition, float hDiluition, float vDiluition) {
-	if(gps.pdop!=pDiluition||gps.hdop!=hDiluition||gps.vdop!=vDiluition) {
-		gps.pdop=pDiluition;
-		gps.hdop=hDiluition;
-		gps.vdop=vDiluition;
-		PrintDiluitions(pDiluition,hDiluition,vDiluition);
-	}
-}
-
-void update(void) {
-	short dateChanged=0,posChanged=0,altChanged=0;
-	if(RMCfound) dateChanged=updateDate(timeDayB,timeMonthB,timeYearB); //pre-check if date is changed
-	if(GGAfound) {
-		updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
-		posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
-		altChanged=updateAltitude(altB,altUnitB,newerTimestamp);
-		updateNumOfTotalSatsInView(SatsInViewB);
-		if(GSAfound) {
-			updateNumOfActiveSats(SatsInUseB);
-			updateDiluition(pdopB,hdopB,vdopB);
-		} else updateHdiluition(hdopB);
-	}
-	if(RMCfound) {
-		if(!GGAfound) {
-			updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
-			posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
-		}
-		updateSpeed(groundSpeedKnotsB);
-		updateDirection(trueTrackB,magneticVariationB,magneticVariationToEastB,newerTimestamp);
-	}
-	if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
-	FBrenderFlush();
-	BlackBoxCommit();
-	GGAfound=0;
-	RMCfound=0;
-	GSAfound=0;
 }
 
 int parseGGA(char* ascii) {
@@ -1049,151 +896,13 @@ int parseGBS(char* ascii) {
 }
 #endif
 
-int parse(char* ascii, long timestamp) {
-	if(strlen(ascii)<6) return -1; //Received too short sentence
-	int r=2;
-	switch(ascii[3]){
-		case 'G': //GGA GSA GSV GLL GBS
-			switch(ascii[4]){
-				case 'G': //GGA
-					if(ascii[5]=='A') r=parseGGA(ascii+7);
-					break;
-				case 'S': //GSA GSV
-					if(ascii[5]=='A') r=parseGSA(ascii+7); //GSA
-					else if(ascii[5]=='V') r=parseGSV(ascii+7); //GSV
-					break;
-#ifdef PARSE_ALL_SENTENCES
-				case 'L': //GLL
-					if(ascii[5]=='L') r=parseGLL(ascii+7);
-					break;
-				case 'B': //GBS
-					if(ascii[5]=='S') r=parseGBS(ascii+7);
-					break;
-#endif
-			}
-			break;
-		case 'R': //RMC
-			if(ascii[4]=='M'&&ascii[5]=='C') r=parseRMC(ascii+7);
-			break;
-#ifdef PARSE_ALL_SENTENCES
-		case 'M': //MSS
-			if(ascii[4]=='S'&&ascii[5]=='S') r=parseMSS(ascii+7);
-			break;
-		case 'Z': //ZDA
-			if(ascii[4]=='D'&&ascii[5]=='A') r=parseZDA(ascii+7);
-			break;
-		case 'V': //VTG
-			if(ascii[4]=='T'&&ascii[5]=='G') r=parseVTG(ascii+7);
-			break;
-#endif
-	}
-#ifdef PARSE_ALL_SENTENCES
-	if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
-	else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
-#endif
-	free(ascii);
-	return 1;
+unsigned int getCRCintValue(void) {
+	if(rcvdBytesOfSentence<9) return -1;
+	char asciiCheksum[2]; //two digits
+	asciiCheksum[0]=sentence[rcvdBytesOfSentence-2];
+	asciiCheksum[1]=sentence[rcvdBytesOfSentence-1];
+	unsigned int checksum;
+	sscanf(asciiCheksum,"%x",&checksum); //read as hex
+	return checksum;
 }
 
-void* run(void *ptr) { //listening function, it will be ran in a separate thread
-	static int fd=-1;
-	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //read only, non blocking
-	if(fd<0) {
-		fd=-1;
-		logText("ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
-		readingNMEA=0;
-		pthread_exit(NULL);
-		return NULL;
-	}
-	struct termios oldtio,newtio; //place for old and new port settings for serial port
-	tcgetattr(fd,&oldtio); // save current port settings
-	newtio.c_cflag=BAUD|CRTSCTS|DATABITS|STOPBITS|PARITYON|PARITY|CLOCAL|CREAD; // set new port settings for canonical input processing
-	newtio.c_iflag=IGNPAR;
-	newtio.c_oflag=0;
-	newtio.c_lflag=0; //ICANON;
-	newtio.c_cc[VMIN]=1;
-	newtio.c_cc[VTIME]=0;
-	tcsetattr(fd,TCSANOW,&newtio); // Set the new options for the port...
-	tcflush(fd,TCIFLUSH);
-	char buf[BUFFER_SIZE]; //buffer for where data is put
-	int maxfd=fd+1;;
-	fd_set readfs;
-	long i,redBytes;
-	int rcvdBytesOfSentence=0;
-	char sentence[MAX_SENTENCE_LENGTH]={0};
-	long timestamp;
-	short lineFeedExpected=1;
-	while(readingNMEA) { // loop while waiting for input
-		FD_SET(fd,&readfs);
-		select(maxfd,&readfs,NULL,NULL,NULL); //wait to read because the read is now non-blocking
-		if(readingNMEA) { //further check if we still want to read after waiting
-			redBytes=read(fd,buf,BUFFER_SIZE);
-			timestamp=time(NULL); //get the timestamp of last char sequence received
-			for(i=0;i<redBytes;i++)
-				switch(buf[i]){
-					case '$':
-						if(rcvdBytesOfSentence==0) sentence[rcvdBytesOfSentence++]='$';
-						break;
-					case '\r':
-						if(rcvdBytesOfSentence>0) lineFeedExpected=1;
-						break;
-					case '\n':
-						if(lineFeedExpected&&rcvdBytesOfSentence>3) { //to avoid overflow errors
-							if(sentence[rcvdBytesOfSentence-3]=='*') { //CRC check
-								unsigned int checksum=0;
-								int j;
-								for(j=1;j<rcvdBytesOfSentence-3;j++)
-									checksum=checksum^sentence[j];
-								if(getCRCintValue(sentence,rcvdBytesOfSentence)==checksum) { //right CRC
-#ifdef PRINT_SENTENCES //Print all the sentences received
-										sentence[rcvdBytesOfSentence]='\0';
-										logText("%s\n",sentence);
-#endif
-									sentence[rcvdBytesOfSentence-3]='\0'; //put terminator cut off checksum
-									parse(strdup(sentence),timestamp);
-								}
-							} //end of CRC check, ignore all if CRC is wrong
-							rcvdBytesOfSentence=0;
-							lineFeedExpected=0;
-						}
-						break;
-					default:
-						if(rcvdBytesOfSentence>0) { //add chars to the sentence
-							if(rcvdBytesOfSentence<MAX_SENTENCE_LENGTH) sentence[rcvdBytesOfSentence++]=buf[i];
-							else { //to avoid buffer overflow
-								rcvdBytesOfSentence=0;
-								lineFeedExpected=0;
-							}
-						}
-						break;
-				} //end of switch(each byte) of just received sequence
-			update();
-		} //end of further if(readingNMEA) check
-	} //while readingNMEA
-	tcsetattr(fd,TCSANOW,&oldtio); //restore old port settings
-	if(fd>=0) close(fd); //close the serial port
-	pthread_exit(NULL);
-	return NULL;
-}
-
-short NMEAreaderStartRead(void) { //function to start the listening thread
-	if(readingNMEA==-1) configureNMEAreader();
-	if(!readingNMEA) {
-		readingNMEA=1;
-		if(pthread_create(&thread,NULL,run,(void*)NULL)) {
-			readingNMEA=0;
-			logText("NMEAreader: ERROR unable to create the reading thread.\n");
-		}
-	}
-	return readingNMEA;
-}
-
-void NMEAreaderStopRead(void) {
-	if(readingNMEA==1) readingNMEA=0;
-}
-
-void NMEAreaderClose(void) {
-	NMEAreaderStopRead();
-	GeoidalClose();
-	pthread_join(thread,NULL); //wait for thread death
-}

@@ -1,19 +1,17 @@
 //============================================================================
-// Name        : SiRFreader.h
-// Since       : 6/7/2011
+// Name        : NMEAreader.h
+// Since       : 9/2/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 6/7/2011
-// Description : Header file of SiRFreader.c
+// Last change : 11/11/2013
+// Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
-#ifndef SIRFREADER_H_
-#define SIRFREADER_H_
-
-#include <time.h>
+#ifndef GPSRECEIVER_H_
+#define GPSRECEIVER_H_
 
 //Quality indicators
 #define Q_NO_FIX   0 //fix not available,
@@ -39,17 +37,17 @@
 #define MODE_NO_FIX  1
 #define MODE_2D_FIX  2
 #define MODE_3D_FIX  3
+#define MODE_GPS_FIX 4 //This is the fix from GGA we don't know if it is 2D or 3D
 
 #define MAX_NUM_SAT 24
 
 //Indexes for satellite's data
-#define SAT_PRN       0 //satellite PRN number
-#define SAT_ELEVATION 1 //elevation in degrees (00-90)
-#define SAT_AZIMUTH   2 //azimuth in degrees to true north (000-359)
-#define SAT_SNR       3 //SNR in dB (00-99)
+#define SAT_PRN       0  //satellite PRN number
+#define SAT_ELEVATION 1  //elevation in degrees (00-90)
+#define SAT_AZIMUTH   2  //azimuth in degrees to true north (000-359)
+#define SAT_SNR       3  //SNR in dB (00-99)
 
-
-struct GPSdataSiRF {
+struct GPSdata {
 	float timestamp; //timestamp of the data in sec from the beginning of the day
 	double speedKmh,speedKnots; //ground speeds in Km/h and knots
 	double altMt,altFt; //altitudes in m and feet respect WGS84 as received by the GPS
@@ -71,28 +69,22 @@ struct GPSdataSiRF {
 	int signalStrength,SNR,beaconDataRate,channel; //data about GPS signal (not used)
 	int beaconFrequency; //beacon frequency of GPS signal (not used)
 	int satellites[MAX_NUM_SAT][4]; //matrix of detected satellites
-
-	//added
-  int seq;    /**< sequence number (added by GPS module to detect refreshed data) */
-  short int lat_deg;
-  unsigned short int lat_mins;
-  short int long_deg;
-  unsigned short int long_mins;
-  unsigned int alt_cm;
-  unsigned int sat_id_list;
-  unsigned int sat_nb;
-  unsigned short int speed_kmh;
-  struct tm time;
 };
 
+struct GPSdata gps;
 
+short GPSreceiverStart(void);
+void GPSreceiverStop(void);
+void GPSreceiverClose(void);
 
-struct GPSdataSiRF gpsSiRF;
+short updateDate(int newDay, int newMonth, int newYear);
+void updateTime(float timestamp, int newHour, int newMin, float newSec, short timeWithNoFix);
+void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float newTrueTrack, float newMagneticTrack);
+void updateSpeed(float newSpeedKnots);
+void updateNumOfTotalSatsInView(int totalSats);
+void updateNumOfActiveSats(int workingSats);
+void updateFixMode(int fixMode);
+void updateHdiluition(float hDiluition);
+void updateDiluition(float pDiluition, float hDiluition, float vDiluition);
 
-short SiRFreaderStart(void);
-short SiRFreaderIsReading(void);
-void SiRFreaderStop(void);
-void SiRFreaderClose(void);
-
-
-#endif /* SIRFREADER_H_ */
+#endif /* GPSRECEIVER_H_ */
