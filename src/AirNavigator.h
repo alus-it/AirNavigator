@@ -15,6 +15,9 @@
 
 #define BASE_PATH "/mnt/sdcard/AirNavigator/"
 
+typedef char bool;
+enum boolean { false, true };
+
 int logText(const char *texts, ...);
 
 #endif //AIRNAVIGATOR_H_

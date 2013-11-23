@@ -12,15 +12,13 @@
 
 //TODO: This has to be completely rewritten and reviewed
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include <pthread.h>
-#include <time.h>
-#include <sys/file.h>
+//#include <time.h>
 #include <sys/time.h>
 #include "SiRFparser.h"
 #include "AirNavigator.h"
@@ -74,7 +72,12 @@ struct geodetic_nav_data {
 void initializeSiRF(void);
 inline uint16_t endian16_swap(uint16_t val);
 inline uint32_t endian32_swap(uint32_t val);
-void processPayload(char *payload, int len, long timestamp);
+void processPayload(char *payloadCopy, int len, long timestamp);
+
+long payloadLength=0;
+int rcvdBytesOfPayload=0,frameStatus=0,checksum=0;
+unsigned char payload[MAX_PAYLOAD_LENGHT]={0};
+unsigned char firstBytePayloadLength=0,firstByteChecksum=0;
 
 
 //float altTimestamp=0,dirTimestamp=0,newerTimestamp=0;
@@ -104,14 +107,11 @@ void initializeSiRF(void) {
 }
 
 void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, long redBytes) {
-	long payloadLength=0;
-	int i,rcvdBytesOfPayload=0,frameStatus=0,checksum=0;
-	unsigned char payload[MAX_PAYLOAD_LENGHT]={0};
-	unsigned char firstBytePayloadLength=0,firstByteChecksum=0;
+
 
 	logText("Red: %d Bytes.\n",redBytes);
 
-	for(i=0;i<redBytes;i++) {
+	for(int i=0;i<redBytes;i++) {
 		logText("%02X ",buf[i]); //////////////DEBUG
 
 	switch(frameStatus) { //for each byte received in the buffer
@@ -187,14 +187,14 @@ inline uint32_t endian32_swap(uint32_t val) {
     return temp;
 }
 
-void processPayload(char *payload, int len, long timestamp) {
-	unsigned char msgID=payload[0];
+void processPayload(char *payloadCopy, int len, long timestamp) {
+	unsigned char msgID=payloadCopy[0];
 	logText("Received frame ID: %d of length: %d\n",msgID,len);
 	if(msgID==SIRF_GEODETIC_MSGID && len==SIRF_GEODETIC_MSG_LEN) { //we want to interpret only geodetic
 		time_t curr_time,gps_time;
 		struct timeval new_time;
 		//char * saved_tz=NULL;
-		struct geodetic_nav_data * msg=(struct geodetic_nav_data *)payload;
+		struct geodetic_nav_data * msg=(struct geodetic_nav_data *)payloadCopy;
 		gpsSiRF.lat_deg=((int32_t)endian32_swap(msg->latitude))/10000000;
 		gpsSiRF.lat_mins=((endian32_swap(msg->latitude)*60)/10000000)%60;
 		gpsSiRF.long_deg=((int32_t)endian32_swap(msg->longitude))/10000000;
@@ -227,5 +227,5 @@ void processPayload(char *payload, int len, long timestamp) {
 		//}
 		logText("Geodetic OK !\n");
 	}
-	free(payload);
+	free(payloadCopy);
 }

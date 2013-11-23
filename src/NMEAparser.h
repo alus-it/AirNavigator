@@ -16,7 +16,7 @@
 #define NMEA_BUFFER_SIZE         (4096*6)
 #define MAX_SENTENCE_LENGTH 255
 
-void NMEAparserProcessBuffer(unsigned char *buf, long redBytes);
+void NMEAparserProcessBuffer(unsigned char *buf, int redBytes);
 
 
 

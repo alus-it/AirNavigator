@@ -6,7 +6,7 @@
 # Copyright : (C) 2010-2013 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 22/11/2013
+# Last change : 23/11/2013
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -36,21 +36,22 @@ LIBSRC = libs/
 # Headers for others external libs path (TomTom stuff)
 INC = include/
 
-# Source and object files lists
+# List of C source files
 CFILES =            \
-	main.c          \
-	FBrender.c      \
-	TSreader.c      \
 	AirCalc.c       \
 	BlackBox.c      \
-	HSI.c           \
-	Navigator.c     \
-	GPSreceiver.c   \
-	NMEAparser.c    \
 	Configuration.c \
-	Geoidal.c
-#	SiRFparser.c    \
+	FBrender.c      \
+	Geoidal.c       \
+	GPSreceiver.c   \
+	HSI.c           \
+	main.c          \
+	Navigator.c     \
+	NMEAparser.c    \
+	SiRFparser.c    \
+	TSreader.c
 
+# List of object files
 OBJS = $(patsubst %.c, $(BIN)%.o, $(CFILES))
 
 # Final distribution destination folder
@@ -91,14 +92,14 @@ $(LIB):
 $(BIN)main.o: $(SRC)main.c $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)FBrender.h $(SRC)TSreader.h $(SRC)GPSreceiver.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
 	$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' -I $(INC) $< -o $@
 
-$(BIN)GPSreceiver.o: $(SRC)GPSreceiver.c $(SRC)GPSreceiver.h $(SRC)NMEAparser.h $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)BlackBox.h
+$(BIN)GPSreceiver.o: $(SRC)GPSreceiver.c $(SRC)GPSreceiver.h $(SRC)NMEAparser.h $(SRC)SiRFparser.h $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BIN)NMEAparser.o: $(SRC)NMEAparser.c $(SRC)NMEAparser.h $(SRC)GPSreceiver.h $(SRC)AirNavigator.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@
 
-#$(BIN)SiRFparser.o: $(SRC)SiRFparser.c $(SRC)SiRFparser.h $(SRC)GPSreceiver.h $(SRC)AirNavigator.h
-#	$(CC) $(CFLAGS) $< -o $@
+$(BIN)SiRFparser.o: $(SRC)SiRFparser.c $(SRC)SiRFparser.h $(SRC)GPSreceiver.h $(SRC)AirNavigator.h
+	$(CC) $(CFLAGS) $< -o $@
 
 $(BIN)Navigator.o: $(SRC)Navigator.c $(SRC)Navigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)AirNavigator.h $(LIBSRC)libroxml/roxml.h
 	$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@

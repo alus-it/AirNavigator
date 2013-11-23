@@ -28,11 +28,11 @@
 #include "AirCalc.h"
 #include "BlackBox.h"
 #include "HSI.h"
-//#include "Geoidal.h"
 
 #ifndef VERSION
 #define VERSION "0.2.9"
 #endif
+
 
 #define MAIN_STATUS_NOT_INIT    -1
 #define MAIN_STATUS_INITIALIZED  0
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
 	}
 	FBrenderFlush();
 	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
-	short allOK=1;
+	bool allOK=true;
 	FILE *fd=NULL;
 	fd=fopen("/proc/barcelona/modelname","r"); //Read TomTom model
 	if(fd!=NULL) {
@@ -84,13 +84,13 @@ int main(int argc, char** argv) {
 			if(buf[strlen(buf)-1]=='\n') buf[strlen(buf)-1]='\0';
 			config.tomtomModel=strdup(buf);
 			logText("TomTom model name: %s\n",config.tomtomModel);
-		} else allOK=0;
+		} else allOK=false;
 		fclose(fd);
-	} else allOK=0;
+	} else allOK=false;
 	if(!allOK) {
 		logText("ERROR: unable to read TomTom device model name.\n");
 		config.tomtomModel=strdup("UNKNOWN");
-		allOK=1;
+		allOK=true;
 	}
 	fd=NULL;
 	fd=fopen("/mnt/flash/sysfile/id","r"); //Read device serial number
@@ -100,9 +100,9 @@ int main(int argc, char** argv) {
 		if(ret==buf) {
 			config.serialNumber=strdup(buf);
 			logText("TomTom device serial number ID: %s\n",config.serialNumber);
-		} else allOK=0;
+		} else allOK=false;
 		fclose(fd);
-	} else allOK=0;
+	} else allOK=false;
 	if(!allOK) {
 		logText("ERROR: unable to read TomTom device serial number ID.\n");
 		config.serialNumber=strdup("UNKNOWN");

@@ -55,17 +55,17 @@ struct GPSdata {
 	double climbFtMin; //calculated vertical speed rate in feet/min
 	double trueTrack,magneticTrack; //true and magnetc track in deg
 	double magneticVariation; //magnetic variation in deg
-	short isMagVarToEast; // =1 (true) if magnetic variation is to east
+	char isMagVarToEast; // =1 (true) if magnetic variation is to east
 	double turnRateDegMin,turnRateDegSec; //calculated turn rate in deg/min and deg/sec
 	int day,month,year; //date
 	int hour,minute; //UTC time
 	float second; //seconds of UTC time
 	int latDeg,lonDeg; //deg part of latitude and longitude
 	float latMinDecimal,lonMinDecimal; //decimal minutes and seconds part of lat and lon
-	short isLatN,isLonE; //if latitude is to North, if longitude is to East
+	char isLatN,isLonE; //if latitude is to North, if longitude is to East
 	double lat,lon; //latitude and longitude expressed in rad
 	float pdop,hdop,vdop; //P,H,V dilutions in m
-	short activeSats,satsInView,fixMode; //used and visible sats, type of fix
+	char activeSats,satsInView,fixMode; //used and visible sats, type of fix
 	int signalStrength,SNR,beaconDataRate,channel; //data about GPS signal (not used)
 	int beaconFrequency; //beacon frequency of GPS signal (not used)
 	int satellites[MAX_NUM_SAT][4]; //matrix of detected satellites
@@ -73,12 +73,12 @@ struct GPSdata {
 
 struct GPSdata gps;
 
-short GPSreceiverStart(void);
+char GPSreceiverStart(void);
 void GPSreceiverStop(void);
 void GPSreceiverClose(void);
 
-short updateDate(int newDay, int newMonth, int newYear);
-void updateTime(float timestamp, int newHour, int newMin, float newSec, short timeWithNoFix);
+char updateDate(int newDay, int newMonth, int newYear);
+void updateTime(float timestamp, int newHour, int newMin, float newSec, char timeWithNoFix);
 void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float newTrueTrack, float newMagneticTrack);
 void updateSpeed(float newSpeedKnots);
 void updateNumOfTotalSatsInView(int totalSats);

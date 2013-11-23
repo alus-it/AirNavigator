@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 22/11/2013
+// Last change : 23/11/2013
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
@@ -60,7 +60,7 @@ char sentence[MAX_SENTENCE_LENGTH]={0};
 short lineFeedExpected=1;
 
 
-void NMEAparserProcessBuffer(unsigned char *buf, long redBytes) {
+void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 	for(long i=0;i<redBytes;i++) switch(buf[i]) {
 		case '$':
 			if(rcvdBytesOfSentence==0) sentence[rcvdBytesOfSentence++]='$';

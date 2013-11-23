@@ -6,32 +6,33 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 21/11/2013
+// Last change : 23/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
 
-//#define SERIAL_DEVICE
+//#define SERIAL_DEVICE //enable if reading from a real serial device
+//#define PRINT_RECEIVED_DATA
 
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <fcntl.h>
 #ifdef SERIAL_DEVICE
 #include <termios.h>
 #endif
-#include <pthread.h>
-#include <fcntl.h>
 #include "GPSreceiver.h"
 #include "AirNavigator.h"
 #include "Configuration.h"
 #include "AirCalc.h"
 #include "Geoidal.h"
 #include "NMEAparser.h"
+#include "SiRFparser.h"
 #include "FBrender.h"
 #include "HSI.h"
 #include "BlackBox.h"
 
-//#define PRINT_RECEIVED_DATA
 
 void configureGPSreceiver(void);
 void* run(void *ptr);
@@ -68,7 +69,7 @@ volatile short readingGPS=-1; //-1 means still not initialized
 void configureGPSreceiver(void) {
 	if(config.GPSdevName==NULL) config.GPSdevName=strdup("/var/run/gpsfeed"); //Default value
 #ifdef SERIAL_DEVICE
-	switch(config.GPSbaudRate){ //configuration of the serial port
+	switch(config.GPSbaudRate) { //configuration of the serial port
 		case 230400:
 			BAUD=B230400;
 			break;
@@ -195,25 +196,23 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	tcflush(fd,TCIFLUSH);
 #endif
 
-	short isSiRF=0; //TODO: this will select between SiRF or NMEA put in a proper configurable place!
+	bool isSiRF=false; //TODO: this will select between SiRF or NMEA put in a proper configurable place!
 	static unsigned char *buf; //read buffer
 	if(isSiRF) { //allocate buffer for SiRF protocol
-		//buf=(unsigned char *) malloc(SIRF_BUFFER_SIZE*sizeof(unsigned char)); //TODO: set the correct buffer size for SiRF
+		buf=(unsigned char *) malloc(SIRF_BUFFER_SIZE*sizeof(unsigned char));
 	} else { //allocate buffer for NMEA protocol
 		buf=(unsigned char *) malloc(NMEA_BUFFER_SIZE*sizeof(unsigned char));
 	}
 	int maxfd=fd+1;
 	fd_set readfs;
-	long redBytes;
-	//long timestamp; //timestamp of last bytes sequence received
+	int redBytes;
 	while(readingGPS) { // loop while waiting for input
 		FD_SET(fd,&readfs);
 		select(maxfd,&readfs,NULL,NULL,NULL); //wait to read because the read is now non-blocking
 		if(readingGPS) { //further check if we still want to read after waiting
 			redBytes=read(fd,buf,NMEA_BUFFER_SIZE);
-			//timestamp=time(NULL); //get the timestamp of last bytes sequence received. Do we really need it?
-			//if(isSiRF) SiRFparserProcessBuffer(buf,timestamp,redBytes); //TODO: still to be done...
-			/* else */ NMEAparserProcessBuffer(buf,redBytes);
+			if(isSiRF) SiRFparserProcessBuffer(buf,time(NULL),redBytes);
+			else NMEAparserProcessBuffer(buf,redBytes);
 		}
 	}
 #ifdef SERIAL_DEVICE
@@ -225,7 +224,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	return NULL;
 }
 
-short GPSreceiverStart(void) { //function to start the listening thread
+char GPSreceiverStart(void) { //function to start the listening thread
 	if(readingGPS==-1) configureGPSreceiver();
 	if(!readingGPS) {
 		readingGPS=1;
@@ -263,7 +262,7 @@ void updateDiluition(float pDiluition, float hDiluition, float vDiluition) {
 	}
 }
 
-short updateDate(int newDay, int newMonth, int newYear) {
+char updateDate(int newDay, int newMonth, int newYear) {
 	if(gps.day!=newDay) {
 		gps.day=newDay;
 		gps.month=newMonth;
@@ -275,7 +274,7 @@ short updateDate(int newDay, int newMonth, int newYear) {
 	return 0;
 }
 
-void updateTime(float timestamp, int newHour, int newMin, float newSec, short timeWithNoFix) {
+void updateTime(float timestamp, int newHour, int newMin, float newSec, char timeWithNoFix) {
 	if(gps.timestamp!=timestamp) {
 		gps.timestamp=timestamp;
 		gps.hour=newHour;
