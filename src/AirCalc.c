@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "AirCalc.h"
+#include "Common.h"
 
 //Internal AirCalc calculation defines
 #define EARTH_RADIUS_KM 6371
@@ -193,8 +194,8 @@ double Deg2Rad(double deg) {
 	return deg*DEG2RAD;
 }
 
-int calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, double atd, double d, double *latI, double *lonI) {
-	if(atd>d) return 0;
+bool calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, double atd, double d, double *latI, double *lonI) {
+	if(atd>d) return false;
 	double A=sin(d-atd)/sin(d);
 	double B=sin(atd)/sin(d);
 	double x=A*cos(lat1)*cos(lon1)+B*cos(lat2)*cos(lon2);
@@ -202,10 +203,10 @@ int calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, do
 	double z=A*sin(lat1)+ B*sin(lat2);
 	*latI=atan2(z,sqrt(pow(x,2)+pow(y,2)));
 	*lonI=atan2(y,x);
-	return 1;
+	return true;
 }
 
-short isAngleBetween(double low, double angle, double hi) {
+bool isAngleBetween(double low, double angle, double hi) {
 	if(low==TWO_PI) low=0;
 	if(hi==0) hi=TWO_PI;
 	if(low>hi) {
@@ -347,7 +348,7 @@ void calcBisector(double currCourse, double nextCourse, double *bisector, double
 	*bisectorOpposite=absAngle(*bisector+M_PI);
 }
 
-short bisectorOverpassed(double currCourse, double actualCurrCourse, double bisector1, double bisector2) {
+bool bisectorOverpassed(double currCourse, double actualCurrCourse, double bisector1, double bisector2) {
 	if(absAngle(currCourse-bisector1)<M_PI) //if currCourse is between bisector1 and bisector2 (bisector1 used as 0)
 		return isAngleBetween(bisector2,actualCurrCourse,bisector1);
 	else //currCourse is between bisector2 and bisector1

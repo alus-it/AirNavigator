@@ -23,7 +23,7 @@
 #include <termios.h>
 #endif
 #include "GPSreceiver.h"
-#include "AirNavigator.h"
+#include "Common.h"
 #include "Configuration.h"
 #include "AirCalc.h"
 #include "Geoidal.h"
@@ -178,7 +178,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //read only, non blocking
 	if(fd<0) {
 		fd=-1;
-		logText("ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
+		printLog("ERROR: Can't open the gps serial port on device: %s\n",config.GPSdevName);
 		readingGPS=0;
 		pthread_exit(NULL);
 		return NULL;
@@ -230,7 +230,7 @@ char GPSreceiverStart(void) { //function to start the listening thread
 		readingGPS=1;
 		if(pthread_create(&thread,NULL,run,(void*)NULL)) {
 			readingGPS=0;
-			logText("GPSreceiver: ERROR unable to create the reading thread.\n");
+			printLog("GPSreceiver: ERROR unable to create the reading thread.\n");
 		}
 	}
 	return readingGPS;

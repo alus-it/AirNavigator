@@ -13,8 +13,10 @@
 #ifndef GEOIDAL_H_
 #define GEOIDAL_H_
 
-short GeoidalOpen(void);
-short GeoidalIsOpen(void);
+#include "Common.h"
+
+bool GeoidalOpen(void);
+bool GeoidalIsOpen(void);
 double wgs84_to_msl_delta(double lat, double lon);
 double GeoidalGetSeparation(double lat, double lon);
 void GeoidalClose(void);

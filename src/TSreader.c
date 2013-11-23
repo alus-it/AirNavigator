@@ -21,7 +21,7 @@
 #include <barcelona/Barc_gps.h>
 #include <barcelona/Barc_Battery.h>
 #include "TSreader.h"
-#include "AirNavigator.h"
+#include "Common.h"
 
 
 void TSreaderRelease(void);
@@ -48,12 +48,12 @@ void TSreaderRelease(void) {
 void initializeTSreader(void) {
 	condVar=(condVar_t)malloc(sizeof(struct condVarStruct));
 	if(pthread_mutex_init(&condVar->lastTouchMutex,NULL) || pthread_cond_init(&condVar->lastTouchSignal,NULL)) {
-		logText("TSreader: ERROR while initializing mutex and condition variable\n");
+		printLog("TSreader: ERROR while initializing mutex and condition variable\n");
 		TSreaderRelease();
 	}
 	tsfd=open("/dev/ts",O_RDONLY|O_NOCTTY|O_NONBLOCK);
 	if(tsfd<0) {
-		logText("TSreader: ERROR can't open the device: /dev/ts\n");
+		printLog("TSreader: ERROR can't open the device: /dev/ts\n");
 		TSreaderRelease();
 	}
 	ioctl(tsfd,TS_SET_RAW_OFF,NULL);
@@ -73,7 +73,7 @@ void* runTSreader(void *arg) { //This is the thread listening for input on the t
 		FD_ZERO(&fdset);
 		FD_SET(tsfd, &fdset);
 		if(sigaction((int)arg, &sa, NULL)<0) { //register signal to kill the thread otherwise it will wait until next input
-			logText("TSreader: ERROR while registering signal to stop listen thread.");
+			printLog("TSreader: ERROR while registering signal to stop listen thread.");
 			readingTS=0;
 			pthread_exit(NULL);
 			return NULL;
@@ -100,7 +100,7 @@ short TSreaderStart() {
 		readingTS=1;
 		if(pthread_create(&threadTSreader,NULL,runTSreader,(void*)SIGUSR1)) {
 			readingTS=0;
-			logText("TSreader: ERROR unable to create the reading thread.\n");
+			printLog("TSreader: ERROR unable to create the reading thread.\n");
 			TSreaderRelease();
 		}
 	}

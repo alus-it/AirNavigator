@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "NMEAparser.h"
-#include "AirNavigator.h"
+#include "Common.h"
 #include "GPSreceiver.h"
 #include "Navigator.h"
 #include "AirCalc.h"
@@ -78,7 +78,7 @@ void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 					if(getCRCintValue()==checksum) { //right CRC
 #ifdef PRINT_SENTENCES //Print all the sentences received
 							sentence[rcvdBytesOfSentence]='\0';
-							logText("%s\n",sentence);
+							printLog("%s\n",sentence);
 #endif
 						sentence[rcvdBytesOfSentence-3]='\0'; //put terminator to cut off checksum
 						parseNMEAsentence(strdup(sentence));
@@ -140,8 +140,8 @@ int parseNMEAsentence(char* ascii) {
 #endif
 	}
 #ifdef PARSE_ALL_SENTENCES
-	if(r<0) logText("WARNING: parsing sentence %s returned: %d\n",ascii,r);
-	else if(r==2) logText("Received unexpected sentence: %s\n",ascii);
+	if(r<0) printLog("WARNING: parsing sentence %s returned: %d\n",ascii,r);
+	else if(r==2) printLog("Received unexpected sentence: %s\n",ascii);
 #endif
 	free(ascii);
 	return 1;
@@ -213,7 +213,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 			newAltitudeMt=Ft2m(newAltitude);
 		}
 	} else {
-		logText("ERROR: Unknown altitude unit: %c\n",altUnit);
+		printLog("ERROR: Unknown altitude unit: %c\n",altUnit);
 		return 0;
 	}
 	altTimestamp=timestamp;

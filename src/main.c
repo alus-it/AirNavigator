@@ -15,11 +15,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <pthread.h>
-#include "AirNavigator.h"
+#include "Common.h"
 #include "Configuration.h"
 #include "FBrender.h"
 #include "TSreader.h"
@@ -54,27 +52,21 @@ typedef struct fileName {
 
 void releaseAll(void);
 
-pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
-FILE *logFile=NULL;
 
 int main(int argc, char** argv) {
-	short status=MAIN_STATUS_NOT_INIT;
-	char *logPath;
-	asprintf(&logPath,"%slog.txt",BASE_PATH);
-	logFile=fopen(logPath,"w"); //create log file
-	free(logPath);
-	if(logFile!=NULL) //if the log file has been created...
+	enum mainStatus status=MAIN_STATUS_NOT_INIT;
+	if(openLog()) //if the log file has been created...
 		if(FBrenderOpen()) //if the frame buffer render is started
 			if(TSreaderStart()) status=MAIN_STATUS_INITIALIZED; //if the touch screen listening thread is started
-			else logText("ERROR: Unable to start the Touch Screen manager!\n");
-		else logText("ERROR: Unable to start the Frame Buffer renderer!\n");
+			else printLog("ERROR: Unable to start the Touch Screen manager!\n");
+		else printLog("ERROR: Unable to start the Frame Buffer renderer!\n");
 	else printf("ERROR: Unable to create the logFile file!\n");
 	if(status!=MAIN_STATUS_INITIALIZED) {
 		releaseAll();
 		exit(EXIT_FAILURE);
 	}
 	FBrenderFlush();
-	logText("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
+	printLog("AirNavigator v. %s - Compiled: %s %s - www.alus.it\n",VERSION,__DATE__,__TIME__);
 	bool allOK=true;
 	FILE *fd=NULL;
 	fd=fopen("/proc/barcelona/modelname","r"); //Read TomTom model
@@ -84,12 +76,12 @@ int main(int argc, char** argv) {
 		if(ret==buf) {
 			if(buf[strlen(buf)-1]=='\n') buf[strlen(buf)-1]='\0';
 			config.tomtomModel=strdup(buf);
-			logText("TomTom model name: %s\n",config.tomtomModel);
+			printLog("TomTom model name: %s\n",config.tomtomModel);
 		} else allOK=false;
 		fclose(fd);
 	} else allOK=false;
 	if(!allOK) {
-		logText("ERROR: unable to read TomTom device model name.\n");
+		printLog("ERROR: unable to read TomTom device model name.\n");
 		config.tomtomModel=strdup("UNKNOWN");
 		allOK=true;
 	}
@@ -100,15 +92,15 @@ int main(int argc, char** argv) {
 		char *ret=fgets(buf,29,fd);
 		if(ret==buf) {
 			config.serialNumber=strdup(buf);
-			logText("TomTom device serial number ID: %s\n",config.serialNumber);
+			printLog("TomTom device serial number ID: %s\n",config.serialNumber);
 		} else allOK=false;
 		fclose(fd);
 	} else allOK=false;
 	if(!allOK) {
-		logText("ERROR: unable to read TomTom device serial number ID.\n");
+		printLog("ERROR: unable to read TomTom device serial number ID.\n");
 		config.serialNumber=strdup("UNKNOWN");
 	}
-	logText("Screen resolution: %dx%d pixel\n",screen.width,screen.height); //logFile screen resolution
+	printLog("Screen resolution: %dx%d pixel\n",screen.width,screen.height); //logFile screen resolution
 
 	//This is to draw some rainbow lines to put where we think it's going to crash in order to understand where it crashes
 	//DrawTwoPointsLine(10,10,200,200,0xF000);
@@ -151,9 +143,9 @@ int main(int argc, char** argv) {
 				}
 		}
 		closedir(dir);
-		if(numGPXfiles==0) logText("WARNING: No GPX flight plans found.\n");
-		else logText("Created list of %d GPX files.\n",numGPXfiles);
-	} else logText("ERROR: could not open the Routes directory.\n");
+		if(numGPXfiles==0) printLog("WARNING: No GPX flight plans found.\n");
+		else printLog("Created list of %d GPX files.\n",numGPXfiles);
+	} else printLog("ERROR: could not open the Routes directory.\n");
 
 	if(numGPXfiles>0) { //Start to prepare the "menu" to select the route
 		status=MAIN_STATUS_SELECT_ROUTE;
@@ -206,7 +198,7 @@ int main(int argc, char** argv) {
 			case MAIN_STATUS_START_GPS: //Start reading from GPS and the track recorder
 				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
-				if(!GPSreceiverStart()) logText("ERROR: GPSreceiver failed to start.\n"); //Start reding from the GPSrecveiver
+				if(!GPSreceiverStart()) printLog("ERROR: GPSreceiver failed to start.\n"); //Start reding from the GPSrecveiver
 				BlackBoxStart(); //Start the track recorder
 				if(toLoad!=NULL) status=MAIN_STATUS_READY_TO_NAV;
 				else status=MAIN_STATUS_NOT_LOADED;
@@ -221,13 +213,13 @@ int main(int argc, char** argv) {
 				numWPloaded=NavLoadFlightPlan(toLoad); //Attempt to load the flight plan
 				if(numWPloaded<1) { //if load route failed
 					if(toLoad!=NULL) {
-						logText("ERROR: while opening: %s\n",toLoad);
+						printLog("ERROR: while opening: %s\n",toLoad);
 						free(toLoad);
-					} else logText("ERROR: NULL pointer to the route file to be loaded.\n");
+					} else printLog("ERROR: NULL pointer to the route file to be loaded.\n");
 					status=MAIN_STATUS_NOT_LOADED;
 					waitTouch=false;
 					break;
-				} else logText("Loaded route with %d WayPoints.\n\n",numWPloaded);
+				} else printLog("Loaded route with %d WayPoints.\n\n",numWPloaded);
 				free(toLoad);
 				waitTouch=true; //Here we wait for a touch to start the navigation
 				status=MAIN_STATUS_FLY_ROUTE;
@@ -277,29 +269,14 @@ int main(int argc, char** argv) {
 		fileList=currFile->next;
 		free(currFile);
 	} while(fileList!=NULL);
-	logText("Releasing all... Goodbye!\n");
+	printLog("Releasing all... Goodbye!\n");
 	releaseAll();
 	exit(EXIT_SUCCESS);
 }
 
 void releaseAll(void) {
-	if(logFile!=NULL) fclose(logFile);
+	closeLog();
 	TSreaderClose();
 	FBrenderClose();
 	pthread_exit(NULL);
 }
-
-int logText(const char *texts, ...) {
-	int done=-1;
-	if(logFile!=NULL) {
-		va_list arg;
-		va_start(arg,texts);
-		pthread_mutex_lock(&logMutex);
-		done=vfprintf(logFile,texts,arg);
-		pthread_mutex_unlock(&logMutex);
-		va_end(arg);
-		return done;
-	}
-	return done;
-}
-

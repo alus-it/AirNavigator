@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 3/11/2013
+// Last change : 23/11/2013
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
@@ -18,12 +18,21 @@
 #include <time.h>
 #include <math.h>
 #include "BlackBox.h"
-#include "AirNavigator.h"
+#include "Common.h"
 #include "Configuration.h"
 #include "AirCalc.h"
 
+#define MIN_DIST 0.00000109872 // 7 m in Rad
 
-short openRecordingFile(void);
+enum blackBoxStatus {
+	BBS_NOT_SET,
+	BBS_WAIT_FIX,
+	BBS_WAIT_POS,
+	BBS_WAIT_OPT,
+	BBS_PAUSED
+};
+
+bool openRecordingFile(void);
 void recordPos(double lat, double lon, float timestamp, int hour, int min, float sec);
 
 double lastlat, lastlon, minlat, minlon, maxlat, maxlon;
@@ -33,7 +42,7 @@ int cyear,cmonth,cday,chour,cmin,csec; //creation time of the track file
 char *filename=NULL;
 long trackPointCounter;
 FILE *tracklogFile=NULL;
-short bbStatus=BBS_NOT_SET;
+enum blackBoxStatus bbStatus=BBS_NOT_SET;
 
 void BlackBoxStart(void) {
 	if(bbStatus!=BBS_NOT_SET) return;
@@ -58,15 +67,15 @@ void BlackBoxStart(void) {
 	bbStatus=BBS_WAIT_FIX;
 }
 
-short openRecordingFile(void) {
+bool openRecordingFile(void) {
 	char *path;
 	asprintf(&path,"%sTracks/%s",BASE_PATH,filename);
 	tracklogFile=fopen(path,"w");
 	free(path);
 	if(tracklogFile==NULL) {
-		logText("BlackBox ERROR: Unable to write track file.\n");
+		printLog("BlackBox ERROR: Unable to write track file.\n");
 		BlackBoxClose();
-		return 0;
+		return false;
 	}
 	fprintf(tracklogFile,"<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"yes\"?>\n"
 			"<gpx version=\"1.1\" creator=\"AirNavigator by Alus.it\"\n"
@@ -78,7 +87,7 @@ short openRecordingFile(void) {
 			"<src>%s - Device serial number ID: %s</src>\n"
 			"<trkseg>\n",cday,cmonth,cyear,chour,cmin,csec,config.tomtomModel,config.serialNumber);
 	bbStatus=BBS_WAIT_POS;
-	return 1;
+	return true;
 }
 
 void BlackBoxPause(void) {
@@ -106,8 +115,8 @@ void recordPos(double lat, double lon, float timestamp, int hour, int min, float
 	bbStatus=BBS_WAIT_OPT;
 }
 
-short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, short dateChanged) {
-	short retval=0;
+bool BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, short dateChanged) {
+	bool retval=false;
 	switch(bbStatus) {
 		case BBS_WAIT_FIX:
 			if(openRecordingFile()) recordPos(lat,lon,timestamp,hour,min,sec);
@@ -117,7 +126,7 @@ short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int m
 			if(dateChanged) lastTimestamp-=86400;
 			if(timestamp>lastTimestamp) deltaT=timestamp-lastTimestamp;
 			else {
-				retval=0;
+				retval=false;
 				break;
 			}
 			if(deltaT>=config.recordTimeInterval) {
@@ -125,7 +134,7 @@ short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int m
 				deltaS=calcAngularDist(lat,lon,lastlat,lastlon);
 				if(deltaS>=updateDist) {
 					recordPos(lat,lon,timestamp,hour,min,sec);
-					retval=1;
+					retval=true;
 				}
 			}
 		} break;
@@ -139,29 +148,29 @@ short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int m
 	return retval;
 }
 
-short BlackBoxRecordAlt(double alt) {
-	if(bbStatus!=BBS_WAIT_OPT) return 0;
+bool BlackBoxRecordAlt(double alt) {
+	if(bbStatus!=BBS_WAIT_OPT) return false;
 	fprintf(tracklogFile,"<ele>%.1f</ele>\n",alt);
-	return 1;
+	return true;
 }
 
-short BlackBoxRecordSpeed(double speed) { //Speed in m/s
-	if(bbStatus!=BBS_WAIT_OPT) return 0;
+bool BlackBoxRecordSpeed(double speed) { //Speed in m/s
+	if(bbStatus!=BBS_WAIT_OPT) return false;
 	fprintf(tracklogFile,"<speed>%.2f</speed>\n",speed);
-	return 1;
+	return true;
 }
 
-short BlackBoxRecordCourse(double course) {
-	if(bbStatus!=BBS_WAIT_OPT) return 0;
+bool BlackBoxRecordCourse(double course) {
+	if(bbStatus!=BBS_WAIT_OPT) return false;
 	fprintf(tracklogFile,"<course>%.2f</course>\n",course);
-	return 1;
+	return true;
 }
 
-short BlackBoxCommit(void) {
-	if(bbStatus!=BBS_WAIT_OPT) return 0;
+bool BlackBoxCommit(void) {
+	if(bbStatus!=BBS_WAIT_OPT) return false;
 	fprintf(tracklogFile,"</trkpt>\n");
 	bbStatus=BBS_WAIT_POS;
-	return 1;
+	return true;
 }
 
 void BlackBoxClose(void) {

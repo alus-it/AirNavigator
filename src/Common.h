@@ -1,23 +1,26 @@
 //============================================================================
-// Name        : AirNavigator.h
+// Name        : Common.h
 // Since       : 3/12/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 7/11/2013
-// Description : Common functions of AirNavigator
+// Last change : 23/11/2013
+// Description : Common definitions of AirNavigator
 //============================================================================
 
-#ifndef AIRNAVIGATOR_H_
-#define AIRNAVIGATOR_H_
+#ifndef COMMON_H_
+#define COMMON_H_
 
 #define BASE_PATH "/mnt/sdcard/AirNavigator/"
 
-typedef char bool;
 enum boolean { false, true };
+typedef char bool;
 
-int logText(const char *texts, ...);
+bool openLog(void);
+int printLog(const char *texts, ...);
+void closeLog(void);
+float getCurrentTime(void);
 
-#endif //AIRNAVIGATOR_H_
+#endif

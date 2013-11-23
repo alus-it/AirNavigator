@@ -14,6 +14,7 @@
 #define AIRCALC_H_
 
 #include <math.h>
+#include "Common.h"
 
 //Common calculation defines
 #define TWO_PI  (2*M_PI)
@@ -57,8 +58,8 @@ double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, do
 double calcGreatCircleRoute(double lat1, double lon1, double lat2, double lon2, double *d);
 double calcGreatCircleCourse(double lat1, double lon1, double lat2, double lon2);
 double calcGreatCircleFinalCourse(double lat1, double lon1, double lat2, double lon2);
-int calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, double atd, double d, double *latI, double *lonI);
-short isAngleBetween(double low, double angle, double hi);
+bool calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, double atd, double d, double *latI, double *lonI);
+bool isAngleBetween(double low, double angle, double hi);
 double calcGCCrossTrackError(double lat1, double lon1, double lon2, double latX, double lonX, double course12, double *atd);
 int calcSunriseSunset(double lat, double lon, int day, int month, int year, double zenith, int localOffset, double *riseTime, double *setTime);
 void convertDecimal2DegMin(double dec, int *deg, double *min);
@@ -70,6 +71,6 @@ int calcHeadingGroundSpeed(double crs, double wd, double tas, double ws, double 
 double calcCourseGroundSpeed(double hd, double wd, double tas, double ws, double *gs);
 void calcHeadCrossWindComp(double ws, double wd, double rd, double *hw, double *xw);
 void calcBisector(double currCourse, double nextCourse, double *bisector, double *bisectorOpposite);
-short bisectorOverpassed(double currCourse, double actualCurrCourse, double bisector1, double bisector2);
+bool bisectorOverpassed(double currCourse, double actualCurrCourse, double bisector1, double bisector2);
 
 #endif

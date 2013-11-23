@@ -40,6 +40,7 @@ INC = include/
 CFILES =            \
 	AirCalc.c       \
 	BlackBox.c      \
+	Common.c        \
 	Configuration.c \
 	FBrender.c      \
 	Geoidal.c       \
@@ -89,40 +90,43 @@ $(LIBS): | $(LIB)
 $(LIB):
 	mkdir -p $(LIB)
 
-$(BIN)main.o: $(SRC)main.c $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)FBrender.h $(SRC)TSreader.h $(SRC)GPSreceiver.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
+$(BIN)main.o: $(SRC)main.c $(SRC)Common.h $(SRC)Configuration.h $(SRC)FBrender.h $(SRC)TSreader.h $(SRC)GPSreceiver.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
 	$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' -I $(INC) $< -o $@
 
-$(BIN)GPSreceiver.o: $(SRC)GPSreceiver.c $(SRC)GPSreceiver.h $(SRC)NMEAparser.h $(SRC)SiRFparser.h $(SRC)AirNavigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)BlackBox.h
+$(BIN)GPSreceiver.o: $(SRC)GPSreceiver.c $(SRC)GPSreceiver.h $(SRC)NMEAparser.h $(SRC)SiRFparser.h $(SRC)Common.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)NMEAparser.o: $(SRC)NMEAparser.c $(SRC)NMEAparser.h $(SRC)GPSreceiver.h $(SRC)AirNavigator.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
+$(BIN)NMEAparser.o: $(SRC)NMEAparser.c $(SRC)NMEAparser.h $(SRC)GPSreceiver.h $(SRC)Common.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)SiRFparser.o: $(SRC)SiRFparser.c $(SRC)SiRFparser.h $(SRC)GPSreceiver.h $(SRC)AirNavigator.h
+$(BIN)SiRFparser.o: $(SRC)SiRFparser.c $(SRC)SiRFparser.h $(SRC)GPSreceiver.h $(SRC)Common.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)Navigator.o: $(SRC)Navigator.c $(SRC)Navigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)AirNavigator.h $(LIBSRC)libroxml/roxml.h
+$(BIN)Navigator.o: $(SRC)Navigator.c $(SRC)Navigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Common.h $(LIBSRC)libroxml/roxml.h
 	$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
 
 $(BIN)HSI.o: $(SRC)HSI.c $(SRC)HSI.h $(SRC)FBrender.h $(SRC)AirCalc.h $(SRC)Configuration.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)BlackBox.o: $(SRC)BlackBox.c $(SRC)BlackBox.h $(SRC)Configuration.h $(SRC)AirCalc.h
+$(BIN)BlackBox.o: $(SRC)BlackBox.c $(SRC)BlackBox.h $(SRC)Common.h $(SRC)Configuration.h $(SRC)AirCalc.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BIN)FBrender.o: $(SRC)FBrender.c $(SRC)FBrender.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)Configuration.h
 	$(CC) $(CFLAGS) -DLINUX_TARGET -I $(INC) $< -o $@
 
-$(BIN)Configuration.o: $(SRC)Configuration.c $(SRC)Configuration.h $(SRC)AirNavigator.h $(SRC)FBrender.h $(LIBSRC)libroxml/roxml.h
+$(BIN)Configuration.o: $(SRC)Configuration.c $(SRC)Configuration.h $(SRC)Common.h $(SRC)FBrender.h $(LIBSRC)libroxml/roxml.h
 	$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
 
-$(BIN)Geoidal.o: $(SRC)Geoidal.c $(SRC)Geoidal.h $(SRC)AirNavigator.h
+$(BIN)Geoidal.o: $(SRC)Geoidal.c $(SRC)Geoidal.h $(SRC)Common.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)TSreader.o: $(SRC)TSreader.c $(SRC)TSreader.h
+$(BIN)TSreader.o: $(SRC)TSreader.c $(SRC)TSreader.h $(SRC)Common.h
 	$(CC) $(CFLAGS) -I $(INC) $< -o $@
 
-$(BIN)AirCalc.o: $(SRC)AirCalc.c $(SRC)AirCalc.h
+$(BIN)AirCalc.o: $(SRC)AirCalc.c $(SRC)AirCalc.h $(SRC)Common.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BIN)Common.o: $(SRC)Common.c $(SRC)Common.h
 	$(CC) $(CFLAGS) $< -o $@
 
 

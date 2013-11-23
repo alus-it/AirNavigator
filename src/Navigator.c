@@ -26,15 +26,31 @@
 #include "GPSreceiver.h"
 #include "FBrender.h"
 #include "HSI.h"
-#include "AirNavigator.h"
+#include "Common.h"
 
+
+typedef struct wp {
+	int seqNo;            //sequence number
+	char *name;           //name of the WP
+	double latitude;      //rad
+	double longitude;     //rad
+	double altitude;      //meters
+	double dist;          //distance to to this WP in rad
+	double initialCourse; //initial true course to to this WP in rad
+	double finalCourse;   //final true course to this WP in rad
+	double bisector1;     //bisector in rad between this leg and the next
+	double bisector2;     //opposite bisector to bisector1 in rad
+	double arrTimestamp;  //arrival to this WP timestamp in seconds (from h 0:00)
+	struct wp *prev;      //Pointer to the previous waypoint in the list
+	struct wp *next;      //Pointer to the next waypoint in the list
+} *wayPoint;
 
 void NavConfigure(void);
 short NavCalculateRoute(void);
 void NavFindNextWP(double lat, double lon);
 void updateDtgEteEtaAs(double atd, float timestamp, double remainDist);
 
-int status=NAV_STATUS_NOT_INIT, numWayPoints=0;
+enum navigatorStatus status=NAV_STATUS_NOT_INIT, numWayPoints=0;
 double trueCourse, previousAltitude=-1000;
 double totalDistKm, prevWPsTotDist; //Km
 double prevWpAvgSpeed, prevTotAvgSpeed; //Km/h
@@ -42,6 +58,7 @@ wayPoint dept, currWP, dest;
 char *routeLogPath;
 FILE *routeLog=NULL;
 double sunZenith; //here in rad
+
 
 void NavConfigure(void) {
 	int oldStatus=status;
@@ -130,20 +147,20 @@ int NavLoadFlightPlan(char* GPXfile) {
 	routeLogPath[len-1]='t';
 	routeLog=fopen(routeLogPath,"w"); //Create the route log file: NavCalculateRoute() will write in it
 	if(routeLog==NULL) {
-		logText("ERROR not possible to write the route log file.\n");
+		printLog("ERROR not possible to write the route log file.\n");
 		status=NAV_STATUS_NO_ROUTE_SET;
 		return -3;
 	}
 	node_t* root=roxml_load_doc(GPXfile);
 	if(root==NULL) {
-		logText("ERROR no such file '%s'\n",GPXfile);
+		printLog("ERROR no such file '%s'\n",GPXfile);
 		return -4;
 	}
 	char* text=NULL;
 	//TODO: here we load just the first route may be there are others routes in the GPX file...
 	node_t* route=roxml_get_chld(root,"rte",0);
 	if(route==NULL) {
-		logText("ERROR no route found in GPX file: '%s'\n",GPXfile);
+		printLog("ERROR no route found in GPX file: '%s'\n",GPXfile);
 		roxml_release(RELEASE_ALL);
 		roxml_close(root);
 		return -5;
@@ -151,7 +168,7 @@ int NavLoadFlightPlan(char* GPXfile) {
 	node_t* wp;
 	int total=roxml_get_chld_nb(route);
 	if(total<1) {
-		logText("ERROR no waypoints found in route in GPX file: '%s'\n",GPXfile);
+		printLog("ERROR no waypoints found in route in GPX file: '%s'\n",GPXfile);
 		roxml_release(RELEASE_ALL);
 		roxml_close(root);
 		return 0;
@@ -191,7 +208,7 @@ int NavLoadFlightPlan(char* GPXfile) {
 	roxml_release(RELEASE_ALL);
 	roxml_close(root);
 	if(NavCalculateRoute()<0) {
-		logText("ERROR: NavCalculateRoute FAILED.\n");
+		printLog("ERROR: NavCalculateRoute FAILED.\n");
 		NavClearRoute();
 		return -3;
 	}
@@ -240,13 +257,13 @@ int NavReverseRoute(void) {
 	currWP=dest;
 	routeLog=fopen(routeLogPath,"a+"); //Reopen the route log file to write about the reversed route
 	if(routeLog==NULL) {
-		logText("ERROR not possible to write the route log file.\n");
+		printLog("ERROR not possible to write the route log file.\n");
 		NavClearRoute();
 		return 0;
 	}
 	fprintf(routeLog,"\n\n\nREVERSED ROUTE\n\n");
 	if(NavCalculateRoute()<0) {
-		logText("ERROR: NavCalculateRoute FAILED!\n");
+		printLog("ERROR: NavCalculateRoute FAILED!\n");
 		NavClearRoute();
 		return 0;
 	}
@@ -291,7 +308,7 @@ void NavFindNextWP(double lat, double lon) {
 			nearest=i;
 		}
 	}
-	logText("\nNearest waypoint is: %s No: %d at %f Km\n",nearest->name,nearest->seqNo,Rad2Km(shortestDist));
+	printLog("\nNearest waypoint is: %s No: %d at %f Km\n",nearest->name,nearest->seqNo,Rad2Km(shortestDist));
 	if(nearest==dest) {
 		if(dept->latitude==dest->latitude && dept->longitude==dest->longitude) { //dept and dest are the same place
 			if(calcAngularDist(lat,lon,dept->latitude,dept->longitude)<m2Rad(config.deptDistTolerance)) currWP=dept->next;
@@ -318,7 +335,7 @@ void NavFindNextWP(double lat, double lon) {
 
 	if(currWP==dest) status=NAV_STATUS_NAV_TO_DST;
 	PrintNavStatus(status,currWP->name);
-	logText("Next waypoint is: %s\n\n\n",currWP->name);
+	printLog("Next waypoint is: %s\n\n\n",currWP->name);
 	FBrenderFlush();
 }
 
@@ -368,7 +385,8 @@ void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, double dir, float timestamp) {
 	double actualTrueCourse, remainDist;
 	switch(status) {
-		case NAV_STATUS_NOT_INIT: //Do nothing
+		case NAV_STATUS_NOT_INIT:     //Do nothing...
+		case NAV_STATUS_NO_ROUTE_SET:
 			break;
 		case NAV_STATUS_TO_START_NAV:
 			if(previousAltitude==-1000) previousAltitude=altMt;
@@ -465,6 +483,8 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			NavFindNextWP(lat,lon);
 			NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp);
 			break;
+		default: //unknown state, we should be never here
+			break;
 	}
 }
 
@@ -550,15 +570,6 @@ short checkDaytime(short calcOnlyDest) {
 	return retVal;
 }
 
-float getCurrentTime(void) {
-	struct tm time_str;
-	long currTime=time(NULL); //get current time
-	time_str=*localtime(&currTime);
-	int n=time_str.tm_hour; //hour
-	float timeVal=n*3600;
-	n=time_str.tm_min; //minute
-	timeVal+=n*60;
-	n=time_str.tm_sec;
-	timeVal+=n;
-	return timeVal;
+enum navigatorStatus NavGetStatus(void) {
+	return status;
 }

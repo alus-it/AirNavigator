@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "Geoidal.h"
-#include "AirNavigator.h"
+#include "Common.h"
 
 #define GEOID_H 19
 #define GEOID_W 37
@@ -72,18 +72,18 @@ double wgs84_to_msl_delta(double lat, double lon) { //It uses the data hard-code
 			(double)geoid_data[lati+1][loni+1]));
 }
 
-short GeoidalOpen() {
-	if(egm96data!=NULL) return 2; //The data seems already loaded do nothing
+bool GeoidalOpen() {
+	if(egm96data!=NULL) return true; //The data seems already loaded do nothing
 	FILE *egm96dataFile=NULL;
 	char *egmPath;
 	asprintf(&egmPath,"%segm96s.dem",BASE_PATH);
 	egm96dataFile=fopen(egmPath,"rb");
 	free(egmPath);
 	if(egm96dataFile==NULL) {
-		logText("ERROR: Unable to open the egm96 geoidal separation data file.\n");
-		return 0;
+		printLog("ERROR: Unable to open the egm96 geoidal separation data file.\n");
+		return false;
 	}
-	unsigned long len=0;
+	int len=0;
 	fseek(egm96dataFile,0,SEEK_END);
 	len=ftell(egm96dataFile);
 	fseek(egm96dataFile,0,SEEK_SET);
@@ -91,22 +91,21 @@ short GeoidalOpen() {
 		egm96data=(unsigned char*)malloc(len+1);
 		if(egm96data==NULL) {
 			fclose(egm96dataFile);
-			logText("ERROR: Unable to load in memory the egm96 data.\n");
-			return 0;
+			printLog("ERROR: Unable to load in memory the egm96 data.\n");
+			return true;
 		}
 		fread(egm96data,len,1,egm96dataFile);
 	} else {
 		fclose(egm96dataFile);
-		logText("ERROR: The egm96 geoidal separation data file has not the expected size.\n");
-		return 0;
+		printLog("ERROR: The egm96 geoidal separation data file has not the expected size.\n");
+		return false;
 	}
 	fclose(egm96dataFile);
-	return 1;
+	return true;
 }
 
-short GeoidalIsOpen() {
-	if(egm96data!=NULL) return 1;
-	else return 0;
+bool GeoidalIsOpen() {
+	return(egm96data!=NULL);
 }
 
 void GeoidalClose() {

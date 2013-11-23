@@ -13,6 +13,9 @@
 #ifndef FBRENDER_H_
 #define FBRENDER_H_
 
+#include "Navigator.h"
+#include "GPSreceiver.h"
+
 struct screenConfig {
 	int height,width; //size of screen in pixel
 } screen;
@@ -57,10 +60,10 @@ void PrintVerticalSpeed(double FtMin);
 void PrintTurnRate(double DegMin);
 void PrintDate(int day, int month, int year);
 void PrintTime(int hour, int minute, float second, short waring);
-void PrintFixMode(int fixMode);
+void PrintFixMode(enum GPSmode fixMode);
 void PrintNumOfSats(int activeSats, int satsInView);
 void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition);
-void PrintNavStatus(int status, char *WPname);
+void PrintNavStatus(enum navigatorStatus status, char *WPname);
 void PrintNavTrackATD(double atdRad);
 void PrintNavRemainingDistWP(double dist, double averageSpeed, double hours);
 void PrintNavRemainingDistDST(double dist, double averageSpeed, double hours);

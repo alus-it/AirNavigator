@@ -496,7 +496,7 @@ void PrintSpeed(double speedKmh, double speedKnots) {
 	}
 }
 
-void PrintNavStatus(int status, char *WPname) {
+void PrintNavStatus(enum navigatorStatus status, char *WPname) {
 	char *statusName;
 	switch(status) {
 			case NAV_STATUS_NOT_INIT:         statusName=strdup("Nav not set   "); break;
@@ -675,7 +675,7 @@ void PrintNumOfSats(int activeSats, int satsInView) {
 	FBrenderBlitText(screen.height+28,250,color,colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
 }
 
-void PrintFixMode(int fixMode) {
+void PrintFixMode(enum GPSmode fixMode) {
 	switch(fixMode) {
 		case MODE_GPS_FIX: FBrenderBlitText(screen.height+28,260,colorSchema.warning,colorSchema.background,0,"FIX: GPS Fix"); break;
 		case MODE_3D_FIX: FBrenderBlitText(screen.height+28,260,colorSchema.text,colorSchema.background,0,"FIX: 3D mode"); break;

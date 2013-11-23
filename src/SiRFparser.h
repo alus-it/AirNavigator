@@ -19,9 +19,7 @@
 #include <time.h>
 #include "GPSreceiver.h"
 
-
 #define SIRF_BUFFER_SIZE        1034
-
 
 struct GPSdataSiRF {
 	float timestamp; //timestamp of the data in sec from the beginning of the day

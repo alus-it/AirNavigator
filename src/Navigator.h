@@ -26,22 +26,6 @@ enum navigatorStatus {
 	NAV_STATUS_NAV_BUSY
 };
 
-typedef struct wp {
-	int seqNo;            //sequence number
-	char *name;           //name of the WP
-	double latitude;      //rad
-	double longitude;     //rad
-	double altitude;      //meters
-	double dist;          //distance to to this WP in rad
-	double initialCourse; //initial true course to to this WP in rad
-	double finalCourse;   //final true course to this WP in rad
-	double bisector1;     //bisector in rad between this leg and the next
-	double bisector2;     //opposite bisector to bisector1 in rad
-	double arrTimestamp;  //arrival to this WP timestamp in seconds (from h 0:00)
-	struct wp *prev;      //Pointer to the previous waypoint in the list
-	struct wp *next;      //Pointer to the next waypoint in the list
-} *wayPoint;
-
 int NavLoadFlightPlan(char* GPXfile);
 void NavAddWayPoint(double latWP, double lonWP, double altWP, char *WPname);
 void NavClearRoute(void);
@@ -50,7 +34,7 @@ short checkDaytime(short calcOnlyDest);
 void NavStartNavigation(float timestamp);
 int NavReverseRoute(void);
 void NavSkipCurrentWayPoint(void);
-float getCurrentTime(void);
+enum navigatorStatus NavGetStatus(void);
 void NavClose(void);
 
 #endif /*NAVIGATOR_H_*/
