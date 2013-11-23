@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 22/11/2013
+// Last change : 23/11/2013
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -33,16 +33,17 @@
 #define VERSION "0.2.9"
 #endif
 
-
-#define MAIN_STATUS_NOT_INIT    -1
-#define MAIN_STATUS_INITIALIZED  0
-#define MAIN_STATUS_START_GPS    1
-#define MAIN_STATUS_NOT_LOADED   2
-#define MAIN_STATUS_SELECT_ROUTE 3
-#define MAIN_STATUS_READY_TO_NAV 4
-#define MAIN_STATUS_FLY_ROUTE    5
-#define MAIN_STATUS_FLY_REVERSED 6
-#define MAIN_STATUS_WAIT_EXIT    7
+enum mainStatus {
+	MAIN_STATUS_NOT_INIT,
+	MAIN_STATUS_INITIALIZED,
+	MAIN_STATUS_START_GPS,
+	MAIN_STATUS_NOT_LOADED,
+	MAIN_STATUS_SELECT_ROUTE,
+	MAIN_STATUS_READY_TO_NAV,
+	MAIN_STATUS_FLY_ROUTE,
+	MAIN_STATUS_FLY_REVERSED,
+	MAIN_STATUS_WAIT_EXIT
+};
 
 typedef struct fileName {
 	int seqNo;             //sequence number
@@ -57,7 +58,7 @@ pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
 FILE *logFile=NULL;
 
 int main(int argc, char** argv) {
-	int status=MAIN_STATUS_NOT_INIT;
+	short status=MAIN_STATUS_NOT_INIT;
 	char *logPath;
 	asprintf(&logPath,"%slog.txt",BASE_PATH);
 	logFile=fopen(logPath,"w"); //create log file
@@ -166,7 +167,7 @@ int main(int argc, char** argv) {
 	short doExit=0;
 	condVar_t signal=TSreaderGetCondVar();
 	TS_EVENT lastTouch; //data of the last event from the touch screen
-	short waitTouch=0; //flag to know if we are waining for user input on the touch screen
+	bool waitTouch=false; //flag to know if we are waining for user input on the touch screen
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
 	int numWPloaded=0; //the number of waypoints loaded from the selected flight plan
 	while(!doExit) { //Main loop
@@ -189,17 +190,17 @@ int main(int argc, char** argv) {
 						if(lastTouch.y>200) { //user touched lower part of the screen
 							if(lastTouch.x<80 && currFile->prev!=NULL) { //user touched prev button
 								currFile=currFile->prev;
-								waitTouch=0;
+								waitTouch=false;
 							} else if(lastTouch.x>200 && lastTouch.x<300) { //user touched LOAD button
 								asprintf(&toLoad,"%s%s%s",BASE_PATH,"Routes/",currFile->name);
 								status=MAIN_STATUS_START_GPS;
-								waitTouch=0;
+								waitTouch=false;
 							} else if(lastTouch.x>350 && currFile->next!=NULL) { //user touched next button
 								currFile=currFile->next;
-								waitTouch=0;
+								waitTouch=false;
 							}
 						}
-					} else waitTouch=1;
+					} else waitTouch=true;
 				}
 			} break;
 			case MAIN_STATUS_START_GPS: //Start reading from GPS and the track recorder
@@ -213,7 +214,7 @@ int main(int argc, char** argv) {
 			case MAIN_STATUS_NOT_LOADED: //No route loaded, but display anyway data from GPS
 				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit"); //Exit "button"
 				FBrenderFlush();
-				waitTouch=1; //Wait for a touch on the exit button
+				waitTouch=true; //Wait for a touch on the exit button
 				status=MAIN_STATUS_WAIT_EXIT;
 				break;
 			case MAIN_STATUS_READY_TO_NAV: //A route is available to be flown
@@ -224,18 +225,18 @@ int main(int argc, char** argv) {
 						free(toLoad);
 					} else logText("ERROR: NULL pointer to the route file to be loaded.\n");
 					status=MAIN_STATUS_NOT_LOADED;
-					waitTouch=0;
+					waitTouch=false;
 					break;
 				} else logText("Loaded route with %d WayPoints.\n\n",numWPloaded);
 				free(toLoad);
-				waitTouch=1; //Here we wait for a touch to start the navigation
+				waitTouch=true; //Here we wait for a touch to start the navigation
 				status=MAIN_STATUS_FLY_ROUTE;
 				break;
 			case MAIN_STATUS_FLY_ROUTE: { //Navigation can start
 				float timestamp=gps.timestamp; //Get actual time from GPS
 				if(timestamp==-1) timestamp=getCurrentTime(); //if not valid get it from internal clock
 				NavStartNavigation(timestamp); //Start the navigation
-				waitTouch=1; //Wait for a touch to reverse the route or to exit
+				waitTouch=true; //Wait for a touch to reverse the route or to exit
 				if(numWPloaded>1) status=MAIN_STATUS_FLY_REVERSED; //if there is more than 1 WP reverse the route
 				else {  //otherwise...
 					FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit"); //... show exit button ...
@@ -251,12 +252,12 @@ int main(int argc, char** argv) {
 				NavStartNavigation(timestamp);
 				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit"); //Show exit "button"
 				FBrenderFlush();
-				waitTouch=1; //Here we wait for a touch on the exit button
+				waitTouch=true; //Here we wait for a touch on the exit button
 				status=MAIN_STATUS_WAIT_EXIT;
 			} break;
 			case MAIN_STATUS_WAIT_EXIT:
 				if((lastTouch.x>screen.width-(5*8))&&(lastTouch.y<40)) doExit=1;
-				waitTouch=1; //Here we wait for a touch on the exit button
+				waitTouch=true; //Here we wait for a touch on the exit button
 				break;
 			default:
 				break;

@@ -6,20 +6,22 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 12/11/2013
+// Last change : 23/11/2013
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
 #ifndef BLACKBOX_H_
 #define BLACKBOX_H_
 
-#define BBS_NOT_SET   0
-#define BBS_WAIT_FIX  1
-#define BBS_WAIT_POS  2
-#define BBS_WAIT_OPT  3
-#define BBS_PAUSED    4
-
 #define MIN_DIST 0.00000109872 // 7 m in Rad
+
+enum blackBoxStatus {
+	BBS_NOT_SET,
+	BBS_WAIT_FIX,
+	BBS_WAIT_POS,
+	BBS_WAIT_OPT,
+	BBS_PAUSED
+};
 
 void BlackBoxStart(void);
 short BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, short dateChanged);

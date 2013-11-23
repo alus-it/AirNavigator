@@ -6,23 +6,14 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 11/11/2013
+// Last change : 23/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
 #ifndef GPSRECEIVER_H_
 #define GPSRECEIVER_H_
 
-//Quality indicators
-#define Q_NO_FIX   0 //fix not available,
-#define Q_GPS_FIX  1 //GPS fix,
-#define Q_DIFF_FIX 2 //Differential GPS fix
-#define Q_PPS_FIX  3 //PPS fix
-#define Q_RTK_FIX  4 //Real Time Kinematic
-#define Q_FRTK_FIX 5 //Float RTK
-#define Q_EST_FIX  6 //estimated (dead reckoning)
-#define Q_MAN_FIX  7 //Manual input mode
-#define Q_SIM_FIX  8 //Simulation mode
+#define MAX_NUM_SAT 24
 
 //FAA Mode Indicators
 #define FAA_ABSENT  0 //Previous version of NMEA 2.3 without FAA
@@ -33,19 +24,32 @@
 #define FAA_SIMUL  83 //'S' Simulated Mode
 #define FAA_NOTVAL 78 //'N' Data Not Valid
 
-#define MODE_UNKNOWN 0
-#define MODE_NO_FIX  1
-#define MODE_2D_FIX  2
-#define MODE_3D_FIX  3
-#define MODE_GPS_FIX 4 //This is the fix from GGA we don't know if it is 2D or 3D
+enum qualityIndicators { //Quality indicators
+	Q_NO_FIX,   //fix not available,
+	Q_GPS_FIX,  //GPS fix,
+	Q_DIFF_FIX, //Differential GPS fix
+	Q_PPS_FIX,  //PPS fix
+	Q_RTK_FIX,  //Real Time Kinematic
+	Q_FRTK_FIX, //Float RTK
+	Q_EST_FIX,  //estimated (dead reckoning)
+	Q_MAN_FIX,  //Manual input mode
+	Q_SIM_FIX   //Simulation mode
+};
 
-#define MAX_NUM_SAT 24
+enum GPSmode {
+	MODE_UNKNOWN,
+	MODE_NO_FIX,
+	MODE_2D_FIX,
+	MODE_3D_FIX,
+	MODE_GPS_FIX //This is the fix from NMEA GGA sentence: we don't know if it is 2D or 3D
+};
 
-//Indexes for satellite's data
-#define SAT_PRN       0  //satellite PRN number
-#define SAT_ELEVATION 1  //elevation in degrees (00-90)
-#define SAT_AZIMUTH   2  //azimuth in degrees to true north (000-359)
-#define SAT_SNR       3  //SNR in dB (00-99)
+enum indexSatData { //Indexes for satellite's data
+	SAT_PRN,       //satellite PRN number
+	SAT_ELEVATION, //elevation in degrees (00-90)
+	SAT_AZIMUTH,   //azimuth in degrees to true north (000-359)
+	SAT_SNR        //SNR in dB (00-99)
+};
 
 struct GPSdata {
 	float timestamp; //timestamp of the data in sec from the beginning of the day

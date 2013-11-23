@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/11/2013
+// Last change : 23/11/2013
 // Description : Header of AirCalc.c
 //============================================================================
 
@@ -20,10 +20,11 @@
 #define SIXTYTH 0.01666666666666666667 // 1/60
 #define MILE_FT 5280 //1 Mile = 5280 Ft (1760 Yards)
 
-//Sunrise/sunset algorithm return values
-#define SUN_RISES_AND_SETS 1
-#define SUN_NEVER_RISES    2 //The sun never rises on this location (on the specified date)
-#define SUN_NEVER_SETS     3 //The sun never sets on this location (on the specified date)
+enum sunriseSunsetCases { //Sunrise/sunset algorithm return values
+	SUN_RISES_AND_SETS,
+	SUN_NEVER_RISES,    //The sun never rises on this location (on the specified date)
+	SUN_NEVER_SETS      //The sun never sets on this location (on the specified date)
+};
 
 double Km2Nm(double valueKm);
 double Nm2Km(double valueNm);

@@ -6,23 +6,25 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 17/11/2013
+// Last change : 23/11/2013
 // Description : Header of the navigation manager: Navigator.c
 //============================================================================
 
 #ifndef NAVIGATOR_H_
 #define NAVIGATOR_H_
 
-#define NAV_STATUS_NOT_INIT         0
-#define NAV_STATUS_NO_ROUTE_SET     1
-#define NAV_STATUS_TO_START_NAV     2
-#define NAV_STATUS_WAIT_FIX         3
-#define NAV_STATUS_NAV_TO_DPT       4
-#define NAV_STATUS_NAV_TO_WPT       5
-#define NAV_STATUS_NAV_TO_DST       6
-#define NAV_STATUS_NAV_TO_SINGLE_WP 7
-#define NAV_STATUS_END_NAV          8
-#define NAV_STATUS_NAV_BUSY         9
+enum navigatorStatus {
+	NAV_STATUS_NOT_INIT,
+	NAV_STATUS_NO_ROUTE_SET,
+	NAV_STATUS_TO_START_NAV,
+	NAV_STATUS_WAIT_FIX,
+	NAV_STATUS_NAV_TO_DPT,
+	NAV_STATUS_NAV_TO_WPT,
+	NAV_STATUS_NAV_TO_DST,
+	NAV_STATUS_NAV_TO_SINGLE_WP,
+	NAV_STATUS_END_NAV,
+	NAV_STATUS_NAV_BUSY
+};
 
 typedef struct wp {
 	int seqNo;            //sequence number

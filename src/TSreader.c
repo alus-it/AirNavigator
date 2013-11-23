@@ -85,8 +85,7 @@ void* runTSreader(void *arg) { //This is the thread listening for input on the t
 			if(event.pressure==0) { //to detect when the finger is going away from the screen so the touch is completed
 				pthread_mutex_lock(&condVar->lastTouchMutex);
 				lastTouch=event; //it's a simple struct no need to use memcpy
-				//memcpy(&new_event,&prev_event,sizeof(TS_EVENT));
-				pthread_cond_signal(&condVar->lastTouchSignal); //signal to the main that we have a new touch
+				pthread_cond_signal(&condVar->lastTouchSignal); //signal to the main that there is a new touch
 				pthread_mutex_unlock(&condVar->lastTouchMutex);
 			}
 		}

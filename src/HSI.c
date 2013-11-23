@@ -29,6 +29,7 @@ void drawLabels(int dir);
 void drawCDI(double direction, double course, double cdi);
 void diplayCDIvalue(double cdiMt);
 
+//TODO: make a struct with all of that globals:
 int cx,cy; //center
 int mark_start;
 int re; //external radius

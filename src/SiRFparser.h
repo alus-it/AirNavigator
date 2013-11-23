@@ -17,42 +17,10 @@
 #define SIRFPARSER_H_
 
 #include <time.h>
+#include "GPSreceiver.h"
 
 
 #define SIRF_BUFFER_SIZE        1034
-
-//Quality indicators
-#define Q_NO_FIX   0 //fix not available,
-#define Q_GPS_FIX  1 //GPS fix,
-#define Q_DIFF_FIX 2 //Differential GPS fix
-#define Q_PPS_FIX  3 //PPS fix
-#define Q_RTK_FIX  4 //Real Time Kinematic
-#define Q_FRTK_FIX 5 //Float RTK
-#define Q_EST_FIX  6 //estimated (dead reckoning)
-#define Q_MAN_FIX  7 //Manual input mode
-#define Q_SIM_FIX  8 //Simulation mode
-
-//FAA Mode Indicators
-#define FAA_ABSENT  0 //Previous version of NMEA 2.3 without FAA
-#define FAA_AUTO   65 //'A' Autonomous mode
-#define FAA_DIFF   68 //'D' Differential Mode
-#define FAA_ESTIM  69 //'E' Estimated (dead-reckoning) mode
-#define FAA_MANUAL 77 //'M' Manual Input Mode
-#define FAA_SIMUL  83 //'S' Simulated Mode
-#define FAA_NOTVAL 78 //'N' Data Not Valid
-
-#define MODE_UNKNOWN 0
-#define MODE_NO_FIX  1
-#define MODE_2D_FIX  2
-#define MODE_3D_FIX  3
-
-#define MAX_NUM_SAT 24
-
-//Indexes for satellite's data
-#define SAT_PRN       0 //satellite PRN number
-#define SAT_ELEVATION 1 //elevation in degrees (00-90)
-#define SAT_AZIMUTH   2 //azimuth in degrees to true north (000-359)
-#define SAT_SNR       3 //SNR in dB (00-99)
 
 
 struct GPSdataSiRF {

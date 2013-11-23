@@ -6,12 +6,11 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 17/11/2013
+// Last change : 23/11/2013
 // Description : Navigation manager
 //============================================================================
 
 //FIXME: detected NaN for course and XTD for some rare case
-//TODO: manage better the navigation to the departure
 
 #define _GNU_SOURCE
 
