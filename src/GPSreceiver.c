@@ -19,11 +19,11 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <fcntl.h>
-#include <sys/ioctl.h> /////
+//#include <sys/ioctl.h>
 #ifdef SERIAL_DEVICE
 #include <termios.h>
 #endif
-#include <barcelona/Barc_gps.h> /////
+//#include <barcelona/Barc_gps.h>
 #include "GPSreceiver.h"
 #include "Common.h"
 #include "Configuration.h"
@@ -38,8 +38,8 @@
 
 void configureGPSreceiver(void);
 void* run(void *ptr);
-short enableGPS(void);
-void disableGPS(void);
+//short enableGPS(void);
+//void disableGPS(void);
 
 struct GPSdata gps = {
 	.timestamp=-1,
@@ -68,7 +68,7 @@ int DATABITS,STOPBITS,PARITYON,PARITY;
 
 pthread_t thread;
 volatile short readingGPS=-1; //-1 means still not initialized
-static int devGPS=-1;
+//static int devGPS=-1;
 
 
 void configureGPSreceiver(void) {
@@ -171,8 +171,7 @@ void configureGPSreceiver(void) {
 			break;
 	} //end of switch parity
 #endif
-	short val=enableGPS(); /////
-	printLog("enableGPS returned: %d\n",val);
+	//enableGPS();
 	GeoidalOpen();
 	readingGPS=0;
 	updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
@@ -181,7 +180,7 @@ void configureGPSreceiver(void) {
 }
 
 void* run(void *ptr) { //listening function, it will be ran in a separate thread
-	bool isSiRF=true; //TODO: this will select between SiRF or NMEA put it in a proper configurable place!
+	bool isSiRF=false; //TODO: this will select between SiRF or NMEA put it in a proper configurable place!
 	static int fd=-1;
 
 	if(isSiRF) fd=open("/dev/gpsdata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
@@ -253,31 +252,10 @@ void GPSreceiverStop(void) {
 }
 
 void GPSreceiverClose(void) {
-	disableGPS(); /////
+	//disableGPS();
 	GPSreceiverStop();
 	GeoidalClose();
 	pthread_join(thread,NULL); //wait for thread death
-}
-
-short enableGPS() {
-	if(devGPS>=0) return 2;
-	devGPS=open("/dev/gps",O_RDWR);
-	if(devGPS<0) return -1;
-	else {
-		if(ioctl(devGPS,IOW_GPS_ON,NULL)==-1) { //if the return values is -1 it means fault
-			close(devGPS);
-			devGPS=-1;
-			return -2;
-		}
-	}
-	return 1;
-}
-
-void disableGPS() {
-	if(devGPS>=0) {
-		close(devGPS);
-		devGPS=-1;
-	}
 }
 
 void updateHdiluition(float hDiluition) {
@@ -365,3 +343,26 @@ void updateFixMode(int fixMode) {
 		if(fixMode==MODE_NO_FIX) FBrenderFlush(); //because we want to show it immediately
 	}
 }
+
+/* Functions used to enable/disable GPS unit: seem not needed
+short enableGPS() {
+	if(devGPS>=0) return 2;
+	devGPS=open("/dev/gps",O_RDWR);
+	if(devGPS<0) return -1;
+	else {
+		if(ioctl(devGPS,IOW_GPS_ON,NULL)==-1) { //if the return values is -1 it means fault
+			close(devGPS);
+			devGPS=-1;
+			return -2;
+		}
+	}
+	return 1;
+}
+
+void disableGPS() {
+	if(devGPS>=0) {
+		close(devGPS);
+		devGPS=-1;
+	}
+}
+*/
