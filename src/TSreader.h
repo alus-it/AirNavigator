@@ -28,8 +28,6 @@ TS_EVENT TSreaderGetLastTouch(void);
 
 /*
 short checkBattery(short *batVolt, short *refVolt, short *chargeCurr);
-short enableGPS(void);
-void disableGPS(void);
 */
 
 #endif /* TSREADER_H_ */

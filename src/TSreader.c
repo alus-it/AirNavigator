@@ -18,8 +18,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <barcelona/Barc_ts.h>
-#include <barcelona/Barc_gps.h>
-#include <barcelona/Barc_Battery.h>
+//#include <barcelona/Barc_Battery.h>
 #include "TSreader.h"
 #include "Common.h"
 
@@ -33,7 +32,6 @@ static int tsfd=-1;
 pthread_t threadTSreader;
 condVar_t condVar=NULL;
 TS_EVENT lastTouch;
-//static int gps;
 
 
 void TSreaderRelease(void) {
@@ -144,20 +142,4 @@ short checkBattery(short *batVolt, short *refVolt, short *chargeCurr) {
 	return 1;
 }
 
-short enableGPS() {
-	gps=open("/dev/gps",O_RDWR);
-	if(gps<0) return 0;
-	else {
-		if(ioctl(gps,IOW_GPS_ON,NULL)==-1) { //if the return values is -1 it means fault
-			close(gps);
-			gps=-1;
-			return -1;
-		}
-	}
-	return 1;
-}
-
-void disableGPS() {
-	if(gps>=0) close(gps);
-}
 */

@@ -60,7 +60,7 @@ struct GPSdataSiRF {
 
 struct GPSdataSiRF gpsSiRF;
 
-void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, long redBytes);
+void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, int redBytes);
 
 
 #endif

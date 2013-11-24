@@ -322,9 +322,11 @@ Version 0.2.8
 	
 Version 0.2.9
 	Added possibility to use route with only one way point (as final destination)
+	TODO: SiRF parser integrated in the program: not it's able to read also binary SiRF data from GPS.
+	General code optimization
 	Executable optimized for TomTom processor ARM 920T
-	...
-	TODO...
+	TODO: What else?
+	
 
 
 CONTACTS

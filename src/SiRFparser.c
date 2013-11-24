@@ -117,14 +117,9 @@ void initializeSiRF(void) {
 	//FBrenderFlush();
 }
 
-void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, long redBytes) {
-
-
-	printLog("Red: %d Bytes.\n",redBytes);
-
+void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, int redBytes) {
 	for(int i=0;i<redBytes;i++) {
 		printLog("%02X ",buf[i]); //////////////DEBUG
-
 
 	switch(frameStatus) { //for each byte received in the buffer
 		case SIRF_START_SEQ_1: //waiting for start sequence
@@ -143,7 +138,7 @@ void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, long redBytes) 
 		case SIRF_PAYLOAD_LEN_2: //getting the second byte of payload length
 			payloadLength=firstBytePayloadLength*256+buf[i];
 			frameStatus=SIRF_PAYLOAD;
-			rcvdBytesOfPayload=SIRF_START_SEQ_1;
+			rcvdBytesOfPayload=0;
 			break;
 		case SIRF_PAYLOAD: //getting bytes of the payload //TODO: implement pre-selection on msgID (first byte of payload)
 			payload[rcvdBytesOfPayload++]=buf[i];
@@ -160,9 +155,9 @@ void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, long redBytes) 
 			frameStatus=SIRF_END_SEQ_1;
 			break;
 		case SIRF_END_SEQ_1: //get first byte of end sequence
-			if(buf[i]==0xB0) frameStatus=8;
+			if(buf[i]==0xB0) frameStatus=SIRF_END_SEQ_2;
 			else {
-				frameStatus=0;
+				frameStatus=SIRF_START_SEQ_1;
 				rcvdBytesOfPayload=0;
 			}
 			break;
@@ -179,7 +174,9 @@ void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, long redBytes) 
 				} else printLog("Wrong checksum :(\n");
 			}
 			rcvdBytesOfPayload=0;
-			frameStatus=0;
+			frameStatus=SIRF_START_SEQ_1;
+			break;
+		default:
 			break;
 	} } printLog("\n\n"); //end of for(each byte) and switch(status) of received byte
 }

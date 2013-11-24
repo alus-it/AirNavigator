@@ -94,7 +94,7 @@ $(BIN)main.o: $(SRC)main.c $(SRC)Common.h $(SRC)Configuration.h $(SRC)FBrender.h
 	$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' -I $(INC) $< -o $@
 
 $(BIN)GPSreceiver.o: $(SRC)GPSreceiver.c $(SRC)GPSreceiver.h $(SRC)NMEAparser.h $(SRC)SiRFparser.h $(SRC)Common.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)BlackBox.h
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) -I $(INC) $< -o $@
 
 $(BIN)NMEAparser.o: $(SRC)NMEAparser.c $(SRC)NMEAparser.h $(SRC)GPSreceiver.h $(SRC)Common.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
 	$(CC) $(CFLAGS) $< -o $@
