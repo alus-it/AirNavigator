@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 24/11/2013
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
@@ -26,6 +26,21 @@
 #include "HSI.h"
 #include "Geoidal.h"
 
+struct NMEAparserDataStruct {
+	float altTimestamp, dirTimestamp, newerTimestamp;
+	bool GGAfound, RMCfound, GSAfound;
+	int numOfGSVmsg, GSVmsgSeqNo, GSVsatSeqNo, GSVtotalSatInView;
+	int rcvdBytesOfSentence;
+	char sentence[MAX_SENTENCE_LENGTH];
+	bool lineFeedExpected;
+};
+
+struct lastRedDataStruct {
+	float alt, latMin, lonMin, timeSec, groundSpeedKnots, trueTrack, magneticVariation, pdop, hdop, vdop;
+	char altUnit;
+	int latGra, lonGra, timeHour, timeMin, SatsInView, SatsInUse, timeDay, timeMonth, timeYear;
+	bool latNorth, lonEast, magneticVariationToEast;
+};
 
 int parseNMEAsentence(char* ascii);
 int parseGGA(char* ascii);
@@ -40,65 +55,95 @@ int parseVTG(char* ascii);
 int parseGLL(char* ascii);
 #endif
 unsigned int getCRCintValue(void);
-void updateFromNMEAdata(void);
 short updateAltitude(float newAltitude, char altUnit, float timestamp);
-void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, float timestamp);
-short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged);
+void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, float timestamp);
+bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDeg, float newlonMin, bool newisLonE, bool dateChaged);
 
-//TODO: reorganize all those global vars in a struct
-float altTimestamp=0,dirTimestamp=0,newerTimestamp=0;
-short GGAfound=0,RMCfound=0,GSAfound=0;
-float altB,latMinB,lonMinB,timeSecB,groundSpeedKnotsB,trueTrackB,magneticVariationB,pdopB,hdopB,vdopB;
-char altUnitB;
-int latGraB,lonGraB,timeHourB,timeMinB,SatsInViewB,SatsInUseB,timeDayB,timeMonthB,timeYearB;
-short latNorthB,lonEastB,magneticVariationToEastB;
-int numOfGSVmsg=0,GSVmsgSeqNo=0,GSVsatSeqNo,GSVtotalSatInView;
+struct NMEAparserDataStruct data = {
+	.altTimestamp=0,
+	.dirTimestamp=0,
+	.newerTimestamp=0,
+	.GGAfound=false,
+	.RMCfound=false,
+	.GSAfound=false,
+	.numOfGSVmsg=0,
+	.GSVmsgSeqNo=0,
+	.GSVsatSeqNo=0,
+	.GSVtotalSatInView=0,
+	.rcvdBytesOfSentence=0,
+	.lineFeedExpected=false
+};
 
-//FIXME: those three must be reinitialized in case the parser is restarted! Check!
-int rcvdBytesOfSentence=0;
-char sentence[MAX_SENTENCE_LENGTH]={0};
-short lineFeedExpected=1;
-
+struct lastRedDataStruct lastRedData;
 
 void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
-	for(long i=0;i<redBytes;i++) switch(buf[i]) {
+	for(int i=0;i<redBytes;i++) switch(buf[i]) {
 		case '$':
-			if(rcvdBytesOfSentence==0) sentence[rcvdBytesOfSentence++]='$';
+			if(data.rcvdBytesOfSentence!=0) {
+				data.rcvdBytesOfSentence=0;
+				data.lineFeedExpected=false;
+			}
+			data.sentence[data.rcvdBytesOfSentence++]='$';
 			break;
 		case '\r':
-			if(rcvdBytesOfSentence>0) lineFeedExpected=1;
+			if(data.rcvdBytesOfSentence>0) data.lineFeedExpected=true;
 			break;
 		case '\n':
-			if(lineFeedExpected&&rcvdBytesOfSentence>3) { //to avoid overflow errors
-				if(sentence[rcvdBytesOfSentence-3]=='*') { //CRC check
+			if(data.lineFeedExpected && data.rcvdBytesOfSentence>3) { //to avoid overflow errors
+				if(data.sentence[data.rcvdBytesOfSentence-3]=='*') { //CRC check
 					unsigned int checksum=0;
 					int j;
-					for(j=1;j<rcvdBytesOfSentence-3;j++)
-						checksum=checksum^sentence[j];
+					for(j=1;j<data.rcvdBytesOfSentence-3;j++)
+						checksum=checksum^data.sentence[j];
 					if(getCRCintValue()==checksum) { //right CRC
 #ifdef PRINT_SENTENCES //Print all the sentences received
-							sentence[rcvdBytesOfSentence]='\0';
-							printLog("%s\n",sentence);
+						data.sentence[data.rcvdBytesOfSentence]='\0';
+						printLog("%s\n",data.sentence);
 #endif
-						sentence[rcvdBytesOfSentence-3]='\0'; //put terminator to cut off checksum
-						parseNMEAsentence(strdup(sentence));
+						data.sentence[data.rcvdBytesOfSentence-3]='\0'; //put terminator to cut off checksum
+						parseNMEAsentence(strdup(data.sentence));
 					}
 				} //end of CRC check, ignore all if CRC is wrong
-				rcvdBytesOfSentence=0;
-				lineFeedExpected=0;
+				data.rcvdBytesOfSentence=0;
+				data.lineFeedExpected=false;
 			}
 			break;
 		default:
-			if(rcvdBytesOfSentence>0) { //add chars to the sentence
-				if(rcvdBytesOfSentence<MAX_SENTENCE_LENGTH) sentence[rcvdBytesOfSentence++]=buf[i];
+			if(data.rcvdBytesOfSentence>0) { //add chars to the sentence
+				if(data.rcvdBytesOfSentence<MAX_SENTENCE_LENGTH) data.sentence[data.rcvdBytesOfSentence++]=buf[i];
 				else { //to avoid buffer overflow
-					rcvdBytesOfSentence=0;
-					lineFeedExpected=0;
+					data.rcvdBytesOfSentence=0;
+					data.lineFeedExpected=false;
 				}
 			}
 			break;
 	} //end of switch(each byte) of just received sequence
-	updateFromNMEAdata();
+	bool dateChanged=false, posChanged=false, altChanged=false;
+	if(data.RMCfound) dateChanged=updateDate(lastRedData.timeDay,lastRedData.timeMonth,lastRedData.timeYear); //pre-check if date is changed
+	if(data.GGAfound) {
+		updateTime(data.newerTimestamp,lastRedData.timeHour,lastRedData.timeMin,lastRedData.timeSec,false); //updateTime must be done always before of updatePosition
+		posChanged=updatePosition(lastRedData.latGra,lastRedData.latMin,lastRedData.latNorth,lastRedData.lonGra,lastRedData.lonMin,lastRedData.lonEast,dateChanged);
+		altChanged=updateAltitude(lastRedData.alt,lastRedData.altUnit,data.newerTimestamp);
+		updateNumOfTotalSatsInView(lastRedData.SatsInView);
+		if(data.GSAfound) {
+			updateNumOfActiveSats(lastRedData.SatsInUse);
+			updateDiluition(lastRedData.pdop,lastRedData.hdop,lastRedData.vdop);
+		} else updateHdiluition(lastRedData.hdop);
+	}
+	if(data.RMCfound) {
+		if(!data.GGAfound) {
+			updateTime(data.newerTimestamp,lastRedData.timeHour,lastRedData.timeMin,lastRedData.timeSec,false); //updateTime must be done always before of updatePosition
+			posChanged=updatePosition(lastRedData.latGra,lastRedData.latMin,lastRedData.latNorth,lastRedData.lonGra,lastRedData.lonMin,lastRedData.lonEast,dateChanged);
+		}
+		updateSpeed(lastRedData.groundSpeedKnots);
+		updateDirection(lastRedData.trueTrack,lastRedData.magneticVariation,lastRedData.magneticVariationToEast,data.newerTimestamp);
+	}
+	if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
+	FBrenderFlush();
+	BlackBoxCommit();
+	data.GGAfound=false;
+	data.RMCfound=false;
+	data.GSAfound=false;
 }
 
 int parseNMEAsentence(char* ascii) {
@@ -147,36 +192,7 @@ int parseNMEAsentence(char* ascii) {
 	return 1;
 }
 
-void updateFromNMEAdata(void) {
-	short dateChanged=0,posChanged=0,altChanged=0;
-	if(RMCfound) dateChanged=updateDate(timeDayB,timeMonthB,timeYearB); //pre-check if date is changed
-	if(GGAfound) {
-		updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
-		posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
-		altChanged=updateAltitude(altB,altUnitB,newerTimestamp);
-		updateNumOfTotalSatsInView(SatsInViewB);
-		if(GSAfound) {
-			updateNumOfActiveSats(SatsInUseB);
-			updateDiluition(pdopB,hdopB,vdopB);
-		} else updateHdiluition(hdopB);
-	}
-	if(RMCfound) {
-		if(!GGAfound) {
-			updateTime(newerTimestamp,timeHourB,timeMinB,timeSecB,0); //updateTime must be done always before of updatePosition
-			posChanged=updatePosition(latGraB,latMinB,latNorthB,lonGraB,lonMinB,lonEastB,dateChanged);
-		}
-		updateSpeed(groundSpeedKnotsB);
-		updateDirection(trueTrackB,magneticVariationB,magneticVariationToEastB,newerTimestamp);
-	}
-	if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
-	FBrenderFlush();
-	BlackBoxCommit();
-	GGAfound=0;
-	RMCfound=0;
-	GSAfound=0;
-}
-
-short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlonDeg, float newlonMin, short newisLonE, short dateChaged) {
+bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDeg, float newlonMin, bool newisLonE, bool dateChaged) {
 	if(gps.latMinDecimal!=newlatMin||gps.lonMinDecimal!=newlonMin) {
 		gps.latDeg=newlatDeg;
 		gps.lonDeg=newlonDeg;
@@ -191,10 +207,10 @@ short updatePosition(int newlatDeg, float newlatMin, short newisLatN, int newlon
 		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
 		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
 		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
-		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,timeHourB,timeMinB,timeSecB,dateChaged);
-		return 1;
+		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,lastRedData.timeHour,lastRedData.timeMin,lastRedData.timeSec,dateChaged);
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 short updateAltitude(float newAltitude, char altUnit, float timestamp) {
@@ -216,7 +232,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 		printLog("ERROR: Unknown altitude unit: %c\n",altUnit);
 		return 0;
 	}
-	altTimestamp=timestamp;
+	data.altTimestamp=timestamp;
 	if(updateAlt) {
 		gps.altMt=newAltitudeMt;
 		gps.altFt=newAltitudeFt;
@@ -225,11 +241,11 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 		newAltitudeFt-=m2Ft(deltaMt);
 		HSIdrawVSIscale(newAltitudeFt);
 		PrintAltitude(newAltitudeMt,newAltitudeFt);
-		if(altTimestamp!=0) {
+		if(data.altTimestamp!=0) {
 			float deltaT;
-			if(timestamp>altTimestamp) deltaT=timestamp-altTimestamp;
-			else if(timestamp!=altTimestamp) {
-				deltaT=timestamp+86400-altTimestamp;
+			if(timestamp>data.altTimestamp) deltaT=timestamp-data.altTimestamp;
+			else if(timestamp!=data.altTimestamp) {
+				deltaT=timestamp+86400-data.altTimestamp;
 				float deltaH=newAltitudeFt-gps.altFt;
 				gps.climbFtMin=deltaH/(deltaT/60);
 				PrintVerticalSpeed(gps.climbFtMin);
@@ -245,7 +261,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 	return updateAlt;
 }
 
-void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, float timestamp) {
+void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, float timestamp) {
 	if(gps.speedKmh>2) {
 		if(newTrueTrack!=gps.trueTrack) {
 			gps.magneticVariation=magneticVar;
@@ -258,10 +274,10 @@ void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, f
 				else gps.magneticTrack=newTrueTrack+magneticVar;
 			}
 			HSIupdateDir(newTrueTrack,gps.magneticTrack);
-			if(dirTimestamp!=0&&gps.speedKmh>10) {
+			if(data.dirTimestamp!=0&&gps.speedKmh>10) {
 				float deltaT;
-				if(timestamp>dirTimestamp) deltaT=timestamp-dirTimestamp;
-				else if(timestamp!=dirTimestamp) deltaT=timestamp+86400-dirTimestamp;
+				if(timestamp>data.dirTimestamp) deltaT=timestamp-data.dirTimestamp;
+				else if(timestamp!=data.dirTimestamp) deltaT=timestamp+86400-data.dirTimestamp;
 				else return;
 				float deltaA=newTrueTrack-gps.trueTrack;
 				gps.turnRateDegSec=deltaA/deltaT;
@@ -278,7 +294,7 @@ void updateDirection(float newTrueTrack, float magneticVar, short isVarToEast, f
 		}
 	}
 	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
-	dirTimestamp=timestamp;
+	data.dirTimestamp=timestamp;
 }
 
 int parseGGA(char* ascii) {
@@ -287,10 +303,10 @@ int parseGGA(char* ascii) {
 	float timeSec=0;
 	int latGra=-1;
 	float latMin=0;
-	short latNorth=1;
+	bool latNorth=true;
 	int lonGra=-1;
 	float lonMin=0;
-	short lonEast=1;
+	bool lonEast=true;
 	int quality=Q_NO_FIX;
 	int numOfSatellites=-1;
 	float hDilutionPrecision=0;
@@ -310,10 +326,10 @@ int parseGGA(char* ascii) {
 	if(field==NULL) return (-3);
 	if(strlen(field)>0) switch(field[0]){
 		case 'N':
-			latNorth=1;
+			latNorth=true;
 			break;
 		case 'S':
-			latNorth=0;
+			latNorth=false;
 			break;
 		default:
 			return (-3);
@@ -325,10 +341,10 @@ int parseGGA(char* ascii) {
 	if(field==NULL) return (-3);
 	if(strlen(field)>0) switch(field[0]){
 		case 'E':
-			lonEast=1;
+			lonEast=true;
 			break;
 		case 'W':
-			lonEast=0;
+			lonEast=false;
 			break;
 		default:
 			return (-5);
@@ -360,35 +376,35 @@ int parseGGA(char* ascii) {
 	field=strsep(&ascii,","); //Differential reference station ID, the last one
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&diffRef);
 	float timestamp=timeHour*3600+timeMin*60+timeSec;
-	if(timestamp<newerTimestamp) return 0; //the sentence is old
+	if(timestamp<data.newerTimestamp) return 0; //the sentence is old
 	if(quality!=Q_NO_FIX) {
-		if(timestamp>newerTimestamp) { //this is a new one sentence
-			newerTimestamp=timestamp;
-			GGAfound=1;
-			RMCfound=0;
-			GSAfound=0;
+		if(timestamp>data.newerTimestamp) { //this is a new one sentence
+			data.newerTimestamp=timestamp;
+			data.GGAfound=true;
+			data.RMCfound=false;
+			data.GSAfound=false;
 		} else { //timestamp==newerTimestamp
-			if(GGAfound) return 0;
-			else GGAfound=1;
+			if(data.GGAfound) return 0;
+			else data.GGAfound=true;
 		}
-		altB=alt;
-		altUnitB=altUnit;
-		latGraB=latGra;
-		latMinB=latMin;
-		latNorthB=latNorth;
-		lonGraB=lonGra;
-		lonMinB=lonMin;
-		lonEastB=lonEast;
-		timeHourB=timeHour;
-		timeMinB=timeMin;
-		timeSecB=timeSec;
-		hdopB=hDilutionPrecision;
-		SatsInViewB=numOfSatellites;
+		lastRedData.alt=alt;
+		lastRedData.altUnit=altUnit;
+		lastRedData.latGra=latGra;
+		lastRedData.latMin=latMin;
+		lastRedData.latNorth=latNorth;
+		lastRedData.lonGra=lonGra;
+		lastRedData.lonMin=lonMin;
+		lastRedData.lonEast=lonEast;
+		lastRedData.timeHour=timeHour;
+		lastRedData.timeMin=timeMin;
+		lastRedData.timeSec=timeSec;
+		lastRedData.hdop=hDilutionPrecision;
+		lastRedData.SatsInView=numOfSatellites;
 		updateFixMode(MODE_GPS_FIX);
 		return 1;
 	} else { //there is no fix...
 		updateFixMode(MODE_NO_FIX); //show that there is no fix
-		if(timestamp>newerTimestamp) updateTime(timestamp,timeHour,timeMin,timeSec,1); //show the time
+		if(timestamp>data.newerTimestamp) updateTime(timestamp,timeHour,timeMin,timeSec,true); //show the time
 	}
 	return 0;
 }
@@ -396,17 +412,17 @@ int parseGGA(char* ascii) {
 int parseRMC(char* ascii) {
 	int timeHour=-1,timeMin=-1,timeDay=-1,timeMonth=-1,timeYear=-1;
 	float timeSec=0;
-	short isValid=0;
+	bool isValid=false;
 	int latGra=-1;
 	float latMin=0;
-	short latNorth=1;
+	bool latNorth=true;
 	int lonGra=-1;
 	float lonMin=0;
-	short lonEast=1;
+	bool lonEast=true;
 	float groundSpeedKnots=0;
 	float trueTrack=0;
 	float magneticVariation=0;
-	short magneticVariationToEast=1;
+	bool magneticVariationToEast=true;
 	char faa=FAA_ABSENT;
 	char *field=strsep(&ascii,","); //Hour, Minute, second hhmmss.sss
 	if(field==NULL) return (-1);
@@ -415,10 +431,10 @@ int parseRMC(char* ascii) {
 	if(field==NULL) return (-2);
 	if(strlen(field)>0) switch(field[0]){
 		case 'A':
-			isValid=1;
+			isValid=true;
 			break;
 		case 'V':
-			isValid=0;
+			isValid=false;
 			break;
 		default:
 			return (-2);
@@ -430,10 +446,10 @@ int parseRMC(char* ascii) {
 	if(field==NULL) return (-4);
 	if(strlen(field)>0) switch(field[0]){
 		case 'N':
-			latNorth=1;
+			latNorth=true;
 			break;
 		case 'S':
-			latNorth=0;
+			latNorth=false;
 			break;
 		default:
 			return (-4);
@@ -445,10 +461,10 @@ int parseRMC(char* ascii) {
 	if(field==NULL) return (-6);
 	if(strlen(field)>0) switch(field[0]){
 		case 'E':
-			lonEast=1;
+			lonEast=true;
 			break;
 		case 'W':
-			lonEast=0;
+			lonEast=false;
 			break;
 		default:
 			return (-6);
@@ -469,10 +485,10 @@ int parseRMC(char* ascii) {
 	if(field!=NULL) {
 		if(strlen(field)>0) switch(field[0]){
 			case 'E':
-				magneticVariationToEast=1;
+				magneticVariationToEast=true;
 				break;
 			case 'W':
-				magneticVariationToEast=0;
+				magneticVariationToEast=false;
 				break;
 			default:
 				return (-11);
@@ -483,37 +499,37 @@ int parseRMC(char* ascii) {
 	if(isValid) {
 		float timestamp=timeHour*3600+timeMin*60+timeSec;
 		if(gps.day!=-65&&timeDay!=gps.day) {
-			newerTimestamp=timestamp; //change of date
-			GGAfound=0;
-			GSAfound=0;
+			data.newerTimestamp=timestamp; //change of date
+			data.GGAfound=false;
+			data.GSAfound=false;
 		}
-		if(timestamp<newerTimestamp) return 0; //the sentence is old
+		if(timestamp<data.newerTimestamp) return 0; //the sentence is old
 		else {
-			if(timestamp>newerTimestamp) { //this is a new one sentence
-				newerTimestamp=timestamp;
-				RMCfound=1;
-				GGAfound=0;
-				GSAfound=0;
+			if(timestamp>data.newerTimestamp) { //this is a new one sentence
+				data.newerTimestamp=timestamp;
+				data.RMCfound=true;
+				data.GGAfound=false;
+				data.GSAfound=false;
 			} else { //timestamp==newerTimestamp
-				if(RMCfound) return 0;
-				else RMCfound=1;
+				if(data.RMCfound) return 0;
+				else data.RMCfound=true;
 			}
-			latGraB=latGra;
-			latMinB=latMin;
-			latNorthB=latNorth;
-			lonGraB=lonGra;
-			lonMinB=lonMin;
-			lonEastB=lonEast;
-			timeHourB=timeHour;
-			timeMinB=timeMin;
-			timeSecB=timeSec;
-			groundSpeedKnotsB=groundSpeedKnots;
-			trueTrackB=trueTrack;
-			magneticVariationB=magneticVariation;
-			magneticVariationToEastB=magneticVariationToEast;
-			timeDayB=timeDay;
-			timeMonthB=timeMonth;
-			timeYearB=timeYear;
+			lastRedData.latGra=latGra;
+			lastRedData.latMin=latMin;
+			lastRedData.latNorth=latNorth;
+			lastRedData.lonGra=lonGra;
+			lastRedData.lonMin=lonMin;
+			lastRedData.lonEast=lonEast;
+			lastRedData.timeHour=timeHour;
+			lastRedData.timeMin=timeMin;
+			lastRedData.timeSec=timeSec;
+			lastRedData.groundSpeedKnots=groundSpeedKnots;
+			lastRedData.trueTrack=trueTrack;
+			lastRedData.magneticVariation=magneticVariation;
+			lastRedData.magneticVariationToEast=magneticVariationToEast;
+			lastRedData.timeDay=timeDay;
+			lastRedData.timeMonth=timeMonth;
+			lastRedData.timeYear=timeYear;
 			return 1;
 		}
 		return 0;
@@ -522,7 +538,7 @@ int parseRMC(char* ascii) {
 }
 
 int parseGSA(char* ascii) {
-	short autoSelectionMode;
+	bool autoSelectionMode;
 	int mode=MODE_NO_FIX;
 	int satellites[12];
 	int numOfSatellites=0;
@@ -533,10 +549,10 @@ int parseGSA(char* ascii) {
 	if(field==NULL) return (-1);
 	if(strlen(field)>0) switch(field[0]){
 		case 'A':
-			autoSelectionMode=1;
+			autoSelectionMode=true;
 			break;
 		case 'M':
-			autoSelectionMode=0;
+			autoSelectionMode=false;
 			break;
 		default:
 			return (-1);
@@ -560,13 +576,13 @@ int parseGSA(char* ascii) {
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%f",&vdop);
 	updateFixMode(mode);
 	if(mode!=MODE_NO_FIX) {
-		if(GSAfound) return 0;
-		else if(GGAfound&&RMCfound) {
-			GSAfound=1;
-			pdopB=pdop;
-			hdopB=hdop;
-			vdopB=vdop;
-			SatsInUseB=numOfSatellites;
+		if(data.GSAfound) return 0;
+		else if(data.GGAfound && data.RMCfound) {
+			data.GSAfound=1;
+			lastRedData.pdop=pdop;
+			lastRedData.hdop=hdop;
+			lastRedData.vdop=vdop;
+			lastRedData.SatsInUse=numOfSatellites;
 			return 1;
 		}
 		return 0;
@@ -577,92 +593,92 @@ int parseGSA(char* ascii) {
 int parseGSV(char* ascii) {
 	char *field=strsep(&ascii,","); //Number of GSV messages
 	if(field==NULL) {
-		numOfGSVmsg=0;
-		GSVmsgSeqNo=0;
+		data.numOfGSVmsg=0;
+		data.GSVmsgSeqNo=0;
 		return (-1);
 	}
 	int num=0;
 	if(strlen(field)>0) sscanf(field,"%d",&num);
 	if(num==0) {
-		numOfGSVmsg=0;
-		GSVmsgSeqNo=0;
+		data.numOfGSVmsg=0;
+		data.GSVmsgSeqNo=0;
 		return (-1);
 	}
 	field=strsep(&ascii,","); //GSV message seq no.
 	if(field==NULL) {
-		numOfGSVmsg=0;
-		GSVmsgSeqNo=0;
+		data.numOfGSVmsg=0;
+		data.GSVmsgSeqNo=0;
 		return (-2);
 	}
 	int seqNo=0;
 	if(strlen(field)>0) sscanf(field,"%d",&seqNo);
 	if(seqNo==0) {
-		numOfGSVmsg=0;
-		GSVmsgSeqNo=0;
+		data.numOfGSVmsg=0;
+		data.GSVmsgSeqNo=0;
 		return (-2);
 	}
 	if(seqNo==1) { //the first one resets GSVmsgSeqNo counter
-		numOfGSVmsg=0;
-		GSVmsgSeqNo=0;
+		data.numOfGSVmsg=0;
+		data.GSVmsgSeqNo=0;
 	}
-	if(GSVmsgSeqNo==0) { //we are expecting the first
-		numOfGSVmsg=num;
-		GSVmsgSeqNo=1;
+	if(data.GSVmsgSeqNo==0) { //we are expecting the first
+		data.numOfGSVmsg=num;
+		data.GSVmsgSeqNo=1;
 		field=strsep(&ascii,","); //total number of satellites in view
 		if(field==NULL) return (-3);
-		if(strlen(field)>0) sscanf(field,"%d",&GSVtotalSatInView);
-		updateNumOfTotalSatsInView(GSVtotalSatInView);
+		if(strlen(field)>0) sscanf(field,"%d",&data.GSVtotalSatInView);
+		updateNumOfTotalSatsInView(data.GSVtotalSatInView);
 	} else { //we are not expecting the first
-		if(num!=numOfGSVmsg) {
-			numOfGSVmsg=0;
-			GSVmsgSeqNo=0;
+		if(num!=data.numOfGSVmsg) {
+			data.numOfGSVmsg=0;
+			data.GSVmsgSeqNo=0;
 			return (-1);
 		}
-		if(seqNo!=GSVmsgSeqNo+1) {
-			numOfGSVmsg=0;
-			GSVmsgSeqNo=0;
+		if(seqNo!=data.GSVmsgSeqNo+1) {
+			data.numOfGSVmsg=0;
+			data.GSVmsgSeqNo=0;
 			return (-2);
 		}
-		GSVmsgSeqNo++;
+		data.GSVmsgSeqNo++;
 		field=strsep(&ascii,","); //total number of satellites in view
 		if(field==NULL) {
-			numOfGSVmsg=0;
-			GSVmsgSeqNo=0;
+			data.numOfGSVmsg=0;
+			data.GSVmsgSeqNo=0;
 			return (-3);
 		}
 		if(strlen(field)>0) sscanf(field,"%d",&num);
-		if(num!=GSVtotalSatInView) {
-			numOfGSVmsg=0;
-			GSVmsgSeqNo=0;
+		if(num!=data.GSVtotalSatInView) {
+			data.numOfGSVmsg=0;
+			data.GSVmsgSeqNo=0;
 			return (-3);
 		}
 	}
-	while(field!=NULL&&GSVsatSeqNo<GSVtotalSatInView) {
+	while(field!=NULL && data.GSVsatSeqNo<data.GSVtotalSatInView) {
 		field=strsep(&ascii,","); //satellite PRN number
 		if(field==NULL) break; //to exit from the sat sequence of current msg
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[GSVsatSeqNo][SAT_PRN]);
-		else gps.satellites[GSVsatSeqNo][SAT_PRN]=-1;
+		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_PRN]);
+		else gps.satellites[data.GSVsatSeqNo][SAT_PRN]=-1;
 		field=strsep(&ascii,","); //elevation in degrees (00-90)
 		if(field==NULL) {
-			numOfGSVmsg=0;
-			GSVmsgSeqNo=0;
-			return (-5-GSVsatSeqNo*4);
+			data.numOfGSVmsg=0;
+			data.GSVmsgSeqNo=0;
+			return (-5-data.GSVsatSeqNo*4);
 		}
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[GSVsatSeqNo][SAT_ELEVATION]);
-		else gps.satellites[GSVsatSeqNo][SAT_ELEVATION]=-1;
+		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_ELEVATION]);
+		else gps.satellites[data.GSVsatSeqNo][SAT_ELEVATION]=-1;
 		field=strsep(&ascii,","); //azimuth in degrees to 1 north (000-359)
 		if(field==NULL) {
-			numOfGSVmsg=0;
-			GSVmsgSeqNo=0;
-			return (-6-GSVsatSeqNo*4);
+			data.numOfGSVmsg=0;
+			data.GSVmsgSeqNo=0;
+			return (-6-data.GSVsatSeqNo*4);
 		}
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[GSVsatSeqNo][SAT_AZIMUTH]);
-		else gps.satellites[GSVsatSeqNo][SAT_AZIMUTH]=-1;
+		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_AZIMUTH]);
+		else gps.satellites[data.GSVsatSeqNo][SAT_AZIMUTH]=-1;
 		field=strsep(&ascii,","); //SNR in dB (00-99)
 		if(field!=NULL) {
-			if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[GSVsatSeqNo][SAT_SNR]);
-		} else gps.satellites[GSVsatSeqNo][SAT_SNR]=-1;
-		GSVsatSeqNo++;
+			if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_SNR]);
+		} else gps.satellites[data.GSVsatSeqNo][SAT_SNR]=-1;
+		data.GSVsatSeqNo++;
 	}
 	return 1;
 }
@@ -722,7 +738,7 @@ int parseZDA(char* ascii) {
 	if(localZoneMin!=-1) {
 		float timestamp=timeHour*3600+timeMin*60+timeSec;
 		updateDate(timeDay,timeMonth,timeYear);
-		updateTime(timestamp,timeHour,timeMin,timeSec,0);
+		updateTime(timestamp,timeHour,timeMin,timeSec,false);
 		return 1;
 	} else {
 		return 0;
@@ -792,11 +808,11 @@ int parseGLL(char* ascii) {
 	float timeSec=0;
 	int latGra=-1;
 	float latMin=0;
-	short latNorth=1;
+	bool latNorth=true;
 	int lonGra=-1;
 	float lonMin=0;
-	short lonEast=1;
-	short isValid=0;
+	bool lonEast=true;
+	bool isValid=false;
 	char faa=FAA_ABSENT;
 	char *field=strsep(&ascii,","); //Latitude ddmm.mm
 	if(field==NULL) return (-1);
@@ -805,10 +821,10 @@ int parseGLL(char* ascii) {
 	if(field==NULL) return (-2);
 	if(strlen(field)>0) switch(field[0]){
 		case 'N':
-			latNorth=1;
+			latNorth=true;
 			break;
 		case 'S':
-			latNorth=0;
+			latNorth=false;
 			break;
 		default:
 			return (-2);
@@ -820,10 +836,10 @@ int parseGLL(char* ascii) {
 	if(field==NULL) return (-4);
 	if(strlen(field)>0) switch(field[0]){
 		case 'E':
-			lonEast=1;
+			lonEast=true;
 			break;
 		case 'W':
-			lonEast=0;
+			lonEast=false;
 			break;
 		default:
 			return (-4);
@@ -835,10 +851,10 @@ int parseGLL(char* ascii) {
 	if(field!=NULL) {
 		if(strlen(field)>0) switch(field[0]){
 			case 'A':
-				isValid=1;
+				isValid=true;
 				break;
 			case 'V':
-				isValid=0;
+				isValid=false;
 				break;
 			default:
 				return (-6);
@@ -848,8 +864,8 @@ int parseGLL(char* ascii) {
 	}
 	if(isValid) {
 		float timestamp=timeHour*3600+timeMin*60+timeSec;
-		updatePosition(latGra,latMin,latNorth,lonGra,lonMin,lonEast,0);
-		updateTime(timestamp,timeHour,timeMin,timeSec,0);
+		updatePosition(latGra,latMin,latNorth,lonGra,lonMin,lonEast,false);
+		updateTime(timestamp,timeHour,timeMin,timeSec,false);
 		return 1;
 	} else {
 		return 0;
@@ -897,12 +913,11 @@ int parseGBS(char* ascii) {
 #endif
 
 unsigned int getCRCintValue(void) {
-	if(rcvdBytesOfSentence<9) return -1;
+	if(data.rcvdBytesOfSentence<9) return -1;
 	char asciiCheksum[2]; //two digits
-	asciiCheksum[0]=sentence[rcvdBytesOfSentence-2];
-	asciiCheksum[1]=sentence[rcvdBytesOfSentence-1];
+	asciiCheksum[0]=data.sentence[data.rcvdBytesOfSentence-2];
+	asciiCheksum[1]=data.sentence[data.rcvdBytesOfSentence-1];
 	unsigned int checksum;
 	sscanf(asciiCheksum,"%x",&checksum); //read as hex
 	return checksum;
 }
-

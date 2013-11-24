@@ -13,6 +13,8 @@
 #ifndef GPSRECEIVER_H_
 #define GPSRECEIVER_H_
 
+#include "Common.h"
+
 #define MAX_NUM_SAT 24
 
 //FAA Mode Indicators
@@ -82,7 +84,7 @@ void GPSreceiverStop(void);
 void GPSreceiverClose(void);
 
 char updateDate(int newDay, int newMonth, int newYear);
-void updateTime(float timestamp, int newHour, int newMin, float newSec, char timeWithNoFix);
+void updateTime(float timestamp, int newHour, int newMin, float newSec, bool timeWithNoFix);
 void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float newTrueTrack, float newMagneticTrack);
 void updateSpeed(float newSpeedKnots);
 void updateNumOfTotalSatsInView(int totalSats);

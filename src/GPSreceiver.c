@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 24/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -274,7 +274,7 @@ char updateDate(int newDay, int newMonth, int newYear) {
 	return 0;
 }
 
-void updateTime(float timestamp, int newHour, int newMin, float newSec, char timeWithNoFix) {
+void updateTime(float timestamp, int newHour, int newMin, float newSec, bool timeWithNoFix) {
 	if(gps.timestamp!=timestamp) {
 		gps.timestamp=timestamp;
 		gps.hour=newHour;
