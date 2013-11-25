@@ -16,7 +16,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include <sys/time.h>
+//#include <time.h>
+//#include <sys/time.h>
 #include "SiRFparser.h"
 #include "Common.h"
 #include "GPSreceiver.h"
@@ -78,44 +79,18 @@ struct geodetic_nav_data {
 	uint8_t addModeInfo;
 };
 
-void initializeSiRF(void);
 inline uint16_t endian16_swap(uint16_t val);
 inline uint32_t endian32_swap(uint32_t val);
 void processPayload(char *payloadCopy, int len, long timestamp);
 
 enum SiRFparserStatus frameStatus=SIRF_START_SEQ_1;
-
 long payloadLength=0;
 int rcvdBytesOfPayload=0,checksum=0;
 unsigned char payload[MAX_PAYLOAD_LENGHT]={0};
 unsigned char firstBytePayloadLength=0,firstByteChecksum=0;
-
-
 //float altTimestamp=0,dirTimestamp=0,newerTimestamp=0;
 //int numOfGSVmsg=0,GSVmsgSeqNo=0,GSVsatSeqNo,GSVtotalSatInView;
 
-void initializeSiRF(void) {
-	gpsSiRF.timestamp=-1;
-	gpsSiRF.speedKmh=-100;
-	gpsSiRF.speedKnots=-100;
-	gpsSiRF.altMt=-100;
-	gpsSiRF.altFt=-100;
-	gpsSiRF.realAltMt=-100;
-	gpsSiRF.realAltFt=-100;
-	gpsSiRF.trueTrack=-500;
-	gpsSiRF.day=-65;
-	gpsSiRF.second=-65;
-	gpsSiRF.latMinDecimal=-70;
-	gpsSiRF.lonMinDecimal=-70;
-	gpsSiRF.lat=100;
-	gpsSiRF.pdop=50;
-	gpsSiRF.hdop=50;
-	gpsSiRF.vdop=50;
-	gpsSiRF.fixMode=MODE_UNKNOWN;
-	//updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
-	//updateNumOfActiveSats(0);
-	//FBrenderFlush();
-}
 
 void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, int redBytes) {
 	for(int i=0;i<redBytes;i++) {
@@ -181,60 +156,59 @@ void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, int redBytes) {
 	} } printLog("\n\n"); //end of for(each byte) and switch(status) of received byte
 }
 
-/** 16 bits endianess hleper */
-inline uint16_t endian16_swap(uint16_t val) {
-    uint16_t temp;
-    temp = val & 0xFF;
-    temp = (val >> 8) | (temp << 8);
-    return temp;
-}
-
-/** 32 bits endianess hleper */
-inline uint32_t endian32_swap(uint32_t val) {
-    uint32_t temp;
-    temp = ( val >> 24) | ((val & 0x00FF0000) >> 8) |  ((val & 0x0000FF00) << 8) | ((val & 0x000000FF) << 24);
-    return temp;
-}
-
 void processPayload(char *payloadCopy, int len, long timestamp) {
 	unsigned char msgID=payloadCopy[0];
 	printLog("Received frame ID: %d of length: %d\n",msgID,len);
 	if(msgID==SIRF_GEODETIC_MSGID && len==SIRF_GEODETIC_MSG_LEN) { //we want to interpret only geodetic
-		time_t curr_time,gps_time;
-		struct timeval new_time;
-		//char * saved_tz=NULL;
-		struct geodetic_nav_data * msg=(struct geodetic_nav_data *)payloadCopy;
-		gpsSiRF.lat_deg=((int32_t)endian32_swap(msg->latitude))/10000000;
-		gpsSiRF.lat_mins=((endian32_swap(msg->latitude)*60)/10000000)%60;
-		gpsSiRF.long_deg=((int32_t)endian32_swap(msg->longitude))/10000000;
-		gpsSiRF.long_mins=((endian32_swap(msg->longitude)*60)/10000000)%60;
-		gpsSiRF.alt_cm=endian32_swap(msg->altitude);
-		gpsSiRF.sat_id_list=endian32_swap(msg->satIDlist);
-		gpsSiRF.sat_nb=msg->SVcount;
-		gpsSiRF.speed_kmh=(endian16_swap(msg->speed)*36)/1000;
-		gpsSiRF.time.tm_sec=endian16_swap(msg->second)/1000;
-		gpsSiRF.time.tm_min=msg->minute;
-		gpsSiRF.time.tm_hour=msg->hour;
-		gpsSiRF.time.tm_mday=msg->day;
-		gpsSiRF.time.tm_mon=msg->month-1;
-		gpsSiRF.time.tm_year=endian16_swap(msg->year)-1900;
-		gpsSiRF.time.tm_isdst=-1;
-		printLog("lat: %d %d; lon: %d %d; time: %d/%d/%d %d:%d:%d\n",gpsSiRF.lat_deg,gpsSiRF.lat_mins,gpsSiRF.long_deg,gpsSiRF.long_mins,gpsSiRF.time.tm_mday,gpsSiRF.time.tm_mon,gpsSiRF.time.tm_year,gpsSiRF.time.tm_hour,gpsSiRF.time.tm_min,gpsSiRF.time.tm_sec);
-		time(&curr_time);
-		//saved_tz=strdup(getenv("TZ"));
-		//unsetenv("TZ");
-		gps_time=mktime(&gpsSiRF.time);
-		if(abs(gps_time-curr_time)>10) {
-			printLog("Syncing clock needed ! system : %d - GPS : %d\n",(int)curr_time,(int)gps_time);
-			new_time.tv_sec=gps_time;
-			new_time.tv_usec=0;
-			settimeofday(&new_time,NULL);
-		} else printLog("No need to sync.\n");
-		//if(saved_tz!=NULL) {
-		//	setenv("TZ",saved_tz,1);
-		//	free(saved_tz);
-		//}
+//TODO: put the data in the right place: in the gps struct of GPSreceiver
+//		time_t curr_time,gps_time;
+//		struct timeval new_time;
+//		//char * saved_tz=NULL;
+//		struct geodetic_nav_data * msg=(struct geodetic_nav_data *)payloadCopy;
+//		lat_deg=((int32_t)endian32_swap(msg->latitude))/10000000;
+//		lat_mins=((endian32_swap(msg->latitude)*60)/10000000)%60;
+//		long_deg=((int32_t)endian32_swap(msg->longitude))/10000000;
+//		long_mins=((endian32_swap(msg->longitude)*60)/10000000)%60;
+//		alt_cm=endian32_swap(msg->altitude);
+//		sat_id_list=endian32_swap(msg->satIDlist);
+//		sat_nb=msg->SVcount;
+//		speed_kmh=(endian16_swap(msg->speed)*36)/1000;
+//		time.tm_sec=endian16_swap(msg->second)/1000;
+//		time.tm_min=msg->minute;
+//		time.tm_hour=msg->hour;
+//		time.tm_mday=msg->day;
+//		time.tm_mon=msg->month-1;
+//		time.tm_year=endian16_swap(msg->year)-1900;
+//		time.tm_isdst=-1;
+//		printLog("lat: %d %d; lon: %d %d; time: %d/%d/%d %d:%d:%d\n",lat_deg,lat_mins,long_deg,long_mins,time.tm_mday,time.tm_mon,time.tm_year,time.tm_hour,time.tm_min,time.tm_sec);
+//		time(&curr_time);
+//		//saved_tz=strdup(getenv("TZ"));
+//		//unsetenv("TZ");
+//		gps_time=mktime(&time);
+//		if(abs(gps_time-curr_time)>10) {
+//			printLog("Syncing clock needed ! system : %d - GPS : %d\n",(int)curr_time,(int)gps_time);
+//			new_time.tv_sec=gps_time;
+//			new_time.tv_usec=0;
+//			settimeofday(&new_time,NULL);
+//		} else printLog("No need to sync.\n");
+//		//if(saved_tz!=NULL) {
+//		//	setenv("TZ",saved_tz,1);
+//		//	free(saved_tz);
+//		//}
 		printLog("Geodetic OK !\n");
 	}
 	free(payloadCopy);
+}
+
+inline uint16_t endian16_swap(uint16_t val) { //16 bits endianess helper
+	uint16_t temp;
+	temp = val & 0xFF;
+	temp = (val >> 8) | (temp << 8);
+	return temp;
+}
+
+inline uint32_t endian32_swap(uint32_t val) { //32 bits endianess hleper
+	uint32_t temp;
+	temp = ( val >> 24) | ((val & 0x00FF0000) >> 8) |  ((val & 0x0000FF00) << 8) | ((val & 0x000000FF) << 24);
+	return temp;
 }

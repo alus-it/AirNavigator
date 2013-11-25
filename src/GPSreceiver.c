@@ -6,12 +6,12 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 24/11/2013
+// Last change : 25/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
 
-//#define SERIAL_DEVICE //enable if reading from a real serial device
+//#define SERIAL_DEVICE //to be enabled if reading from a real serial device
 //#define PRINT_RECEIVED_DATA
 
 #include <stdlib.h>
@@ -19,10 +19,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <fcntl.h>
-//#include <sys/ioctl.h>
 #ifdef SERIAL_DEVICE
 #include <termios.h>
 #endif
+//#include <sys/ioctl.h>
 //#include <barcelona/Barc_gps.h>
 #include "GPSreceiver.h"
 #include "Common.h"
@@ -30,7 +30,7 @@
 #include "AirCalc.h"
 #include "Geoidal.h"
 #include "NMEAparser.h"
-#include "SiRFparser.h"
+//#include "SiRFparser.h"
 #include "FBrender.h"
 #include "HSI.h"
 #include "BlackBox.h"
@@ -180,11 +180,12 @@ void configureGPSreceiver(void) {
 }
 
 void* run(void *ptr) { //listening function, it will be ran in a separate thread
-	bool isSiRF=false; //TODO: this will select between SiRF or NMEA put it in a proper configurable place!
+//	bool isSiRF=false; //TODO: this will select between SiRF and NMEA: put it in a proper configurable place!
 	static int fd=-1;
 
-	if(isSiRF) fd=open("/dev/gpsdata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
-	else fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //othewise open NMEA pipe: read only, non blocking
+//	if(isSiRF) fd=open("/dev/gpsdata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
+//	else
+	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //othewise open NMEA pipe: read only, non blocking
 	if(fd<0) {
 		fd=-1;
 		printLog("ERROR: Can't open the GPS serial port or pipe on the chosen device.\n");
@@ -205,11 +206,11 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	tcflush(fd,TCIFLUSH);
 #endif
 	static unsigned char *buf; //read buffer
-	if(isSiRF) { //allocate buffer for SiRF protocol
-		buf=(unsigned char *) malloc(SIRF_BUFFER_SIZE*sizeof(unsigned char));
-	} else { //allocate buffer for NMEA protocol
+//	if(isSiRF) { //allocate buffer for SiRF protocol
+//		buf=(unsigned char *) malloc(SIRF_BUFFER_SIZE*sizeof(unsigned char));
+//	} else { //allocate buffer for NMEA protocol
 		buf=(unsigned char *) malloc(NMEA_BUFFER_SIZE*sizeof(unsigned char));
-	}
+//	}
 	int maxfd=fd+1;
 	fd_set readfs;
 	int redBytes;
@@ -217,13 +218,13 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 		FD_SET(fd,&readfs);
 		select(maxfd,&readfs,NULL,NULL,NULL); //wait to read because the read is now non-blocking
 		if(readingGPS) { //further check if we still want to read after waiting
-			if(isSiRF) {
-				redBytes=read(fd,buf,SIRF_BUFFER_SIZE);
-				SiRFparserProcessBuffer(buf,time(NULL),redBytes);
-			} else { //it's NMEA
+//			if(isSiRF) {
+//				redBytes=read(fd,buf,SIRF_BUFFER_SIZE);
+//				SiRFparserProcessBuffer(buf,time(NULL),redBytes);
+//			} else { //it's NMEA
 				redBytes=read(fd,buf,NMEA_BUFFER_SIZE);
 				NMEAparserProcessBuffer(buf,redBytes);
-			}
+//			}
 		}
 	}
 #ifdef SERIAL_DEVICE

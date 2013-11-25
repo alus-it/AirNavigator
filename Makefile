@@ -49,8 +49,8 @@ CFILES =            \
 	main.c          \
 	Navigator.c     \
 	NMEAparser.c    \
-	SiRFparser.c    \
 	TSreader.c
+#	SiRFparser.c    \
 
 # List of object files
 OBJS = $(patsubst %.c, $(BIN)%.o, $(CFILES))
