@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 25/11/2013
+// Last change : 26/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -36,12 +36,29 @@
 #include "BlackBox.h"
 
 
+struct GPSreceiverStruct {
+	pthread_t thread;
+	volatile short reading; //-1 means still not initialized
+#ifdef SERIAL_DEVICE
+	long BAUD;
+	int DATABITS,STOPBITS,PARITYON,PARITY;
+#endif
+	//int devGPS;
+	//bool isSiRF; //TODO: this will select between SiRF and NMEA: put it in a proper configurable place!
+};
+
 void configureGPSreceiver(void);
 void* run(void *ptr);
 //short enableGPS(void);
 //void disableGPS(void);
 
-struct GPSdata gps = {
+static struct GPSreceiverStruct GPSreceiver = {
+	.reading=-1, //-1 means still not initialized
+	//.devGPS=-1,
+	//.isSiRF=false
+};
+
+struct GPSdata gps = { //initialize GPS data struct
 	.timestamp=-1,
 	.speedKmh=-100,
 	.speedKnots=-100,
@@ -60,16 +77,6 @@ struct GPSdata gps = {
 	.vdop=50,
 	.fixMode=MODE_UNKNOWN
 };
-
-#ifdef SERIAL_DEVICE
-long BAUD;
-int DATABITS,STOPBITS,PARITYON,PARITY;
-#endif
-
-pthread_t thread;
-volatile short readingGPS=-1; //-1 means still not initialized
-//static int devGPS=-1;
-
 
 void configureGPSreceiver(void) {
 	if(config.GPSdevName==NULL) config.GPSdevName=strdup("/var/run/gpsfeed"); //Default value
@@ -173,23 +180,22 @@ void configureGPSreceiver(void) {
 #endif
 	//enableGPS();
 	GeoidalOpen();
-	readingGPS=0;
+	GPSreceiver.reading=0;
 	updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
 	updateNumOfActiveSats(0);
 	FBrenderFlush();
 }
 
 void* run(void *ptr) { //listening function, it will be ran in a separate thread
-//	bool isSiRF=false; //TODO: this will select between SiRF and NMEA: put it in a proper configurable place!
 	static int fd=-1;
 
-//	if(isSiRF) fd=open("/dev/gpsdata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
+//	if(gpsRcv.isSiRF) fd=open("/dev/gpsdata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
 //	else
 	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //othewise open NMEA pipe: read only, non blocking
 	if(fd<0) {
 		fd=-1;
 		printLog("ERROR: Can't open the GPS serial port or pipe on the chosen device.\n");
-		readingGPS=0;
+		GPSreceiver.reading=0;
 		pthread_exit(NULL);
 		return NULL;
 	}
@@ -214,10 +220,10 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	int maxfd=fd+1;
 	fd_set readfs;
 	int redBytes;
-	while(readingGPS) { // loop while waiting for input
+	while(GPSreceiver.reading) { // loop while waiting for input
 		FD_SET(fd,&readfs);
 		select(maxfd,&readfs,NULL,NULL,NULL); //wait to read because the read is now non-blocking
-		if(readingGPS) { //further check if we still want to read after waiting
+		if(GPSreceiver.reading) { //further check if we still want to read after waiting
 //			if(isSiRF) {
 //				redBytes=read(fd,buf,SIRF_BUFFER_SIZE);
 //				SiRFparserProcessBuffer(buf,time(NULL),redBytes);
@@ -237,26 +243,26 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 }
 
 char GPSreceiverStart(void) { //function to start the listening thread
-	if(readingGPS==-1) configureGPSreceiver();
-	if(!readingGPS) {
-		readingGPS=1;
-		if(pthread_create(&thread,NULL,run,(void*)NULL)) {
-			readingGPS=0;
+	if(GPSreceiver.reading==-1) configureGPSreceiver();
+	if(!GPSreceiver.reading) {
+		GPSreceiver.reading=1;
+		if(pthread_create(&GPSreceiver.thread,NULL,run,(void*)NULL)) {
+			GPSreceiver.reading=0;
 			printLog("GPSreceiver: ERROR unable to create the reading thread.\n");
 		}
 	}
-	return readingGPS;
+	return GPSreceiver.reading;
 }
 
 void GPSreceiverStop(void) {
-	if(readingGPS==1) readingGPS=0;
+	if(GPSreceiver.reading==1) GPSreceiver.reading=0;
 }
 
 void GPSreceiverClose(void) {
 	//disableGPS();
 	GPSreceiverStop();
 	GeoidalClose();
-	pthread_join(thread,NULL); //wait for thread death
+	pthread_join(GPSreceiver.thread,NULL); //wait for thread death
 }
 
 void updateHdiluition(float hDiluition) {
