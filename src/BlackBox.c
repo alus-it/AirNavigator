@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 27/11/2013
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
@@ -32,52 +32,60 @@ enum blackBoxStatus {
 	BBS_PAUSED
 };
 
-bool openRecordingFile(void);
-void recordPos(double lat, double lon, float timestamp, int hour, int min, float sec);
+struct BlackBoxStruct {
+	double lastlat, lastlon, minlat, minlon, maxlat, maxlon;
+	float currTimestamp,lastTimestamp;
+	double updateDist; //here in rad
+	int cyear,cmonth,cday,chour,cmin,csec; //creation time of the track file
+	char *filename;
+	long trackPointCounter;
+	FILE *tracklogFile;
+	enum blackBoxStatus status;
+};
 
-double lastlat, lastlon, minlat, minlon, maxlat, maxlon;
-float currTimestamp,lastTimestamp;
-double updateDist; //here in rad
-int cyear,cmonth,cday,chour,cmin,csec; //creation time of the track file
-char *filename=NULL;
-long trackPointCounter;
-FILE *tracklogFile=NULL;
-enum blackBoxStatus bbStatus=BBS_NOT_SET;
+bool openRecordingFile(void);
+void recordPos(double lat, double lon, float timestamp, int year, int month, int day, int hour, int min, float sec);
+
+struct BlackBoxStruct BlackBox = {
+	.filename=NULL,
+	.tracklogFile=NULL,
+	.status=BBS_NOT_SET
+};
 
 void BlackBoxStart(void) {
-	if(bbStatus!=BBS_NOT_SET) return;
-	lastTimestamp=-config.recordTimeInterval;
-	trackPointCounter=0;
-	minlat=90;
-	minlon=180;
-	maxlat=-90;
-	maxlon=-180;
-	updateDist=m2Rad(config.recordMinDist);
-	if(updateDist<MIN_DIST) updateDist=MIN_DIST;
+	if(BlackBox.status!=BBS_NOT_SET) return;
+	BlackBox.lastTimestamp=-config.recordTimeInterval;
+	BlackBox.trackPointCounter=0;
+	BlackBox.minlat=90;
+	BlackBox.minlon=180;
+	BlackBox.maxlat=-90;
+	BlackBox.maxlon=-180;
+	BlackBox.updateDist=m2Rad(config.recordMinDist);
+	if(BlackBox.updateDist<MIN_DIST) BlackBox.updateDist=MIN_DIST;
 	struct tm time_str;
 	long currTime=time(NULL); //get current time from internal clock
 	time_str=*localtime(&currTime); //to obtain day, month, year, hour and minute
-	cyear=time_str.tm_year+1900; //year time of creation of the track file
-	cmonth=time_str.tm_mon+1; //month
-	cday=time_str.tm_mday; //day
-	chour=time_str.tm_hour; //hour
-	cmin=time_str.tm_min; //minute
-	csec=time_str.tm_sec;
-	asprintf(&filename,"Track_%d-%02d-%02d_%02d-%02d-%02d.gpx",cyear,cmonth,cday,chour,cmin,csec);
-	bbStatus=BBS_WAIT_FIX;
+	BlackBox.cyear=time_str.tm_year+1900; //year time of creation of the track file
+	BlackBox.cmonth=time_str.tm_mon+1; //month
+	BlackBox.cday=time_str.tm_mday; //creation day
+	BlackBox.chour=time_str.tm_hour; //hour
+	BlackBox.cmin=time_str.tm_min; //minute
+	BlackBox.csec=time_str.tm_sec;
+	asprintf(&BlackBox.filename,"Track_%d-%02d-%02d_%02d-%02d-%02d.gpx",BlackBox.cyear,BlackBox.cmonth,BlackBox.cday,BlackBox.chour,BlackBox.cmin,BlackBox.csec);
+	BlackBox.status=BBS_WAIT_FIX;
 }
 
 bool openRecordingFile(void) {
 	char *path;
-	asprintf(&path,"%sTracks/%s",BASE_PATH,filename);
-	tracklogFile=fopen(path,"w");
+	asprintf(&path,"%sTracks/%s",BASE_PATH,BlackBox.filename);
+	BlackBox.tracklogFile=fopen(path,"w");
 	free(path);
-	if(tracklogFile==NULL) {
+	if(BlackBox.tracklogFile==NULL) {
 		printLog("BlackBox ERROR: Unable to write track file.\n");
 		BlackBoxClose();
 		return false;
 	}
-	fprintf(tracklogFile,"<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"yes\"?>\n"
+	fprintf(BlackBox.tracklogFile,"<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"yes\"?>\n"
 			"<gpx version=\"1.1\" creator=\"AirNavigator by Alus.it\"\n"
 			"xmlns=\"http://www.topografix.com/GPX/1/1\"\n"
 			"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
@@ -85,55 +93,55 @@ bool openRecordingFile(void) {
 			"<trk>\n"
 			"<name>Track created on %d/%02d/%4d at %2d:%02d:%02d</name>\n"
 			"<src>%s - Device serial number ID: %s</src>\n"
-			"<trkseg>\n",cday,cmonth,cyear,chour,cmin,csec,config.tomtomModel,config.serialNumber);
-	bbStatus=BBS_WAIT_POS;
+			"<trkseg>\n",BlackBox.cday,BlackBox.cmonth,BlackBox.cyear,BlackBox.chour,BlackBox.cmin,BlackBox.csec,config.tomtomModel,config.serialNumber);
+	BlackBox.status=BBS_WAIT_POS;
 	return true;
 }
 
 void BlackBoxPause(void) {
-	if(bbStatus==BBS_WAIT_OPT) BlackBoxCommit();
-	bbStatus=BBS_PAUSED;
+	if(BlackBox.status==BBS_WAIT_OPT) BlackBoxCommit();
+	BlackBox.status=BBS_PAUSED;
 }
 
 void BlackBoxResume(void) {
-	if(bbStatus==BBS_PAUSED && tracklogFile!=NULL) bbStatus=BBS_WAIT_POS;
+	if(BlackBox.status==BBS_PAUSED && BlackBox.tracklogFile!=NULL) BlackBox.status=BBS_WAIT_POS;
 }
 
-void recordPos(double lat, double lon, float timestamp, int hour, int min, float sec) {
-	trackPointCounter++;
-	lastlat=lat;
-	lastlon=lon;
-	lastTimestamp=timestamp;
+void recordPos(double lat, double lon, float timestamp, int year, int month, int day, int hour, int min, float sec) {
+	BlackBox.trackPointCounter++;
+	BlackBox.lastlat=lat;
+	BlackBox.lastlon=lon;
+	BlackBox.lastTimestamp=timestamp;
 	lat=Rad2Deg(lat);
 	lon=-Rad2Deg(lon); //For the GPX standard East longitudes are positive
-	if(lat<minlat) minlat=lat;
-	if(lon<minlon) minlon=lon;
-	if(lat>maxlat) maxlat=lat;
-	if(lon>maxlon) maxlon=lon;
-	fprintf(tracklogFile,"<trkpt lat=\"%f\" lon=\"%f\">\n"
-			"<time>%d-%02d-%02dT%02d:%02d:%06.3fZ</time>\n",lat,lon,cyear,cmonth,cday,hour,min,sec);
-	bbStatus=BBS_WAIT_OPT;
+	if(lat<BlackBox.minlat) BlackBox.minlat=lat;
+	if(lon<BlackBox.minlon) BlackBox.minlon=lon;
+	if(lat>BlackBox.maxlat) BlackBox.maxlat=lat;
+	if(lon>BlackBox.maxlon) BlackBox.maxlon=lon;
+	fprintf(BlackBox.tracklogFile,"<trkpt lat=\"%f\" lon=\"%f\">\n"
+			"<time>%d-%02d-%02dT%02d:%02d:%06.3fZ</time>\n",lat,lon,year,month,day,hour,min,sec);
+	BlackBox.status=BBS_WAIT_OPT;
 }
 
-bool BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, short dateChanged) {
+bool BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int min, float sec, int day, int month, int year, bool dateChanged) {
 	bool retval=false;
-	switch(bbStatus) {
+	switch(BlackBox.status) {
 		case BBS_WAIT_FIX:
-			if(openRecordingFile()) recordPos(lat,lon,timestamp,hour,min,sec);
+			if(openRecordingFile()) recordPos(lat,lon,timestamp,year,month,day,hour,min,sec);
 			break;
 		case BBS_WAIT_POS: {
 			double deltaT;
-			if(dateChanged) lastTimestamp-=86400;
-			if(timestamp>lastTimestamp) deltaT=timestamp-lastTimestamp;
+			if(dateChanged) BlackBox.lastTimestamp-=86400;
+			if(timestamp>BlackBox.lastTimestamp) deltaT=timestamp-BlackBox.lastTimestamp;
 			else {
 				retval=false;
 				break;
 			}
 			if(deltaT>=config.recordTimeInterval) {
 				double deltaS;
-				deltaS=calcAngularDist(lat,lon,lastlat,lastlon);
-				if(deltaS>=updateDist) {
-					recordPos(lat,lon,timestamp,hour,min,sec);
+				deltaS=calcAngularDist(lat,lon,BlackBox.lastlat,BlackBox.lastlon);
+				if(deltaS>=BlackBox.updateDist) {
+					recordPos(lat,lon,timestamp,year,month,day,hour,min,sec);
 					retval=true;
 				}
 			}
@@ -149,35 +157,35 @@ bool BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int mi
 }
 
 bool BlackBoxRecordAlt(double alt) {
-	if(bbStatus!=BBS_WAIT_OPT) return false;
-	fprintf(tracklogFile,"<ele>%.1f</ele>\n",alt);
+	if(BlackBox.status!=BBS_WAIT_OPT) return false;
+	fprintf(BlackBox.tracklogFile,"<ele>%.1f</ele>\n",alt);
 	return true;
 }
 
 bool BlackBoxRecordSpeed(double speed) { //Speed in m/s
-	if(bbStatus!=BBS_WAIT_OPT) return false;
-	fprintf(tracklogFile,"<speed>%.2f</speed>\n",speed);
+	if(BlackBox.status!=BBS_WAIT_OPT) return false;
+	fprintf(BlackBox.tracklogFile,"<speed>%.2f</speed>\n",speed);
 	return true;
 }
 
 bool BlackBoxRecordCourse(double course) {
-	if(bbStatus!=BBS_WAIT_OPT) return false;
-	fprintf(tracklogFile,"<course>%.2f</course>\n",course);
+	if(BlackBox.status!=BBS_WAIT_OPT) return false;
+	fprintf(BlackBox.tracklogFile,"<course>%.2f</course>\n",course);
 	return true;
 }
 
 bool BlackBoxCommit(void) {
-	if(bbStatus!=BBS_WAIT_OPT) return false;
-	fprintf(tracklogFile,"</trkpt>\n");
-	bbStatus=BBS_WAIT_POS;
+	if(BlackBox.status!=BBS_WAIT_OPT) return false;
+	fprintf(BlackBox.tracklogFile,"</trkpt>\n");
+	BlackBox.status=BBS_WAIT_POS;
 	return true;
 }
 
 void BlackBoxClose(void) {
 	BlackBoxCommit();
-	bbStatus=BBS_NOT_SET;
-	if(tracklogFile!=NULL) {
-		fprintf(tracklogFile,"</trkseg>\n"
+	BlackBox.status=BBS_NOT_SET;
+	if(BlackBox.tracklogFile!=NULL) {
+		fprintf(BlackBox.tracklogFile,"</trkseg>\n"
 				"<number>%ld</number>\n"
 				"</trk>\n"
 				"<metadata>\n"
@@ -193,9 +201,9 @@ void BlackBoxClose(void) {
 				"<time>%d-%02d-%02dT%02d:%02d:%02dZ</time>\n"
 				"<bounds minlat=\"%f\" minlon=\"%f\" maxlat=\"%f\" maxlon=\"%f\"/>\n"
 				"</metadata>\n"
-				"</gpx>",trackPointCounter,filename,cyear,cmonth,cday,chour,cmin,csec,minlat,minlon,maxlat,maxlon);
-		fclose(tracklogFile);
+				"</gpx>",BlackBox.trackPointCounter,BlackBox.filename,BlackBox.cyear,BlackBox.cmonth,BlackBox.cday,BlackBox.chour,BlackBox.cmin,BlackBox.csec,BlackBox.minlat,BlackBox.minlon,BlackBox.maxlat,BlackBox.maxlon);
+		fclose(BlackBox.tracklogFile);
 	}
-	free(filename);
+	free(BlackBox.filename);
 }
 

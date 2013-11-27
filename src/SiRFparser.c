@@ -6,11 +6,11 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 27/11/2013
 // Description : Parses SiRF messages from a GPS device
 //============================================================================
 
-//TODO: This has to be completely rewritten and reviewed
+//TODO: This has to be finished and reviewed
 
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +38,13 @@ enum SiRFparserStatus {
 	SIRF_CHECKSUM_2,    //getting the second byte of checksum
 	SIRF_END_SEQ_1,     //get first byte of end sequence
 	SIRF_END_SEQ_2      //get second byte of end sequence
+};
+
+struct SiRFparserStruct {
+	enum SiRFparserStatus frameStatus;
+	int payloadLength,rcvdBytesOfPayload,checksum;
+	unsigned char payload[MAX_PAYLOAD_LENGHT];
+	unsigned char firstBytePayloadLength,firstByteChecksum;
 };
 
 struct geodetic_nav_data {
@@ -83,73 +90,74 @@ inline uint16_t endian16_swap(uint16_t val);
 inline uint32_t endian32_swap(uint32_t val);
 void processPayload(char *payloadCopy, int len, long timestamp);
 
-enum SiRFparserStatus frameStatus=SIRF_START_SEQ_1;
-long payloadLength=0;
-int rcvdBytesOfPayload=0,checksum=0;
-unsigned char payload[MAX_PAYLOAD_LENGHT]={0};
-unsigned char firstBytePayloadLength=0,firstByteChecksum=0;
-//float altTimestamp=0,dirTimestamp=0,newerTimestamp=0;
-//int numOfGSVmsg=0,GSVmsgSeqNo=0,GSVsatSeqNo,GSVtotalSatInView;
+struct SiRFparserStruct SiRFparser = {
+	.frameStatus=SIRF_START_SEQ_1,
+	.payloadLength=0,
+	.rcvdBytesOfPayload=0,
+	.checksum=0,
+	.firstBytePayloadLength=0,
+	.firstByteChecksum=0
+};
 
 
 void SiRFparserProcessBuffer(unsigned char *buf, long timestamp, int redBytes) {
 	for(int i=0;i<redBytes;i++) {
 		printLog("%02X ",buf[i]); //////////////DEBUG
 
-	switch(frameStatus) { //for each byte received in the buffer
+	switch(SiRFparser.frameStatus) { //for each byte received in the buffer
 		case SIRF_START_SEQ_1: //waiting for start sequence
-			if(buf[i]==0xA0) frameStatus=SIRF_START_SEQ_2; //found first byte of start sequence
+			if(buf[i]==0xA0) SiRFparser.frameStatus=SIRF_START_SEQ_2; //found first byte of start sequence
 			break;
 		case SIRF_START_SEQ_2: //waiting for second byte of sequence
-			if(buf[i]==0xA2) frameStatus=SIRF_PAYLOAD_LEN_1; //found second byte of start sequence
-			else frameStatus=SIRF_START_SEQ_1;
+			if(buf[i]==0xA2) SiRFparser.frameStatus=SIRF_PAYLOAD_LEN_1; //found second byte of start sequence
+			else SiRFparser.frameStatus=SIRF_START_SEQ_1;
 			break;
 		case SIRF_PAYLOAD_LEN_1: //getting the first byte of payload length
 			if(buf[i]<=0x7F) { //check if it is OK //should be <=0x03 if the payload is maximum 1023??
-				firstBytePayloadLength=buf[i];
-				frameStatus=SIRF_PAYLOAD_LEN_2;
-			} else frameStatus=SIRF_START_SEQ_1;
+				SiRFparser.firstBytePayloadLength=buf[i];
+				SiRFparser.frameStatus=SIRF_PAYLOAD_LEN_2;
+			} else SiRFparser.frameStatus=SIRF_START_SEQ_1;
 			break;
 		case SIRF_PAYLOAD_LEN_2: //getting the second byte of payload length
-			payloadLength=firstBytePayloadLength*256+buf[i];
-			frameStatus=SIRF_PAYLOAD;
-			rcvdBytesOfPayload=0;
+			SiRFparser.payloadLength=SiRFparser.firstBytePayloadLength*256+buf[i];
+			SiRFparser.frameStatus=SIRF_PAYLOAD;
+			SiRFparser.rcvdBytesOfPayload=0;
 			break;
 		case SIRF_PAYLOAD: //getting bytes of the payload //TODO: implement pre-selection on msgID (first byte of payload)
-			payload[rcvdBytesOfPayload++]=buf[i];
-			if(rcvdBytesOfPayload==payloadLength) frameStatus=SIRF_CHECKSUM_1;
+			SiRFparser.payload[SiRFparser.rcvdBytesOfPayload++]=buf[i];
+			if(SiRFparser.rcvdBytesOfPayload==SiRFparser.payloadLength) SiRFparser.frameStatus=SIRF_CHECKSUM_1;
 			break;
 		case SIRF_CHECKSUM_1: //payload finished, getting first byte of checksum
 			if(buf[i]<=0x7F) { //check if it is OK
-				firstByteChecksum=buf[i];
-				frameStatus=SIRF_CHECKSUM_2;
-			} else frameStatus=SIRF_START_SEQ_1;
+				SiRFparser.firstByteChecksum=buf[i];
+				SiRFparser.frameStatus=SIRF_CHECKSUM_2;
+			} else SiRFparser.frameStatus=SIRF_START_SEQ_1;
 			break;
 		case SIRF_CHECKSUM_2: //getting the second byte of checksum
-			checksum=firstByteChecksum*256+buf[i];
-			frameStatus=SIRF_END_SEQ_1;
+			SiRFparser.checksum=SiRFparser.firstByteChecksum*256+buf[i];
+			SiRFparser.frameStatus=SIRF_END_SEQ_1;
 			break;
 		case SIRF_END_SEQ_1: //get first byte of end sequence
-			if(buf[i]==0xB0) frameStatus=SIRF_END_SEQ_2;
+			if(buf[i]==0xB0) SiRFparser.frameStatus=SIRF_END_SEQ_2;
 			else {
-				frameStatus=SIRF_START_SEQ_1;
-				rcvdBytesOfPayload=0;
+				SiRFparser.frameStatus=SIRF_START_SEQ_1;
+				SiRFparser.rcvdBytesOfPayload=0;
 			}
 			break;
 		case SIRF_END_SEQ_2: //get second byte of end sequence
 			if(buf[i]==0xB3) {
 				int j, calcChecksum=0;
-				for(j=0;j<payloadLength;j++) calcChecksum=(calcChecksum+payload[j])&0x7FFF;
-				if(calcChecksum==checksum) { //CRC check
-					char *payloadCopy=malloc(payloadLength);
+				for(j=0;j<SiRFparser.payloadLength;j++) calcChecksum=(calcChecksum+SiRFparser.payload[j])&0x7FFF;
+				if(calcChecksum==SiRFparser.checksum) { //CRC check
+					char *payloadCopy=malloc(SiRFparser.payloadLength);
 					if(payloadCopy!=NULL) {
-						memcpy(payloadCopy,payload,payloadLength);
-						processPayload(payloadCopy,payloadLength,timestamp);
+						memcpy(payloadCopy,SiRFparser.payload,SiRFparser.payloadLength);
+						processPayload(payloadCopy,SiRFparser.payloadLength,timestamp);
 					}
 				} else printLog("Wrong checksum :(\n");
 			}
-			rcvdBytesOfPayload=0;
-			frameStatus=SIRF_START_SEQ_1;
+			SiRFparser.rcvdBytesOfPayload=0;
+			SiRFparser.frameStatus=SIRF_START_SEQ_1;
 			break;
 		default:
 			break;

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 24/11/2013
+// Last change : 27/11/2013
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
@@ -26,16 +26,14 @@
 #include "HSI.h"
 #include "Geoidal.h"
 
-struct NMEAparserDataStruct {
+
+struct NMEAparserStruct {
 	float altTimestamp, dirTimestamp, newerTimestamp;
 	bool GGAfound, RMCfound, GSAfound;
 	int numOfGSVmsg, GSVmsgSeqNo, GSVsatSeqNo, GSVtotalSatInView;
 	int rcvdBytesOfSentence;
 	char sentence[MAX_SENTENCE_LENGTH];
 	bool lineFeedExpected;
-};
-
-struct lastRedDataStruct {
 	float alt, latMin, lonMin, timeSec, groundSpeedKnots, trueTrack, magneticVariation, pdop, hdop, vdop;
 	char altUnit;
 	int latGra, lonGra, timeHour, timeMin, SatsInView, SatsInUse, timeDay, timeMonth, timeYear;
@@ -59,7 +57,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp);
 void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, float timestamp);
 bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDeg, float newlonMin, bool newisLonE, bool dateChaged);
 
-struct NMEAparserDataStruct data = {
+struct NMEAparserStruct NMEAparser = {
 	.altTimestamp=0,
 	.dirTimestamp=0,
 	.newerTimestamp=0,
@@ -74,76 +72,74 @@ struct NMEAparserDataStruct data = {
 	.lineFeedExpected=false
 };
 
-struct lastRedDataStruct lastRedData;
-
 void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 	for(int i=0;i<redBytes;i++) switch(buf[i]) {
 		case '$':
-			if(data.rcvdBytesOfSentence!=0) {
-				data.rcvdBytesOfSentence=0;
-				data.lineFeedExpected=false;
+			if(NMEAparser.rcvdBytesOfSentence!=0) {
+				NMEAparser.rcvdBytesOfSentence=0;
+				NMEAparser.lineFeedExpected=false;
 			}
-			data.sentence[data.rcvdBytesOfSentence++]='$';
+			NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence++]='$';
 			break;
 		case '\r':
-			if(data.rcvdBytesOfSentence>0) data.lineFeedExpected=true;
+			if(NMEAparser.rcvdBytesOfSentence>0) NMEAparser.lineFeedExpected=true;
 			break;
 		case '\n':
-			if(data.lineFeedExpected && data.rcvdBytesOfSentence>3) { //to avoid overflow errors
-				if(data.sentence[data.rcvdBytesOfSentence-3]=='*') { //CRC check
+			if(NMEAparser.lineFeedExpected && NMEAparser.rcvdBytesOfSentence>3) { //to avoid overflow errors
+				if(NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence-3]=='*') { //CRC check
 					unsigned int checksum=0;
 					int j;
-					for(j=1;j<data.rcvdBytesOfSentence-3;j++)
-						checksum=checksum^data.sentence[j];
+					for(j=1;j<NMEAparser.rcvdBytesOfSentence-3;j++)
+						checksum=checksum^NMEAparser.sentence[j];
 					if(getCRCintValue()==checksum) { //right CRC
 #ifdef PRINT_SENTENCES //Print all the sentences received
-						data.sentence[data.rcvdBytesOfSentence]='\0';
-						printLog("%s\n",data.sentence);
+						NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence]='\0';
+						printLog("%s\n",NMEAparser.sentence);
 #endif
-						data.sentence[data.rcvdBytesOfSentence-3]='\0'; //put terminator to cut off checksum
-						parseNMEAsentence(strdup(data.sentence));
+						NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence-3]='\0'; //put terminator to cut off checksum
+						parseNMEAsentence(strdup(NMEAparser.sentence));
 					}
 				} //end of CRC check, ignore all if CRC is wrong
-				data.rcvdBytesOfSentence=0;
-				data.lineFeedExpected=false;
+				NMEAparser.rcvdBytesOfSentence=0;
+				NMEAparser.lineFeedExpected=false;
 			}
 			break;
 		default:
-			if(data.rcvdBytesOfSentence>0) { //add chars to the sentence
-				if(data.rcvdBytesOfSentence<MAX_SENTENCE_LENGTH) data.sentence[data.rcvdBytesOfSentence++]=buf[i];
+			if(NMEAparser.rcvdBytesOfSentence>0) { //add chars to the sentence
+				if(NMEAparser.rcvdBytesOfSentence<MAX_SENTENCE_LENGTH) NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence++]=buf[i];
 				else { //to avoid buffer overflow
-					data.rcvdBytesOfSentence=0;
-					data.lineFeedExpected=false;
+					NMEAparser.rcvdBytesOfSentence=0;
+					NMEAparser.lineFeedExpected=false;
 				}
 			}
 			break;
 	} //end of switch(each byte) of just received sequence
 	bool dateChanged=false, posChanged=false, altChanged=false;
-	if(data.RMCfound) dateChanged=updateDate(lastRedData.timeDay,lastRedData.timeMonth,lastRedData.timeYear); //pre-check if date is changed
-	if(data.GGAfound) {
-		updateTime(data.newerTimestamp,lastRedData.timeHour,lastRedData.timeMin,lastRedData.timeSec,false); //updateTime must be done always before of updatePosition
-		posChanged=updatePosition(lastRedData.latGra,lastRedData.latMin,lastRedData.latNorth,lastRedData.lonGra,lastRedData.lonMin,lastRedData.lonEast,dateChanged);
-		altChanged=updateAltitude(lastRedData.alt,lastRedData.altUnit,data.newerTimestamp);
-		updateNumOfTotalSatsInView(lastRedData.SatsInView);
-		if(data.GSAfound) {
-			updateNumOfActiveSats(lastRedData.SatsInUse);
-			updateDiluition(lastRedData.pdop,lastRedData.hdop,lastRedData.vdop);
-		} else updateHdiluition(lastRedData.hdop);
+	if(NMEAparser.RMCfound) dateChanged=updateDate(NMEAparser.timeDay,NMEAparser.timeMonth,NMEAparser.timeYear); //pre-check if date is changed
+	if(NMEAparser.GGAfound) {
+		updateTime(NMEAparser.newerTimestamp,NMEAparser.timeHour,NMEAparser.timeMin,NMEAparser.timeSec,false); //updateTime must be done always before of updatePosition
+		posChanged=updatePosition(NMEAparser.latGra,NMEAparser.latMin,NMEAparser.latNorth,NMEAparser.lonGra,NMEAparser.lonMin,NMEAparser.lonEast,dateChanged);
+		altChanged=updateAltitude(NMEAparser.alt,NMEAparser.altUnit,NMEAparser.newerTimestamp);
+		updateNumOfTotalSatsInView(NMEAparser.SatsInView);
+		if(NMEAparser.GSAfound) {
+			updateNumOfActiveSats(NMEAparser.SatsInUse);
+			updateDiluition(NMEAparser.pdop,NMEAparser.hdop,NMEAparser.vdop);
+		} else updateHdiluition(NMEAparser.hdop);
 	}
-	if(data.RMCfound) {
-		if(!data.GGAfound) {
-			updateTime(data.newerTimestamp,lastRedData.timeHour,lastRedData.timeMin,lastRedData.timeSec,false); //updateTime must be done always before of updatePosition
-			posChanged=updatePosition(lastRedData.latGra,lastRedData.latMin,lastRedData.latNorth,lastRedData.lonGra,lastRedData.lonMin,lastRedData.lonEast,dateChanged);
+	if(NMEAparser.RMCfound) {
+		if(!NMEAparser.GGAfound) {
+			updateTime(NMEAparser.newerTimestamp,NMEAparser.timeHour,NMEAparser.timeMin,NMEAparser.timeSec,false); //updateTime must be done always before of updatePosition
+			posChanged=updatePosition(NMEAparser.latGra,NMEAparser.latMin,NMEAparser.latNorth,NMEAparser.lonGra,NMEAparser.lonMin,NMEAparser.lonEast,dateChanged);
 		}
-		updateSpeed(lastRedData.groundSpeedKnots);
-		updateDirection(lastRedData.trueTrack,lastRedData.magneticVariation,lastRedData.magneticVariationToEast,data.newerTimestamp);
+		updateSpeed(NMEAparser.groundSpeedKnots);
+		updateDirection(NMEAparser.trueTrack,NMEAparser.magneticVariation,NMEAparser.magneticVariationToEast,NMEAparser.newerTimestamp);
 	}
 	if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
 	FBrenderFlush();
 	BlackBoxCommit();
-	data.GGAfound=false;
-	data.RMCfound=false;
-	data.GSAfound=false;
+	NMEAparser.GGAfound=false;
+	NMEAparser.RMCfound=false;
+	NMEAparser.GSAfound=false;
 }
 
 int parseNMEAsentence(char* ascii) {
@@ -207,7 +203,7 @@ bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDe
 		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
 		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
 		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
-		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,lastRedData.timeHour,lastRedData.timeMin,lastRedData.timeSec,dateChaged);
+		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,gps.hour,gps.minute,gps.second,gps.day,gps.month,gps.year,dateChaged);
 		return true;
 	}
 	return false;
@@ -232,7 +228,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 		printLog("ERROR: Unknown altitude unit: %c\n",altUnit);
 		return 0;
 	}
-	data.altTimestamp=timestamp;
+	NMEAparser.altTimestamp=timestamp;
 	if(updateAlt) {
 		gps.altMt=newAltitudeMt;
 		gps.altFt=newAltitudeFt;
@@ -241,11 +237,11 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp) {
 		newAltitudeFt-=m2Ft(deltaMt);
 		HSIdrawVSIscale(newAltitudeFt);
 		PrintAltitude(newAltitudeMt,newAltitudeFt);
-		if(data.altTimestamp!=0) {
+		if(NMEAparser.altTimestamp!=0) {
 			float deltaT;
-			if(timestamp>data.altTimestamp) deltaT=timestamp-data.altTimestamp;
-			else if(timestamp!=data.altTimestamp) {
-				deltaT=timestamp+86400-data.altTimestamp;
+			if(timestamp>NMEAparser.altTimestamp) deltaT=timestamp-NMEAparser.altTimestamp;
+			else if(timestamp!=NMEAparser.altTimestamp) {
+				deltaT=timestamp+86400-NMEAparser.altTimestamp;
 				float deltaH=newAltitudeFt-gps.altFt;
 				gps.climbFtMin=deltaH/(deltaT/60);
 				PrintVerticalSpeed(gps.climbFtMin);
@@ -274,10 +270,10 @@ void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, fl
 				else gps.magneticTrack=newTrueTrack+magneticVar;
 			}
 			HSIupdateDir(newTrueTrack,gps.magneticTrack);
-			if(data.dirTimestamp!=0&&gps.speedKmh>10) {
+			if(NMEAparser.dirTimestamp!=0&&gps.speedKmh>10) {
 				float deltaT;
-				if(timestamp>data.dirTimestamp) deltaT=timestamp-data.dirTimestamp;
-				else if(timestamp!=data.dirTimestamp) deltaT=timestamp+86400-data.dirTimestamp;
+				if(timestamp>NMEAparser.dirTimestamp) deltaT=timestamp-NMEAparser.dirTimestamp;
+				else if(timestamp!=NMEAparser.dirTimestamp) deltaT=timestamp+86400-NMEAparser.dirTimestamp;
 				else return;
 				float deltaA=newTrueTrack-gps.trueTrack;
 				gps.turnRateDegSec=deltaA/deltaT;
@@ -294,7 +290,7 @@ void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, fl
 		}
 	}
 	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
-	data.dirTimestamp=timestamp;
+	NMEAparser.dirTimestamp=timestamp;
 }
 
 int parseGGA(char* ascii) {
@@ -376,35 +372,35 @@ int parseGGA(char* ascii) {
 	field=strsep(&ascii,","); //Differential reference station ID, the last one
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%d",&diffRef);
 	float timestamp=timeHour*3600+timeMin*60+timeSec;
-	if(timestamp<data.newerTimestamp) return 0; //the sentence is old
+	if(timestamp<NMEAparser.newerTimestamp) return 0; //the sentence is old
 	if(quality!=Q_NO_FIX) {
-		if(timestamp>data.newerTimestamp) { //this is a new one sentence
-			data.newerTimestamp=timestamp;
-			data.GGAfound=true;
-			data.RMCfound=false;
-			data.GSAfound=false;
+		if(timestamp>NMEAparser.newerTimestamp) { //this is a new one sentence
+			NMEAparser.newerTimestamp=timestamp;
+			NMEAparser.GGAfound=true;
+			NMEAparser.RMCfound=false;
+			NMEAparser.GSAfound=false;
 		} else { //timestamp==newerTimestamp
-			if(data.GGAfound) return 0;
-			else data.GGAfound=true;
+			if(NMEAparser.GGAfound) return 0;
+			else NMEAparser.GGAfound=true;
 		}
-		lastRedData.alt=alt;
-		lastRedData.altUnit=altUnit;
-		lastRedData.latGra=latGra;
-		lastRedData.latMin=latMin;
-		lastRedData.latNorth=latNorth;
-		lastRedData.lonGra=lonGra;
-		lastRedData.lonMin=lonMin;
-		lastRedData.lonEast=lonEast;
-		lastRedData.timeHour=timeHour;
-		lastRedData.timeMin=timeMin;
-		lastRedData.timeSec=timeSec;
-		lastRedData.hdop=hDilutionPrecision;
-		lastRedData.SatsInView=numOfSatellites;
+		NMEAparser.alt=alt;
+		NMEAparser.altUnit=altUnit;
+		NMEAparser.latGra=latGra;
+		NMEAparser.latMin=latMin;
+		NMEAparser.latNorth=latNorth;
+		NMEAparser.lonGra=lonGra;
+		NMEAparser.lonMin=lonMin;
+		NMEAparser.lonEast=lonEast;
+		NMEAparser.timeHour=timeHour;
+		NMEAparser.timeMin=timeMin;
+		NMEAparser.timeSec=timeSec;
+		NMEAparser.hdop=hDilutionPrecision;
+		NMEAparser.SatsInView=numOfSatellites;
 		updateFixMode(MODE_GPS_FIX);
 		return 1;
 	} else { //there is no fix...
 		updateFixMode(MODE_NO_FIX); //show that there is no fix
-		if(timestamp>data.newerTimestamp) updateTime(timestamp,timeHour,timeMin,timeSec,true); //show the time
+		if(timestamp>NMEAparser.newerTimestamp) updateTime(timestamp,timeHour,timeMin,timeSec,true); //show the time
 	}
 	return 0;
 }
@@ -499,37 +495,37 @@ int parseRMC(char* ascii) {
 	if(isValid) {
 		float timestamp=timeHour*3600+timeMin*60+timeSec;
 		if(gps.day!=-65&&timeDay!=gps.day) {
-			data.newerTimestamp=timestamp; //change of date
-			data.GGAfound=false;
-			data.GSAfound=false;
+			NMEAparser.newerTimestamp=timestamp; //change of date
+			NMEAparser.GGAfound=false;
+			NMEAparser.GSAfound=false;
 		}
-		if(timestamp<data.newerTimestamp) return 0; //the sentence is old
+		if(timestamp<NMEAparser.newerTimestamp) return 0; //the sentence is old
 		else {
-			if(timestamp>data.newerTimestamp) { //this is a new one sentence
-				data.newerTimestamp=timestamp;
-				data.RMCfound=true;
-				data.GGAfound=false;
-				data.GSAfound=false;
+			if(timestamp>NMEAparser.newerTimestamp) { //this is a new one sentence
+				NMEAparser.newerTimestamp=timestamp;
+				NMEAparser.RMCfound=true;
+				NMEAparser.GGAfound=false;
+				NMEAparser.GSAfound=false;
 			} else { //timestamp==newerTimestamp
-				if(data.RMCfound) return 0;
-				else data.RMCfound=true;
+				if(NMEAparser.RMCfound) return 0;
+				else NMEAparser.RMCfound=true;
 			}
-			lastRedData.latGra=latGra;
-			lastRedData.latMin=latMin;
-			lastRedData.latNorth=latNorth;
-			lastRedData.lonGra=lonGra;
-			lastRedData.lonMin=lonMin;
-			lastRedData.lonEast=lonEast;
-			lastRedData.timeHour=timeHour;
-			lastRedData.timeMin=timeMin;
-			lastRedData.timeSec=timeSec;
-			lastRedData.groundSpeedKnots=groundSpeedKnots;
-			lastRedData.trueTrack=trueTrack;
-			lastRedData.magneticVariation=magneticVariation;
-			lastRedData.magneticVariationToEast=magneticVariationToEast;
-			lastRedData.timeDay=timeDay;
-			lastRedData.timeMonth=timeMonth;
-			lastRedData.timeYear=timeYear;
+			NMEAparser.latGra=latGra;
+			NMEAparser.latMin=latMin;
+			NMEAparser.latNorth=latNorth;
+			NMEAparser.lonGra=lonGra;
+			NMEAparser.lonMin=lonMin;
+			NMEAparser.lonEast=lonEast;
+			NMEAparser.timeHour=timeHour;
+			NMEAparser.timeMin=timeMin;
+			NMEAparser.timeSec=timeSec;
+			NMEAparser.groundSpeedKnots=groundSpeedKnots;
+			NMEAparser.trueTrack=trueTrack;
+			NMEAparser.magneticVariation=magneticVariation;
+			NMEAparser.magneticVariationToEast=magneticVariationToEast;
+			NMEAparser.timeDay=timeDay;
+			NMEAparser.timeMonth=timeMonth;
+			NMEAparser.timeYear=timeYear;
 			return 1;
 		}
 		return 0;
@@ -576,13 +572,13 @@ int parseGSA(char* ascii) {
 	if(field!=NULL) if(strlen(field)>0) sscanf(field,"%f",&vdop);
 	updateFixMode(mode);
 	if(mode!=MODE_NO_FIX) {
-		if(data.GSAfound) return 0;
-		else if(data.GGAfound && data.RMCfound) {
-			data.GSAfound=1;
-			lastRedData.pdop=pdop;
-			lastRedData.hdop=hdop;
-			lastRedData.vdop=vdop;
-			lastRedData.SatsInUse=numOfSatellites;
+		if(NMEAparser.GSAfound) return 0;
+		else if(NMEAparser.GGAfound && NMEAparser.RMCfound) {
+			NMEAparser.GSAfound=1;
+			NMEAparser.pdop=pdop;
+			NMEAparser.hdop=hdop;
+			NMEAparser.vdop=vdop;
+			NMEAparser.SatsInUse=numOfSatellites;
 			return 1;
 		}
 		return 0;
@@ -593,92 +589,92 @@ int parseGSA(char* ascii) {
 int parseGSV(char* ascii) {
 	char *field=strsep(&ascii,","); //Number of GSV messages
 	if(field==NULL) {
-		data.numOfGSVmsg=0;
-		data.GSVmsgSeqNo=0;
+		NMEAparser.numOfGSVmsg=0;
+		NMEAparser.GSVmsgSeqNo=0;
 		return (-1);
 	}
 	int num=0;
 	if(strlen(field)>0) sscanf(field,"%d",&num);
 	if(num==0) {
-		data.numOfGSVmsg=0;
-		data.GSVmsgSeqNo=0;
+		NMEAparser.numOfGSVmsg=0;
+		NMEAparser.GSVmsgSeqNo=0;
 		return (-1);
 	}
 	field=strsep(&ascii,","); //GSV message seq no.
 	if(field==NULL) {
-		data.numOfGSVmsg=0;
-		data.GSVmsgSeqNo=0;
+		NMEAparser.numOfGSVmsg=0;
+		NMEAparser.GSVmsgSeqNo=0;
 		return (-2);
 	}
 	int seqNo=0;
 	if(strlen(field)>0) sscanf(field,"%d",&seqNo);
 	if(seqNo==0) {
-		data.numOfGSVmsg=0;
-		data.GSVmsgSeqNo=0;
+		NMEAparser.numOfGSVmsg=0;
+		NMEAparser.GSVmsgSeqNo=0;
 		return (-2);
 	}
 	if(seqNo==1) { //the first one resets GSVmsgSeqNo counter
-		data.numOfGSVmsg=0;
-		data.GSVmsgSeqNo=0;
+		NMEAparser.numOfGSVmsg=0;
+		NMEAparser.GSVmsgSeqNo=0;
 	}
-	if(data.GSVmsgSeqNo==0) { //we are expecting the first
-		data.numOfGSVmsg=num;
-		data.GSVmsgSeqNo=1;
+	if(NMEAparser.GSVmsgSeqNo==0) { //we are expecting the first
+		NMEAparser.numOfGSVmsg=num;
+		NMEAparser.GSVmsgSeqNo=1;
 		field=strsep(&ascii,","); //total number of satellites in view
 		if(field==NULL) return (-3);
-		if(strlen(field)>0) sscanf(field,"%d",&data.GSVtotalSatInView);
-		updateNumOfTotalSatsInView(data.GSVtotalSatInView);
+		if(strlen(field)>0) sscanf(field,"%d",&NMEAparser.GSVtotalSatInView);
+		updateNumOfTotalSatsInView(NMEAparser.GSVtotalSatInView);
 	} else { //we are not expecting the first
-		if(num!=data.numOfGSVmsg) {
-			data.numOfGSVmsg=0;
-			data.GSVmsgSeqNo=0;
+		if(num!=NMEAparser.numOfGSVmsg) {
+			NMEAparser.numOfGSVmsg=0;
+			NMEAparser.GSVmsgSeqNo=0;
 			return (-1);
 		}
-		if(seqNo!=data.GSVmsgSeqNo+1) {
-			data.numOfGSVmsg=0;
-			data.GSVmsgSeqNo=0;
+		if(seqNo!=NMEAparser.GSVmsgSeqNo+1) {
+			NMEAparser.numOfGSVmsg=0;
+			NMEAparser.GSVmsgSeqNo=0;
 			return (-2);
 		}
-		data.GSVmsgSeqNo++;
+		NMEAparser.GSVmsgSeqNo++;
 		field=strsep(&ascii,","); //total number of satellites in view
 		if(field==NULL) {
-			data.numOfGSVmsg=0;
-			data.GSVmsgSeqNo=0;
+			NMEAparser.numOfGSVmsg=0;
+			NMEAparser.GSVmsgSeqNo=0;
 			return (-3);
 		}
 		if(strlen(field)>0) sscanf(field,"%d",&num);
-		if(num!=data.GSVtotalSatInView) {
-			data.numOfGSVmsg=0;
-			data.GSVmsgSeqNo=0;
+		if(num!=NMEAparser.GSVtotalSatInView) {
+			NMEAparser.numOfGSVmsg=0;
+			NMEAparser.GSVmsgSeqNo=0;
 			return (-3);
 		}
 	}
-	while(field!=NULL && data.GSVsatSeqNo<data.GSVtotalSatInView) {
+	while(field!=NULL && NMEAparser.GSVsatSeqNo<NMEAparser.GSVtotalSatInView) {
 		field=strsep(&ascii,","); //satellite PRN number
 		if(field==NULL) break; //to exit from the sat sequence of current msg
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_PRN]);
-		else gps.satellites[data.GSVsatSeqNo][SAT_PRN]=-1;
+		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_PRN]);
+		else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_PRN]=-1;
 		field=strsep(&ascii,","); //elevation in degrees (00-90)
 		if(field==NULL) {
-			data.numOfGSVmsg=0;
-			data.GSVmsgSeqNo=0;
-			return (-5-data.GSVsatSeqNo*4);
+			NMEAparser.numOfGSVmsg=0;
+			NMEAparser.GSVmsgSeqNo=0;
+			return (-5-NMEAparser.GSVsatSeqNo*4);
 		}
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_ELEVATION]);
-		else gps.satellites[data.GSVsatSeqNo][SAT_ELEVATION]=-1;
+		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_ELEVATION]);
+		else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_ELEVATION]=-1;
 		field=strsep(&ascii,","); //azimuth in degrees to 1 north (000-359)
 		if(field==NULL) {
-			data.numOfGSVmsg=0;
-			data.GSVmsgSeqNo=0;
-			return (-6-data.GSVsatSeqNo*4);
+			NMEAparser.numOfGSVmsg=0;
+			NMEAparser.GSVmsgSeqNo=0;
+			return (-6-NMEAparser.GSVsatSeqNo*4);
 		}
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_AZIMUTH]);
-		else gps.satellites[data.GSVsatSeqNo][SAT_AZIMUTH]=-1;
+		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_AZIMUTH]);
+		else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_AZIMUTH]=-1;
 		field=strsep(&ascii,","); //SNR in dB (00-99)
 		if(field!=NULL) {
-			if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[data.GSVsatSeqNo][SAT_SNR]);
-		} else gps.satellites[data.GSVsatSeqNo][SAT_SNR]=-1;
-		data.GSVsatSeqNo++;
+			if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_SNR]);
+		} else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_SNR]=-1;
+		NMEAparser.GSVsatSeqNo++;
 	}
 	return 1;
 }
@@ -913,10 +909,10 @@ int parseGBS(char* ascii) {
 #endif
 
 unsigned int getCRCintValue(void) {
-	if(data.rcvdBytesOfSentence<9) return -1;
+	if(NMEAparser.rcvdBytesOfSentence<9) return -1;
 	char asciiCheksum[2]; //two digits
-	asciiCheksum[0]=data.sentence[data.rcvdBytesOfSentence-2];
-	asciiCheksum[1]=data.sentence[data.rcvdBytesOfSentence-1];
+	asciiCheksum[0]=NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence-2];
+	asciiCheksum[1]=NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence-1];
 	unsigned int checksum;
 	sscanf(asciiCheksum,"%x",&checksum); //read as hex
 	return checksum;
