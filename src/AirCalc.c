@@ -12,6 +12,7 @@
 
 //TODO: Verify that we are not getting NaN using: if(isnan(number))
 //TODO: Verify that we are not getting infinity using: if(isinf(number))
+//FIXME: detected NaN for course and XTD for some rare case
 
 #include <math.h>
 #include <stdio.h>
