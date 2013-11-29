@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 29/11/2013
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -156,19 +156,13 @@ int main(int argc, char** argv) {
 		FBrenderBlitText(200,240,config.colorSchema.text,config.colorSchema.background,0,"LOAD");
 	} else status=MAIN_STATUS_START_GPS;
 
-	short doExit=0;
-	condVar_t signal=TSreaderGetCondVar();
+	bool doExit=false;
 	TS_EVENT lastTouch; //data of the last event from the touch screen
-	bool waitTouch=false; //flag to know if we are waining for user input on the touch screen
+	bool waitTouch=false; //flag to know if we are waiting for user input on the touch screen
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
 	int numWPloaded=0; //the number of waypoints loaded from the selected flight plan
 	while(!doExit) { //Main loop
-		if(waitTouch) { //if needed wait for user input
-			pthread_mutex_lock(&signal->lastTouchMutex);
-			pthread_cond_wait(&signal->lastTouchSignal,&signal->lastTouchMutex); //wait user touches the screen
-			lastTouch=TSreaderGetLastTouch(); //get the coordinates of the touch
-			pthread_mutex_unlock(&signal->lastTouchMutex);
-		}
+		if(waitTouch) TSreaderGetTouch(&lastTouch); //if needed wait user touches the screen and get the coordinates of the touch
 		switch(status) { //Main status machine
 			case MAIN_STATUS_SELECT_ROUTE: { //Display a "menu" with the list of GPX files
 				if(numGPXfiles>0) {
@@ -248,7 +242,7 @@ int main(int argc, char** argv) {
 				status=MAIN_STATUS_WAIT_EXIT;
 			} break;
 			case MAIN_STATUS_WAIT_EXIT:
-				if((lastTouch.x>screen.width-(5*8))&&(lastTouch.y<40)) doExit=1;
+				if((lastTouch.x>screen.width-(5*8))&&(lastTouch.y<40)) doExit=true;
 				waitTouch=true; //Here we wait for a touch on the exit button
 				break;
 			default:

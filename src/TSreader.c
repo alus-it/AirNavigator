@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 28/11/2013
+// Last change : 29/11/2013
 // Description : Touch screen reader
 //============================================================================
 
@@ -26,7 +26,8 @@ struct TSreaderStruct {
 	volatile short reading;
 	int tsfd;
 	pthread_t thread;
-	condVar_t condVar;
+	pthread_mutex_t lastTouchMutex;
+	pthread_cond_t lastTouchSignal;
 	TS_EVENT lastTouch;
 };
 
@@ -36,22 +37,19 @@ void* runTSreader(void *arg);
 
 static struct TSreaderStruct TSreader = {
 	.reading=-1, //-1 means still not initialized
-	.tsfd=-1,
-	.condVar=NULL
+	.tsfd=-1
 };
 
 void TSreaderRelease(void) {
-	pthread_mutex_destroy(&TSreader.condVar->lastTouchMutex);
-	pthread_cond_destroy(&TSreader.condVar->lastTouchSignal);
-	free(TSreader.condVar);
+	pthread_mutex_destroy(&TSreader.lastTouchMutex);
+	pthread_cond_destroy(&TSreader.lastTouchSignal);
 	if(TSreader.tsfd>=0) close(TSreader.tsfd);
 	TSreader.tsfd=-1;
 	TSreader.reading=-1;
 }
 
 void initializeTSreader(void) {
-	TSreader.condVar=(condVar_t)malloc(sizeof(struct condVarStruct));
-	if(pthread_mutex_init(&TSreader.condVar->lastTouchMutex,NULL) || pthread_cond_init(&TSreader.condVar->lastTouchSignal,NULL)) {
+	if(pthread_mutex_init(&TSreader.lastTouchMutex,NULL) || pthread_cond_init(&TSreader.lastTouchSignal,NULL)) {
 		printLog("TSreader: ERROR while initializing mutex and condition variable\n");
 		TSreaderRelease();
 	}
@@ -87,10 +85,10 @@ void* runTSreader(void *arg) { //This is the thread listening for input on the t
 		read_len=read(TSreader.tsfd,&event,sizeof(TS_EVENT));
 		if(read_len==sizeof(TS_EVENT)) {
 			if(event.pressure==0) { //to detect when the finger is going away from the screen so the touch is completed
-				pthread_mutex_lock(&TSreader.condVar->lastTouchMutex);
+				pthread_mutex_lock(&TSreader.lastTouchMutex);
 				TSreader.lastTouch=event; //it's a simple struct no need to use memcpy
-				pthread_cond_signal(&TSreader.condVar->lastTouchSignal); //signal to the main that there is a new touch
-				pthread_mutex_unlock(&TSreader.condVar->lastTouchMutex);
+				pthread_cond_signal(&TSreader.lastTouchSignal); //signal that there is a new touch
+				pthread_mutex_unlock(&TSreader.lastTouchMutex);
 			}
 		}
 	}
@@ -120,12 +118,13 @@ void TSreaderClose() {
 	TSreaderRelease();
 }
 
-condVar_t TSreaderGetCondVar() {
-	return TSreader.condVar;
-}
-
-TS_EVENT TSreaderGetLastTouch() {
-	return TSreader.lastTouch;
+short TSreaderGetTouch(TS_EVENT *lastTouch) {
+	if(TSreader.reading!=1) return -1;
+	pthread_mutex_lock(&TSreader.lastTouchMutex);
+	pthread_cond_wait(&TSreader.lastTouchSignal,&TSreader.lastTouchMutex); //wait user touches the screen
+	*lastTouch=TSreader.lastTouch; //get a copy of the coordinates of the last touch
+	pthread_mutex_unlock(&TSreader.lastTouchMutex);
+	return 1;
 }
 
 /*
