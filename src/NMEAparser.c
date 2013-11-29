@@ -57,7 +57,7 @@ short updateAltitude(float newAltitude, char altUnit, float timestamp);
 void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, float timestamp);
 bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDeg, float newlonMin, bool newisLonE, bool dateChaged);
 
-struct NMEAparserStruct NMEAparser = {
+static struct NMEAparserStruct NMEAparser = {
 	.altTimestamp=0,
 	.dirTimestamp=0,
 	.newerTimestamp=0,

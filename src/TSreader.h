@@ -26,8 +26,6 @@ void TSreaderClose(void);
 condVar_t TSreaderGetCondVar(void);
 TS_EVENT TSreaderGetLastTouch(void);
 
-/*
-short checkBattery(short *batVolt, short *refVolt, short *chargeCurr);
-*/
+//short checkBattery(short *batVolt, short *refVolt, short *chargeCurr);
 
 #endif /* TSREADER_H_ */

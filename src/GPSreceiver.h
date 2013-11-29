@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 29/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -54,27 +54,28 @@ enum indexSatData { //Indexes for satellite's data
 };
 
 struct GPSdata {
-	float timestamp; //timestamp of the data in sec from the beginning of the day
-	double speedKmh,speedKnots; //ground speeds in Km/h and knots
-	double altMt,altFt; //altitudes in m and feet respect WGS84 as received by the GPS
-	double realAltMt,realAltFt; //altitudes in m and feet respect m.s.l.
-	double climbFtMin; //calculated vertical speed rate in feet/min
-	double trueTrack,magneticTrack; //true and magnetc track in deg
-	double magneticVariation; //magnetic variation in deg
-	char isMagVarToEast; // =1 (true) if magnetic variation is to east
-	double turnRateDegMin,turnRateDegSec; //calculated turn rate in deg/min and deg/sec
-	int day,month,year; //date
-	int hour,minute; //UTC time
-	float second; //seconds of UTC time
-	int latDeg,lonDeg; //deg part of latitude and longitude
-	float latMinDecimal,lonMinDecimal; //decimal minutes and seconds part of lat and lon
-	char isLatN,isLonE; //if latitude is to North, if longitude is to East
-	double lat,lon; //latitude and longitude expressed in rad
-	float pdop,hdop,vdop; //P,H,V dilutions in m
-	char activeSats,satsInView,fixMode; //used and visible sats, type of fix
+	float timestamp;                               //timestamp of the data in sec from the beginning of the day
+	double speedKmh,speedKnots;                    //ground speeds in Km/h and knots
+	double altMt,altFt;                            //altitudes in m and feet respect WGS84 as received by the GPS
+	double realAltMt,realAltFt;                    //altitudes in m and feet respect m.s.l.
+	double climbFtMin;                             //calculated vertical speed rate in feet/min
+	double trueTrack,magneticTrack;                //true and magnetc track in deg
+	double magneticVariation;                      //magnetic variation in deg
+	bool isMagVarToEast;                           // true if magnetic variation is to east
+	double turnRateDegMin,turnRateDegSec;          //calculated turn rate in deg/min and deg/sec
+	int day,month,year;                            //date
+	int hour,minute;                               //UTC time
+	float second;                                  //seconds of UTC time
+	int latDeg,lonDeg;                             //deg part of latitude and longitude
+	float latMinDecimal,lonMinDecimal;             //decimal minutes and seconds part of lat and lon
+	bool isLatN,isLonE;                            //true if latitude is to North, true if longitude is to East
+	double lat,lon;                                //latitude and longitude expressed in rad
+	float pdop,hdop,vdop;                          //P,H,V dilutions in m
+	char activeSats,satsInView;                    //used and visible sats
+	enum GPSmode fixMode;                          //type of fix
 	int signalStrength,SNR,beaconDataRate,channel; //data about GPS signal (not used)
-	int beaconFrequency; //beacon frequency of GPS signal (not used)
-	int satellites[MAX_NUM_SAT][4]; //matrix of detected satellites
+	int beaconFrequency;                           //beacon frequency of GPS signal (not used)
+	int satellites[MAX_NUM_SAT][4];                //matrix of detected satellites
 };
 
 struct GPSdata gps;

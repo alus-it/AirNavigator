@@ -58,7 +58,7 @@ static struct GPSreceiverStruct GPSreceiver = {
 	//.isSiRF=false
 };
 
-struct GPSdata gps = { //initialize GPS data struct
+struct GPSdata gps = {
 	.timestamp=-1,
 	.speedKmh=-100,
 	.speedKnots=-100,
@@ -189,7 +189,7 @@ void configureGPSreceiver(void) {
 void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	static int fd=-1;
 
-//	if(gpsRcv.isSiRF) fd=open("/dev/gpsdata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
+//	if(gps.cv.isSiRF) fd=open("/dev/gps.ata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
 //	else
 	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //othewise open NMEA pipe: read only, non blocking
 	if(fd<0) {

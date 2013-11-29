@@ -61,7 +61,7 @@ short NavCalculateRoute(void);
 void NavFindNextWP(double lat, double lon);
 void updateDtgEteEtaAs(double atd, float timestamp, double remainDist);
 
-struct NavigatorStruct Navigator = {
+static struct NavigatorStruct Navigator = {
 	.status=NAV_STATUS_NOT_INIT,
 	.numWayPoints=0,
 	.previousAltitude=-1000,
@@ -349,7 +349,7 @@ void NavFindNextWP(double lat, double lon) {
 
 void NavStartNavigation(float timestamp) { //timestamp have to be the real time when we start the travel
 	if(Navigator.status!=NAV_STATUS_TO_START_NAV || timestamp<0) return;
-	short fixMode=gps.fixMode;
+	enum GPSmode fixMode=gps.fixMode;
 	double lat=gps.lat;
 	if(fixMode>MODE_NO_FIX && lat!=100) { //if have fix give immediately the position to the nav. The lat!=100 is just to avoid the case of having fix but still not a position stored
 		double lon=gps.lon;

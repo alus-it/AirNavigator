@@ -150,10 +150,10 @@ int main(int argc, char** argv) {
 	if(numGPXfiles>0) { //Start to prepare the "menu" to select the route
 		status=MAIN_STATUS_SELECT_ROUTE;
 		currFile=fileList;
-		FBrenderBlitText(100,20,colorSchema.dirMarker,colorSchema.background,0,"AirNavigator  v. %s",VERSION);
-		FBrenderBlitText(100,30,colorSchema.magneticDir,colorSchema.background,0,"http://www.alus.it/airnavigator");
-		FBrenderBlitText(20,60,colorSchema.text,colorSchema.background,0,"Select a GPX flight plan:");
-		FBrenderBlitText(200,240,colorSchema.text,colorSchema.background,0,"LOAD");
+		FBrenderBlitText(100,20,config.colorSchema.dirMarker,config.colorSchema.background,0,"AirNavigator  v. %s",VERSION);
+		FBrenderBlitText(100,30,config.colorSchema.magneticDir,config.colorSchema.background,0,"http://www.alus.it/airnavigator");
+		FBrenderBlitText(20,60,config.colorSchema.text,config.colorSchema.background,0,"Select a GPX flight plan:");
+		FBrenderBlitText(200,240,config.colorSchema.text,config.colorSchema.background,0,"LOAD");
 	} else status=MAIN_STATUS_START_GPS;
 
 	short doExit=0;
@@ -172,11 +172,11 @@ int main(int argc, char** argv) {
 		switch(status) { //Main status machine
 			case MAIN_STATUS_SELECT_ROUTE: { //Display a "menu" with the list of GPX files
 				if(numGPXfiles>0) {
-					FBrenderBlitText(20,70,colorSchema.cdi,colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
-					if(currFile->prev!=NULL) FBrenderBlitText(20,240,colorSchema.text,colorSchema.background,0,"<< Prev");
-					else FBrenderBlitText(20,240,colorSchema.text,colorSchema.background,0,"       ");
-					if(currFile->next!=NULL) FBrenderBlitText(350,240,colorSchema.text,colorSchema.background,0,"Next >>");
-					else FBrenderBlitText(350,240,colorSchema.text,colorSchema.background,0,"       ");
+					FBrenderBlitText(20,70,config.colorSchema.cdi,config.colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
+					if(currFile->prev!=NULL) FBrenderBlitText(20,240,config.colorSchema.text,config.colorSchema.background,0,"<< Prev");
+					else FBrenderBlitText(20,240,config.colorSchema.text,config.colorSchema.background,0,"       ");
+					if(currFile->next!=NULL) FBrenderBlitText(350,240,config.colorSchema.text,config.colorSchema.background,0,"Next >>");
+					else FBrenderBlitText(350,240,config.colorSchema.text,config.colorSchema.background,0,"       ");
 					FBrenderFlush();
 					if(waitTouch) {
 						if(lastTouch.y>200) { //user touched lower part of the screen
@@ -196,7 +196,7 @@ int main(int argc, char** argv) {
 				}
 			} break;
 			case MAIN_STATUS_START_GPS: //Start reading from GPS and the track recorder
-				FBrenderClear(0,screen.height,colorSchema.background); //draw the main screen
+				FBrenderClear(0,screen.height,config.colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
 				if(!GPSreceiverStart()) printLog("ERROR: GPSreceiver failed to start.\n"); //Start reding from the GPSrecveiver
 				BlackBoxStart(); //Start the track recorder

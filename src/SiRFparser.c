@@ -40,7 +40,7 @@ enum SiRFparserStatus {
 	SIRF_END_SEQ_2      //get second byte of end sequence
 };
 
-struct SiRFparserStruct {
+static struct SiRFparserStruct {
 	enum SiRFparserStatus frameStatus;
 	int payloadLength,rcvdBytesOfPayload,checksum;
 	unsigned char payload[MAX_PAYLOAD_LENGHT];
@@ -90,7 +90,7 @@ inline uint16_t endian16_swap(uint16_t val);
 inline uint32_t endian32_swap(uint32_t val);
 void processPayload(char *payloadCopy, int len, long timestamp);
 
-struct SiRFparserStruct SiRFparser = {
+static struct SiRFparserStruct SiRFparser = {
 	.frameStatus=SIRF_START_SEQ_1,
 	.payloadLength=0,
 	.rcvdBytesOfPayload=0,

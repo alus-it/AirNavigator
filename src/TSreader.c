@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 12/11/2013
+// Last change : 28/11/2013
 // Description : Touch screen reader
 //============================================================================
 
@@ -22,40 +22,46 @@
 #include "TSreader.h"
 #include "Common.h"
 
+struct TSreaderStruct {
+	volatile short reading;
+	int tsfd;
+	pthread_t thread;
+	condVar_t condVar;
+	TS_EVENT lastTouch;
+};
 
 void TSreaderRelease(void);
 void initializeTSreader(void);
 void* runTSreader(void *arg);
 
-volatile short readingTS=-1; //-1 means still not initialized
-static int tsfd=-1;
-pthread_t threadTSreader;
-condVar_t condVar=NULL;
-TS_EVENT lastTouch;
-
+static struct TSreaderStruct TSreader = {
+	.reading=-1, //-1 means still not initialized
+	.tsfd=-1,
+	.condVar=NULL
+};
 
 void TSreaderRelease(void) {
-	pthread_mutex_destroy(&condVar->lastTouchMutex);
-	pthread_cond_destroy(&condVar->lastTouchSignal);
-	free(condVar);
-	if(tsfd>=0) close(tsfd);
-	tsfd=-1;
-	readingTS=-1;
+	pthread_mutex_destroy(&TSreader.condVar->lastTouchMutex);
+	pthread_cond_destroy(&TSreader.condVar->lastTouchSignal);
+	free(TSreader.condVar);
+	if(TSreader.tsfd>=0) close(TSreader.tsfd);
+	TSreader.tsfd=-1;
+	TSreader.reading=-1;
 }
 
 void initializeTSreader(void) {
-	condVar=(condVar_t)malloc(sizeof(struct condVarStruct));
-	if(pthread_mutex_init(&condVar->lastTouchMutex,NULL) || pthread_cond_init(&condVar->lastTouchSignal,NULL)) {
+	TSreader.condVar=(condVar_t)malloc(sizeof(struct condVarStruct));
+	if(pthread_mutex_init(&TSreader.condVar->lastTouchMutex,NULL) || pthread_cond_init(&TSreader.condVar->lastTouchSignal,NULL)) {
 		printLog("TSreader: ERROR while initializing mutex and condition variable\n");
 		TSreaderRelease();
 	}
-	tsfd=open("/dev/ts",O_RDONLY|O_NOCTTY|O_NONBLOCK);
-	if(tsfd<0) {
+	TSreader.tsfd=open("/dev/ts",O_RDONLY|O_NOCTTY|O_NONBLOCK);
+	if(TSreader.tsfd<0) {
 		printLog("TSreader: ERROR can't open the device: /dev/ts\n");
 		TSreaderRelease();
 	}
-	ioctl(tsfd,TS_SET_RAW_OFF,NULL);
-	readingTS=0; //in this case we can start the thread
+	ioctl(TSreader.tsfd,TS_SET_RAW_OFF,NULL);
+	TSreader.reading=0; //in this case we can start the thread
 }
 
 void* runTSreader(void *arg) { //This is the thread listening for input on the touch screen
@@ -65,26 +71,26 @@ void* runTSreader(void *arg) { //This is the thread listening for input on the t
 	sa.sa_flags = SA_SIGINFO;
 	sigemptyset(&sa.sa_mask);
 	fd_set fdset;
-	int maxfd=tsfd+1;
+	int maxfd=TSreader.tsfd+1;
 	int read_len;
-	while(readingTS) { //loop while waiting for input
+	while(TSreader.reading) { //loop while waiting for input
 		FD_ZERO(&fdset);
-		FD_SET(tsfd, &fdset);
+		FD_SET(TSreader.tsfd, &fdset);
 		if(sigaction((int)arg, &sa, NULL)<0) { //register signal to kill the thread otherwise it will wait until next input
 			printLog("TSreader: ERROR while registering signal to stop listen thread.");
-			readingTS=0;
+			TSreader.reading=0;
 			pthread_exit(NULL);
 			return NULL;
 		}
 		select(maxfd,&fdset,NULL,NULL,NULL); //wait until we have something new
 		TS_EVENT event;
-		read_len=read(tsfd,&event,sizeof(TS_EVENT));
+		read_len=read(TSreader.tsfd,&event,sizeof(TS_EVENT));
 		if(read_len==sizeof(TS_EVENT)) {
 			if(event.pressure==0) { //to detect when the finger is going away from the screen so the touch is completed
-				pthread_mutex_lock(&condVar->lastTouchMutex);
-				lastTouch=event; //it's a simple struct no need to use memcpy
-				pthread_cond_signal(&condVar->lastTouchSignal); //signal to the main that there is a new touch
-				pthread_mutex_unlock(&condVar->lastTouchMutex);
+				pthread_mutex_lock(&TSreader.condVar->lastTouchMutex);
+				TSreader.lastTouch=event; //it's a simple struct no need to use memcpy
+				pthread_cond_signal(&TSreader.condVar->lastTouchSignal); //signal to the main that there is a new touch
+				pthread_mutex_unlock(&TSreader.condVar->lastTouchMutex);
 			}
 		}
 	}
@@ -93,33 +99,33 @@ void* runTSreader(void *arg) { //This is the thread listening for input on the t
 }
 
 short TSreaderStart() {
-	if(readingTS==-1) initializeTSreader();
-	if(readingTS==0) {
-		readingTS=1;
-		if(pthread_create(&threadTSreader,NULL,runTSreader,(void*)SIGUSR1)) {
-			readingTS=0;
+	if(TSreader.reading==-1) initializeTSreader();
+	if(TSreader.reading==0) {
+		TSreader.reading=1;
+		if(pthread_create(&TSreader.thread,NULL,runTSreader,(void*)SIGUSR1)) {
+			TSreader.reading=0;
 			printLog("TSreader: ERROR unable to create the reading thread.\n");
 			TSreaderRelease();
 		}
 	}
-	return readingTS;
+	return TSreader.reading;
 }
 
 void TSreaderClose() {
-	if(readingTS==1) {
-		readingTS=0;
-		pthread_kill(threadTSreader,SIGUSR1); //send the signa to kill the thread
-		pthread_join(threadTSreader,NULL); //wait for thread death
+	if(TSreader.reading==1) {
+		TSreader.reading=0;
+		pthread_kill(TSreader.thread,SIGUSR1); //send the signa to kill the thread
+		pthread_join(TSreader.thread,NULL); //wait for thread death
 	}
 	TSreaderRelease();
 }
 
 condVar_t TSreaderGetCondVar() {
-	return condVar;
+	return TSreader.condVar;
 }
 
 TS_EVENT TSreaderGetLastTouch() {
-	return lastTouch;
+	return TSreader.lastTouch;
 }
 
 /*

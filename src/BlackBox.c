@@ -46,7 +46,7 @@ struct BlackBoxStruct {
 bool openRecordingFile(void);
 void recordPos(double lat, double lon, float timestamp, int year, int month, int day, int hour, int min, float sec);
 
-struct BlackBoxStruct BlackBox = {
+static struct BlackBoxStruct BlackBox = {
 	.filename=NULL,
 	.tracklogFile=NULL,
 	.status=BBS_NOT_SET

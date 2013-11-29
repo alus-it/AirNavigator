@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 29/11/2013
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
@@ -18,7 +18,7 @@
 #include "Common.h"
 #include "FBrender.h"
 
-struct configuration config = { //Default values
+struct configuration config = { //Default configuration values
 	.distUnit=KM,
 	.trackErrUnit=MT,
 	.speedUnit=KMH,
@@ -38,9 +38,22 @@ struct configuration config = { //Default values
 	.GPSstopBits=1,
 	.GPSparity=0,
 	.tomtomModel=NULL,
-	.serialNumber=NULL
+	.serialNumber=NULL,
+	.colorSchema = { //Default colors
+		.background=0x0000, //black
+		.compassRose=0xffff, //white
+		.dirMarker=0xf000, //red
+		.magneticDir=0x00f0, //blue
+		.routeIndicator=0x0f00, //green
+		.cdi=0xff00, //yellow
+		.cdiScale=0xffff,
+		.altScale=0xffff,
+		.vsi=0xffff,
+		.altMarker=0xffff,
+		.text=0x0f00, //green
+		.warning=0xf000 //red
+	}
 };
-
 
 void loadConfig(void) { //Load configuration
 	char *configPath;
@@ -171,73 +184,73 @@ void loadConfig(void) { //Load configuration
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.background=(unsigned short)color;
+						config.colorSchema.background=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"compassRose",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.compassRose=(unsigned short)color;
+						config.colorSchema.compassRose=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"dirMarker",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.dirMarker=(unsigned short)color;
+						config.colorSchema.dirMarker=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"magneticDir",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.magneticDir=(unsigned short)color;
+						config.colorSchema.magneticDir=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"routeIndicator",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.routeIndicator=(unsigned short)color;
+						config.colorSchema.routeIndicator=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"cdi",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.cdi=(unsigned short)color;
+						config.colorSchema.cdi=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"cdiScale",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.cdiScale=(unsigned short)color;
+						config.colorSchema.cdiScale=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"altScale",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.altScale=(unsigned short)color;
+						config.colorSchema.altScale=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"vsi",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.vsi=(unsigned short)color;
+						config.colorSchema.vsi=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"altMarker",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.altMarker=(unsigned short)color;
+						config.colorSchema.altMarker=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"text",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.text=(unsigned short)color;
+						config.colorSchema.text=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"warning",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
-						colorSchema.warning=(unsigned short)color;
+						config.colorSchema.warning=(unsigned short)color;
 					}
 				} else printLog("WARNING: in the color schema the colors are missing, using default colors.\n");
 			} else printLog("WARNING: no color schema found, using default colors.\n");

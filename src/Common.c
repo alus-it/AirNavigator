@@ -19,8 +19,8 @@
 #include "Common.h"
 
 
-pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
-FILE *logFile=NULL;
+static pthread_mutex_t logMutex=PTHREAD_MUTEX_INITIALIZER;
+static FILE *logFile=NULL;
 
 bool openLog(void) {
 	char *logPath;

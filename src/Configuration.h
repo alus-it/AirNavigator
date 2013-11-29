@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 21/11/2013
+// Last change : 29/11/2013
 // Description : Header of Config with the shared config data struct
 //============================================================================
 
@@ -29,6 +29,21 @@ enum speedMesureUnit {
 	MS     //Vertical speed in Meters each Second
 };
 
+struct colorConfig {
+	unsigned short background;
+	unsigned short compassRose;
+	unsigned short dirMarker;
+	unsigned short magneticDir;
+	unsigned short routeIndicator;
+	unsigned short cdi;
+	unsigned short cdiScale;
+	unsigned short altScale;
+	unsigned short vsi;
+	unsigned short altMarker;
+	unsigned short text;
+	unsigned short warning;
+};
+
 struct configuration {
 	enum lengthMeasureUnit distUnit;
 	enum lengthMeasureUnit trackErrUnit;
@@ -46,6 +61,7 @@ struct configuration {
 	short GPSdataBits, GPSstopBits, GPSparity;
 	char *tomtomModel; //model of the TomtTom device
 	char *serialNumber; //TomTom device serial number ID
+	struct colorConfig colorSchema;
 };
 
 struct configuration config;

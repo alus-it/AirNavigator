@@ -6,36 +6,16 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 21/11/2013
+// Last change : 28/11/2013
 // Description : Header of FBrender.c the FrameBuffer renderer
 //============================================================================
 
 #ifndef FBRENDER_H_
 #define FBRENDER_H_
 
-#include "Navigator.h"
-#include "GPSreceiver.h"
-
 struct screenConfig {
 	int height,width; //size of screen in pixel
 } screen;
-
-struct colorConfig {
-	unsigned short background;
-	unsigned short compassRose;
-	unsigned short dirMarker;
-	unsigned short magneticDir;
-	unsigned short routeIndicator;
-	unsigned short cdi;
-	unsigned short cdiScale;
-	unsigned short altScale;
-	unsigned short vsi;
-	unsigned short altMarker;
-	unsigned short text;
-	unsigned short warning;
-};
-
-struct colorConfig colorSchema;
 
 inline unsigned short Color(int r, int g, int b);
 int FBrenderBpp(void);
@@ -60,10 +40,10 @@ void PrintVerticalSpeed(double FtMin);
 void PrintTurnRate(double DegMin);
 void PrintDate(int day, int month, int year);
 void PrintTime(int hour, int minute, float second, short waring);
-void PrintFixMode(enum GPSmode fixMode);
+void PrintFixMode(int fixMode);
 void PrintNumOfSats(int activeSats, int satsInView);
 void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition);
-void PrintNavStatus(enum navigatorStatus status, char *WPname);
+void PrintNavStatus(int status, char *WPname);
 void PrintNavTrackATD(double atdRad);
 void PrintNavRemainingDistWP(double dist, double averageSpeed, double hours);
 void PrintNavRemainingDistDST(double dist, double averageSpeed, double hours);
