@@ -6,13 +6,12 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/11/2013
+// Last change : 30/11/2013
 // Description : Collection of functions for air navigation calculation
 //============================================================================
 
-//TODO: Verify that we are not getting NaN using: if(isnan(number))
-//TODO: Verify that we are not getting infinity using: if(isinf(number))
-//FIXME: detected NaN for course and XTD for some rare case
+//Useful functions:  Verify not getting NaN:      if(isnan(number))
+//                   Verify not getting infinity: if(isinf(number))
 
 #include <math.h>
 #include <stdio.h>
@@ -115,44 +114,49 @@ double absAngle(double angle) { //to put angle in the range between 0 and 2PI
 	return absangle;
 }
 
-double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, double *d) { //Loxodrome
-	double dlon_W=absAngle(lon2-lon1);
-	double dlon_E=absAngle(lon1-lon2);
-	double dphi=log(tan(lat2/2+M_PI_4)/tan(lat1/2+M_PI_4));
-	double q,tc;
-	if(fabs(lat2-lat1)>SQRT_TOL) q=(lat2-lat1)/dphi;
-	else q=cos(lat1);
-	if (dlon_W<dlon_E){ // Westerly rhumb line is the shortest
-		tc=absAngle(atan2(-dlon_W,dphi));
-		*d=sqrt(pow(q,2)*pow(dlon_W,2)+pow(lat2-lat1,2));
-	} else {
-		tc=absAngle(atan2(dlon_E,dphi));
-		*d=sqrt(pow(q,2)*pow(dlon_E,2)+pow(lat2-lat1,2));
-	}
-	return tc;
-}
+//double calcRhumbLineRoute(double lat1, double lon1, double lat2, double lon2, double *d) { //Loxodrome: not used
+//	double dlon_W=absAngle(lon2-lon1);
+//	double dlon_E=absAngle(lon1-lon2);
+//	double dphi=log(tan(lat2/2+M_PI_4)/tan(lat1/2+M_PI_4));
+//	double q,tc;
+//	if(fabs(lat2-lat1)>SQRT_TOL) q=(lat2-lat1)/dphi;
+//	else q=cos(lat1);
+//	if (dlon_W<dlon_E){ // Westerly rhumb line is the shortest
+//		tc=absAngle(atan2(-dlon_W,dphi));
+//		*d=sqrt(pow(q,2)*pow(dlon_W,2)+pow(lat2-lat1,2));
+//	} else {
+//		tc=absAngle(atan2(dlon_E,dphi));
+//		*d=sqrt(pow(q,2)*pow(dlon_E,2)+pow(lat2-lat1,2));
+//	}
+//	return tc;
+//}
 
 double calcGreatCircleRoute(double lat1, double lon1, double lat2, double lon2, double *d) { //Ortodrome
 	*d=calcAngularDist(lat1,lon1,lat2,lon2);
 	if(lat1+lat2==0 && fabs(lon1-lon2)==M_PI && fabs(lat1)!=M_PI_2) return 0; //Course between antipodal points is undefined!
-	double tc;
-	if(d==0 || lat1==-M_PI_2) tc=TWO_PI;
-	else if (lat1==M_PI_2) tc=M_PI;
-	else if(lon1==lon2) {
-		if(lat1>lat2) tc=M_PI;
-		else tc=TWO_PI;
+	if(d==0 || lat1==-M_PI_2) return TWO_PI; // distance null or starting from S pole
+	if (lat1==M_PI_2) return M_PI; //starting from N pole
+	if(lon1==lon2) {
+		if(lat1>lat2) return M_PI;
+		else return TWO_PI;
 	}
-	else if(sin(lon2-lon1)<0) tc=acos((sin(lat2)-sin(lat1)*cos(*d))/(sin(*d)*cos(lat1)));
-	else tc=TWO_PI-acos((sin(lat2)-sin(lat1)*cos(*d))/(sin(*d)*cos(lat1)));
+	double tc=acos((sin(lat2)-sin(lat1)*cos(*d))/(sin(*d)*cos(lat1)));
+	if(sin(lon2-lon1)>0) tc=TWO_PI-tc;
 	return tc;
 }
 
 double calcGreatCircleCourse(double lat1, double lon1, double lat2, double lon2) { //not require pre-computation of distance
+	if(lat2==M_PI_2) return TWO_PI; //we are going to N pole
+	if(lat2==-M_PI_2) return M_PI; //we are going to S pole
+	if(lon1==lon2) {
+			if(lat1>lat2) return M_PI;
+			else return TWO_PI;
+	}
 	return absAngle(atan2(sin(lon1-lon2)*cos(lat2),cos(lat1)*sin(lat2)-sin(lat1)*cos(lat2)*cos(lon1-lon2)));
 }
 
 double calcGreatCircleFinalCourse(double lat1, double lon1, double lat2, double lon2) {
-	return absAngle(atan2(sin(lon2-lon1)*cos(lat1),cos(lat2)*sin(lat1)-sin(lat2)*cos(lat1)*cos(lon2-lon1))+M_PI);
+	return absAngle(calcGreatCircleCourse(lat2,lon2,lat1,lon1)+M_PI);
 }
 
 double calcAngularDist(double lat1, double lon1, double lat2, double lon2) {
@@ -228,7 +232,7 @@ double calcGCCrossTrackError(double lat1, double lon1, double lon2, double latX,
 		xtd=asin(sin(dist1X)*sin(diff));
 	}
 	if(isAngleBetween(course12+M_PI_4,course1X,course12+M_PI)) *atd=-acos(cos(dist1X)/cos(xtd));
-	else *atd=acos(cos(dist1X)/cos(xtd));
+	else *atd=acos(cos(dist1X)/cos(xtd)); //to have cos(xtd)=0 xtd=PI so we are terribly out of track, in this case doesn't matter to have a NaN
 	//For very short distances
 	// *atd=asin(sqrt(pow(sin(dist1X),2)-pow(sin(xtd),2))/cos(xtd));
 	return xtd;

@@ -322,10 +322,10 @@ Version 0.2.8
 	
 Version 0.2.9
 	Added possibility to use route with only one way point (as final destination)
-	General code optimization
+	Corrections in the calculation algorithms
+	Use of mutex on GPS data
+	Deeper code optimization
 	Executable optimized for TomTom processor ARM 920T
-	TODO: NaN check??
-	
 
 
 CONTACTS
