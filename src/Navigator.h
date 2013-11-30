@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 23/11/2013
+// Last change : 30/11/2013
 // Description : Header of the navigation manager: Navigator.c
 //============================================================================
 
@@ -31,7 +31,7 @@ void NavAddWayPoint(double latWP, double lonWP, double altWP, char *WPname);
 void NavClearRoute(void);
 void NavUpdatePosition(double lat, double lon, double alt, double speed, double dir, float timestamp);
 short checkDaytime(short calcOnlyDest);
-void NavStartNavigation(float timestamp);
+void NavStartNavigation(void);
 int NavReverseRoute(void);
 void NavSkipCurrentWayPoint(void);
 enum navigatorStatus NavGetStatus(void);

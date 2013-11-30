@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 29/11/2013
+// Last change : 30/11/2013
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -219,9 +219,7 @@ int main(int argc, char** argv) {
 				status=MAIN_STATUS_FLY_ROUTE;
 				break;
 			case MAIN_STATUS_FLY_ROUTE: { //Navigation can start
-				float timestamp=gps.timestamp; //Get actual time from GPS
-				if(timestamp==-1) timestamp=getCurrentTime(); //if not valid get it from internal clock
-				NavStartNavigation(timestamp); //Start the navigation
+				NavStartNavigation(); //Start the navigation
 				waitTouch=true; //Wait for a touch to reverse the route or to exit
 				if(numWPloaded>1) status=MAIN_STATUS_FLY_REVERSED; //if there is more than 1 WP reverse the route
 				else {  //otherwise...
@@ -233,9 +231,7 @@ int main(int argc, char** argv) {
 				BlackBoxClose(); //Stop the recorder in order to finalize the track of the first way
 				NavReverseRoute(); //reverse the route
 				BlackBoxStart(); //Restart the track recorder for the return way
-				float timestamp=gps.timestamp;
-				if(timestamp==-1) timestamp=getCurrentTime();
-				NavStartNavigation(timestamp);
+				NavStartNavigation();
 				FBrenderBlitText(screen.width-(5*8),0,0xffff,0xf000,0,"exit"); //Show exit "button"
 				FBrenderFlush();
 				waitTouch=true; //Here we wait for a touch on the exit button

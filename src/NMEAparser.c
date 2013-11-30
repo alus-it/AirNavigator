@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 27/11/2013
+// Last change : 30/11/2013
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
@@ -53,7 +53,7 @@ int parseVTG(char* ascii);
 int parseGLL(char* ascii);
 #endif
 unsigned int getCRCintValue(void);
-short updateAltitude(float newAltitude, char altUnit, float timestamp);
+bool updateAltitude(float newAltitude, char altUnit, float timestamp);
 void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, float timestamp);
 bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDeg, float newlonMin, bool newisLonE, bool dateChaged);
 
@@ -115,31 +115,35 @@ void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 			break;
 	} //end of switch(each byte) of just received sequence
 	bool dateChanged=false, posChanged=false, altChanged=false;
-	if(NMEAparser.RMCfound) dateChanged=updateDate(NMEAparser.timeDay,NMEAparser.timeMonth,NMEAparser.timeYear); //pre-check if date is changed
-	if(NMEAparser.GGAfound) {
-		updateTime(NMEAparser.newerTimestamp,NMEAparser.timeHour,NMEAparser.timeMin,NMEAparser.timeSec,false); //updateTime must be done always before of updatePosition
-		posChanged=updatePosition(NMEAparser.latGra,NMEAparser.latMin,NMEAparser.latNorth,NMEAparser.lonGra,NMEAparser.lonMin,NMEAparser.lonEast,dateChanged);
-		altChanged=updateAltitude(NMEAparser.alt,NMEAparser.altUnit,NMEAparser.newerTimestamp);
-		updateNumOfTotalSatsInView(NMEAparser.SatsInView);
-		if(NMEAparser.GSAfound) {
-			updateNumOfActiveSats(NMEAparser.SatsInUse);
-			updateDiluition(NMEAparser.pdop,NMEAparser.hdop,NMEAparser.vdop);
-		} else updateHdiluition(NMEAparser.hdop);
-	}
-	if(NMEAparser.RMCfound) {
-		if(!NMEAparser.GGAfound) {
+	if(NMEAparser.GGAfound  || NMEAparser.RMCfound || NMEAparser.GSAfound) {
+		pthread_mutex_lock(&gps.mutex);
+		if(NMEAparser.RMCfound) dateChanged=updateDate(NMEAparser.timeDay,NMEAparser.timeMonth,NMEAparser.timeYear); //pre-check if date is changed
+		if(NMEAparser.GGAfound) {
 			updateTime(NMEAparser.newerTimestamp,NMEAparser.timeHour,NMEAparser.timeMin,NMEAparser.timeSec,false); //updateTime must be done always before of updatePosition
 			posChanged=updatePosition(NMEAparser.latGra,NMEAparser.latMin,NMEAparser.latNorth,NMEAparser.lonGra,NMEAparser.lonMin,NMEAparser.lonEast,dateChanged);
+			altChanged=updateAltitude(NMEAparser.alt,NMEAparser.altUnit,NMEAparser.newerTimestamp);
+			updateNumOfTotalSatsInView(NMEAparser.SatsInView);
+			if(NMEAparser.GSAfound) {
+				updateNumOfActiveSats(NMEAparser.SatsInUse);
+				updateDiluition(NMEAparser.pdop,NMEAparser.hdop,NMEAparser.vdop);
+			} else updateHdiluition(NMEAparser.hdop);
 		}
-		updateSpeed(NMEAparser.groundSpeedKnots);
-		updateDirection(NMEAparser.trueTrack,NMEAparser.magneticVariation,NMEAparser.magneticVariationToEast,NMEAparser.newerTimestamp);
+		if(NMEAparser.RMCfound) {
+			if(!NMEAparser.GGAfound) {
+				updateTime(NMEAparser.newerTimestamp,NMEAparser.timeHour,NMEAparser.timeMin,NMEAparser.timeSec,false); //updateTime must be done always before of updatePosition
+				posChanged=updatePosition(NMEAparser.latGra,NMEAparser.latMin,NMEAparser.latNorth,NMEAparser.lonGra,NMEAparser.lonMin,NMEAparser.lonEast,dateChanged);
+			}
+			updateSpeed(NMEAparser.groundSpeedKnots);
+			updateDirection(NMEAparser.trueTrack,NMEAparser.magneticVariation,NMEAparser.magneticVariationToEast,NMEAparser.newerTimestamp);
+		}
+		if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
+		pthread_mutex_unlock(&gps.mutex);
+		FBrenderFlush();
+		BlackBoxCommit();
+		NMEAparser.GGAfound=false;
+		NMEAparser.RMCfound=false;
+		NMEAparser.GSAfound=false;
 	}
-	if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
-	FBrenderFlush();
-	BlackBoxCommit();
-	NMEAparser.GGAfound=false;
-	NMEAparser.RMCfound=false;
-	NMEAparser.GSAfound=false;
 }
 
 int parseNMEAsentence(char* ascii) {
@@ -209,18 +213,18 @@ bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDe
 	return false;
 }
 
-short updateAltitude(float newAltitude, char altUnit, float timestamp) {
+bool updateAltitude(float newAltitude, char altUnit, float timestamp) {
 	float newAltitudeMt=0,newAltitudeFt=0;
-	short updateAlt=0;
+	bool updateAlt=false;
 	if(altUnit=='M' || altUnit=='m') {
 		if(newAltitude!=gps.altMt) {
-			updateAlt=1;
+			updateAlt=true;
 			newAltitudeMt=newAltitude;
 			newAltitudeFt=m2Ft(newAltitude);
 		}
 	} else if(altUnit=='F' || altUnit=='f') {
 		if(newAltitude!=gps.altFt) {
-			updateAlt=1;
+			updateAlt=true;
 			newAltitudeFt=newAltitude;
 			newAltitudeMt=Ft2m(newAltitude);
 		}

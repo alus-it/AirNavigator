@@ -6,13 +6,14 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 29/11/2013
+// Last change : 30/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
 #ifndef GPSRECEIVER_H_
 #define GPSRECEIVER_H_
 
+#include <pthread.h>
 #include "Common.h"
 
 #define MAX_NUM_SAT 24
@@ -76,6 +77,7 @@ struct GPSdata {
 	int signalStrength,SNR,beaconDataRate,channel; //data about GPS signal (not used)
 	int beaconFrequency;                           //beacon frequency of GPS signal (not used)
 	int satellites[MAX_NUM_SAT][4];                //matrix of detected satellites
+	pthread_mutex_t mutex;                         //mutex for reading and writing GPS data in this struct
 };
 
 struct GPSdata gps;

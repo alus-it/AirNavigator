@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 29/11/2013
+// Last change : 30/11/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -180,6 +180,7 @@ void configureGPSreceiver(void) {
 #endif
 	//enableGPS();
 	GeoidalOpen();
+	pthread_mutex_init(&gps.mutex, NULL);
 	GPSreceiver.reading=0;
 	updateNumOfTotalSatsInView(0); //Display: at the moment we have no info from GPS
 	updateNumOfActiveSats(0);
@@ -188,10 +189,9 @@ void configureGPSreceiver(void) {
 
 void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	static int fd=-1;
-
-//	if(gps.cv.isSiRF) fd=open("/dev/gps.ata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
+//	if(GPSreceiver.isSiRF) fd=open("/dev/gps.ata",O_RDONLY|O_NONBLOCK); //open SiRF pipe: read only, non blocking
 //	else
-	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //othewise open NMEA pipe: read only, non blocking
+	fd=open(config.GPSdevName,O_RDONLY|O_NOCTTY|O_NONBLOCK); //otherwise open NMEA pipe: read only, non blocking
 	if(fd<0) {
 		fd=-1;
 		printLog("ERROR: Can't open the GPS serial port or pipe on the chosen device.\n");
@@ -212,7 +212,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	tcflush(fd,TCIFLUSH);
 #endif
 	static unsigned char *buf; //read buffer
-//	if(isSiRF) { //allocate buffer for SiRF protocol
+//	if(GPSreceiver.isSiRF) { //allocate buffer for SiRF protocol
 //		buf=(unsigned char *) malloc(SIRF_BUFFER_SIZE*sizeof(unsigned char));
 //	} else { //allocate buffer for NMEA protocol
 		buf=(unsigned char *) malloc(NMEA_BUFFER_SIZE*sizeof(unsigned char));
@@ -224,7 +224,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 		FD_SET(fd,&readfs);
 		select(maxfd,&readfs,NULL,NULL,NULL); //wait to read because the read is now non-blocking
 		if(GPSreceiver.reading) { //further check if we still want to read after waiting
-//			if(isSiRF) {
+//			if(GPSreceiver.isSiRF) {
 //				redBytes=read(fd,buf,SIRF_BUFFER_SIZE);
 //				SiRFparserProcessBuffer(buf,time(NULL),redBytes);
 //			} else { //it's NMEA
@@ -261,6 +261,7 @@ void GPSreceiverStop(void) {
 void GPSreceiverClose(void) {
 	//disableGPS();
 	GPSreceiverStop();
+	pthread_mutex_destroy(&gps.mutex);
 	GeoidalClose();
 	pthread_join(GPSreceiver.thread,NULL); //wait for thread death
 }

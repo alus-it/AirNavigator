@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 28/11/2013
+// Last change : 30/11/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -18,6 +18,7 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
+#include <pthread.h>
 #include <libroxml/roxml.h>
 #include "Navigator.h"
 #include "Configuration.h"
@@ -124,7 +125,9 @@ short NavCalculateRoute(void) {
 		float secs;
 		convertDecimal2DegMinSec(totalTimeHours,&hours,&mins,&secs);
 		fprintf(Navigator.routeLog,"TOTAL flight time: %2d:%02d:%02d\n",hours,mins,(int)secs);
+		pthread_mutex_lock(&gps.mutex);
 		float timeCalc=gps.timestamp;
+		pthread_mutex_unlock(&gps.mutex);
 		if(timeCalc<0) timeCalc=getCurrentTime(); //In this case we don't have the time from GPS so we take it from the internal clock
 		timeCalc=timeCalc/3600+totalTimeHours; //hours, in order to obtain the ETA
 		PrintNavRemainingDistDST(Navigator.totalDistKm,config.cruiseSpeed,timeCalc);
@@ -347,20 +350,25 @@ void NavFindNextWP(double lat, double lon) {
 	FBrenderFlush();
 }
 
-void NavStartNavigation(float timestamp) { //timestamp have to be the real time when we start the travel
-	if(Navigator.status!=NAV_STATUS_TO_START_NAV || timestamp<0) return;
-	enum GPSmode fixMode=gps.fixMode;
-	double lat=gps.lat;
-	if(fixMode>MODE_NO_FIX && lat!=100) { //if have fix give immediately the position to the nav. The lat!=100 is just to avoid the case of having fix but still not a position stored
-		double lon=gps.lon;
-		NavFindNextWP(lat,lon);
+void NavStartNavigation() {
+	if(Navigator.status!=NAV_STATUS_TO_START_NAV) return;
+	pthread_mutex_lock(&gps.mutex);
+	float timestamp=gps.timestamp; //timestamp is the real time when we start the travel try to get it from GPS
+	if(timestamp==-1) timestamp=getCurrentTime(); //if not valid get it from internal clock
+	if(timestamp<0) {
+		pthread_mutex_unlock(&gps.mutex);
+		return;
+	}
+	if(gps.fixMode>MODE_NO_FIX && gps.lat!=100) { //if have fix give immediately the position to the nav. The lat!=100 is just to avoid the case of having fix but still not a position stored
+		NavFindNextWP(gps.lat,gps.lon);
 		if(Navigator.status==NAV_STATUS_NAV_TO_WPT || Navigator.status==NAV_STATUS_NAV_TO_DST || Navigator.status==NAV_STATUS_NAV_TO_SINGLE_WP) Navigator.dept->arrTimestamp=timestamp; //record the starting time for whole route
-		NavUpdatePosition(lat,lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,timestamp);
+		NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,timestamp);
 	} else {
 		if(Navigator.numWayPoints>1) Navigator.currWP=Navigator.dept->next;
 		else Navigator.currWP=Navigator.dest;
 		Navigator.status=NAV_STATUS_WAIT_FIX;
 	}
+	pthread_mutex_unlock(&gps.mutex);
 	PrintNavStatus(Navigator.status,Navigator.currWP->name);
 	FBrenderFlush();
 }
@@ -398,8 +406,11 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			break;
 		case NAV_STATUS_TO_START_NAV:
 			if(Navigator.previousAltitude==-1000) Navigator.previousAltitude=altMt;
-			else if(altMt-Navigator.previousAltitude>config.takeOffdiffAlt && speedKmh>config.stallSpeed) {
-				NavStartNavigation(timestamp);
+			else if(altMt-Navigator.previousAltitude>config.takeOffdiffAlt && speedKmh>config.stallSpeed) { //in this case start the navigation
+				NavFindNextWP(lat,lon);
+				if(Navigator.status==NAV_STATUS_NAV_TO_WPT || Navigator.status==NAV_STATUS_NAV_TO_DST || Navigator.status==NAV_STATUS_NAV_TO_SINGLE_WP) Navigator.dept->arrTimestamp=timestamp; //record the starting time for whole route
+				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //recursive call
+				PrintNavStatus(Navigator.status,Navigator.currWP->name);
 				break;
 			}
 			if(Navigator.numWayPoints>1) actualTrueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->next->latitude,Navigator.dept->next->longitude,&remainDist); //calc just course and distance
@@ -475,7 +486,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
 			double timeVal; //Hours
 			remainDist=Rad2Km(remainDist); //Km
-			timeVal=remainDist/gps.speedKmh; //ETE (remaining time) in hours
+			timeVal=remainDist/speedKmh; //ETE (remaining time) in hours
 			PrintNavRemainingDistWP(remainDist,-1,timeVal);
 			timeVal+=timestamp/3600; //hours, in order to obtain the ETA
 			PrintNavRemainingDistDST(remainDist,-1,timeVal);
@@ -505,9 +516,11 @@ void NavSkipCurrentWayPoint(void) {
 			PrintNavStatus(Navigator.status,"Nowhere");
 			return;
 		}
+		pthread_mutex_lock(&gps.mutex);
 		double lat=gps.lat;
 		double lon=gps.lon;
 		float timestamp=gps.timestamp;
+		pthread_mutex_unlock(&gps.mutex);
 		Navigator.currWP->arrTimestamp=timestamp; //we put the arrival timestamp when we skip it
 		double atd;
 		calcGCCrossTrackError(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->longitude,lat,lon,Navigator.currWP->initialCourse,&atd);
