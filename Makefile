@@ -12,7 +12,7 @@
 
 
 # AirNavigator version string
-VERSION = 0.2.9
+VERSION = 0.3.0
 
 # Add toolchain location to the path
 export PATH := $(PATH):/usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin

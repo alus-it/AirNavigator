@@ -115,8 +115,11 @@ FEATURES
 	Tracking of: position, altitude, speed and direction during flight in GPX track files
 	Calculation of routes using Great Circle distance
 	Calculation of sunrise and sunset time along the route
+	Normal distribution: to be used in parallel with the original TomTom software
+	Standalone distribution with own operating system: to be used without the original TomTom software
 	Estimation of remaining fuel
 	XML configuration file
+	GPS and touch screen managed by parallel threads
 
 
 ROUTES AND TRACKS AS GPX FILES
@@ -319,13 +322,16 @@ Version 0.2.8
 	Make HSI direction arrow and CDI more visible
 	Display UTC time from GPS even without GPS fix
 	Bug fixed in the track recorder
-	
+
 Version 0.2.9
 	Added possibility to use route with only one way point (as final destination)
 	Corrections in the calculation algorithms
 	Use of mutex on GPS data
 	Deeper code optimization
 	Executable optimized for TomTom processor ARM 920T
+
+Version 0.3.0
+	TODO: Work in progress...
 
 
 CONTACTS
