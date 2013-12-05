@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 29/11/2011
+// Last change : 5/12/2011
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -51,7 +51,6 @@ struct HSIstruct {
 
 int HSIround(double d);
 void rotatePoint(int mx, int my, int *px, int *py, double angle);
-int calcPixelDeviation(double courseDevMt);
 void drawCompass(int dir);
 void drawLabels(int dir);
 void drawCDI(double direction, double course, double cdi);
@@ -110,12 +109,6 @@ void rotatePoint(int mx, int my, int *px, int *py, double angle) {
   int y2 = round((*px-mx)*(sin_theta)+(*py-my)*(cos_theta));
   *px=x2+mx;
   *py=y2+my;
-}
-
-int calcPixelDeviation(double courseDevMt) {
-	if(courseDevMt>HSI.cdi_scale) return -HSI.cdi_pixel_scale;
-	if(courseDevMt<-HSI.cdi_scale) return HSI.cdi_pixel_scale;
-	return -(int)(round((HSI.cdi_pixel_scale*courseDevMt)/HSI.cdi_scale));
 }
 
 void drawCompass(int dir) { //works with direction as integer
@@ -252,28 +245,39 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
 		DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
 	}
-	int dev=calcPixelDeviation(cdi); //Course Deviation Indicator
+	int dev; //deviation in pixel
+	unsigned short cdiColor;
+	if(cdi>HSI.cdi_scale) {
+		dev=-HSI.cdi_pixel_scale;
+		cdiColor=config.colorSchema.caution;
+	} else if(cdi<-HSI.cdi_scale) {
+		dev=HSI.cdi_pixel_scale;
+		cdiColor=config.colorSchema.caution;
+	} else {
+		dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.cdi_scale));
+		cdiColor=config.colorSchema.cdi;
+	}
 	pex=HSI.cx+dev-1; //CDI left
 	pey=HSI.cdi_border+2;
 	pix=HSI.cx+dev-1;
 	piy=HSI.cdi_end-1;
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-	DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdi);
+	DrawTwoPointsLine(pex,pey,pix,piy,cdiColor);
 	pex=HSI.cx+dev; //CDI center
 	pey=HSI.cdi_border+1;
 	pix=HSI.cx+dev;
 	piy=HSI.cdi_end;
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-	DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdi);
+	DrawTwoPointsLine(pex,pey,pix,piy,cdiColor);
 	pex=HSI.cx+dev+1; //CDI right
 	pey=HSI.cdi_border+2;
 	pix=HSI.cx+dev+1;
 	piy=HSI.cdi_end-1;
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-	DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdi);
+	DrawTwoPointsLine(pex,pey,pix,piy,cdiColor);
 }
 
 void diplayCDIvalue(double cdiMt) {
@@ -375,21 +379,21 @@ void HSIupdateVSI(double newExpectedAltFt) {
 	HSI.expectedAltFt=expAlt;
 	FillRect(screen.height-7,1,screen.height,screen.height,config.colorSchema.background); //clean all
 	if(expAlt>HSI.currentAltFt+HSI.HalfAltScale) { //we're too low
-		FBrenderPutPixel(screen.height-7,2,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,3,3,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,4,5,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,5,7,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,6,5,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,7,3,config.colorSchema.warning);
-		FBrenderPutPixel(screen.height-7,8,config.colorSchema.warning);
+		FBrenderPutPixel(screen.height-7,2,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,3,3,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,4,5,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,5,7,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,6,5,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,7,3,config.colorSchema.caution);
+		FBrenderPutPixel(screen.height-7,8,config.colorSchema.caution);
 	} else if(expAlt<HSI.currentAltFt-HSI.HalfAltScale) { //we're too high
-		FBrenderPutPixel(screen.height-7,screen.height-8,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,screen.height-7,3,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,screen.height-6,5,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,screen.height-5,7,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,screen.height-4,5,config.colorSchema.warning);
-		DrawHorizontalLine(screen.height-7,screen.height-3,3,config.colorSchema.warning);
-		FBrenderPutPixel(screen.height-7,screen.height-2,config.colorSchema.warning);
+		FBrenderPutPixel(screen.height-7,screen.height-8,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,screen.height-7,3,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,screen.height-6,5,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,screen.height-5,7,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,screen.height-4,5,config.colorSchema.caution);
+		DrawHorizontalLine(screen.height-7,screen.height-3,3,config.colorSchema.caution);
+		FBrenderPutPixel(screen.height-7,screen.height-2,config.colorSchema.caution);
 	} else { //we are on the 1000 Ft scale
 		int ypos=round((HSI.currentAltFt+HSI.HalfAltScale-expAlt)*0.26)+6;
 		FBrenderPutPixel(screen.height-7,ypos-3,config.colorSchema.vsi);

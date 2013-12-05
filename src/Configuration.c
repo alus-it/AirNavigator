@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 29/11/2013
+// Last change : 05/12/2013
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
@@ -39,19 +39,21 @@ struct configuration config = { //Default configuration values
 	.GPSparity=0,
 	.tomtomModel=NULL,
 	.serialNumber=NULL,
-	.colorSchema = { //Default colors
-		.background=0x0000, //black
-		.compassRose=0xffff, //white
-		.dirMarker=0xf000, //red
-		.magneticDir=0x00f0, //blue
+	.colorSchema = {       //Default colors
+		.background=0x0000,     //black
+		.compassRose=0xffff,    //white
+		.dirMarker=0xf000,      //red
+		.magneticDir=0x00f0,    //blue
 		.routeIndicator=0x0f00, //green
-		.cdi=0xff00, //yellow
-		.cdiScale=0xffff,
-		.altScale=0xffff,
-		.vsi=0xffff,
-		.altMarker=0xffff,
-		.text=0x0f00, //green
-		.warning=0xf000 //red
+		.cdi=0xff00,            //yellow
+		.cdiScale=0xffff,       //white
+		.altScale=0xffff,       //white
+		.vsi=0xffff,            //white
+		.altMarker=0xffff,      //white
+		.text=0x0f00,           //green
+		.ok=0x0f00,             //green
+		.warning=0xff00,        //yellow
+		.caution=0xf000         //red
 	}
 };
 
@@ -246,11 +248,23 @@ void loadConfig(void) { //Load configuration
 						sscanf(text,"%x",&color);
 						config.colorSchema.text=(unsigned short)color;
 					}
+					attr=roxml_get_attr(detail,"ok",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.ok=(unsigned short)color;
+					}
 					attr=roxml_get_attr(detail,"warning",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
 						config.colorSchema.warning=(unsigned short)color;
+					}
+					attr=roxml_get_attr(detail,"caution",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.caution=(unsigned short)color;
 					}
 				} else printLog("WARNING: in the color schema the colors are missing, using default colors.\n");
 			} else printLog("WARNING: no color schema found, using default colors.\n");

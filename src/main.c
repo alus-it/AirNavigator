@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/11/2013
+// Last change : 5/12/2013
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
 		switch(status) { //Main status machine
 			case MAIN_STATUS_SELECT_ROUTE: { //Display a "menu" with the list of GPX files
 				if(numGPXfiles>0) {
-					FBrenderBlitText(20,70,config.colorSchema.cdi,config.colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
+					FBrenderBlitText(20,70,config.colorSchema.warning,config.colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
 					if(currFile->prev!=NULL) FBrenderBlitText(20,240,config.colorSchema.text,config.colorSchema.background,0,"<< Prev");
 					else FBrenderBlitText(20,240,config.colorSchema.text,config.colorSchema.background,0,"       ");
 					if(currFile->next!=NULL) FBrenderBlitText(350,240,config.colorSchema.text,config.colorSchema.background,0,"Next >>");

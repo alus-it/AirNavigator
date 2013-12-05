@@ -243,7 +243,9 @@ Here it is possible to choose the color of everything AirNavigator will display 
 * vsi: color of the VSI marker on the left pointing the route altitude
 * altMarker: color of the altitude marker pointing the current altitude
 * text: color of the textual informations displayed on the left
-* warning: color used to highlight some potential problem: VSI marker out of scale (too high or too low respect the route) or no GPS fix.
+* ok: color used to display information within the expected ranges
+* warning: color used to show some potential problem: 2D GPS fix but not 3D or got GPS UTC time but no fix.
+* caution: color used to highlight important risk situations: CDI or VSI markers out of scale (too left or right or too high or low respect the route) or no GPS fix.
 
 GPS receiver configuration
 <GPSreceiver devName="/var/run/gpsfeed" baudRate="115200" dataBits="8" stopBits="1" parity="0" />
@@ -331,6 +333,8 @@ Version 0.2.9
 	Executable optimized for TomTom processor ARM 920T
 
 Version 0.3.0
+	Added configuration for: ok, warning and caution indication's color
+	Added airplane symbol at the center of HSI
 	TODO: Work in progress...
 
 

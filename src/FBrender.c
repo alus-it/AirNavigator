@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 28/11/2013
+// Last change : 5/12/2013
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -658,7 +658,7 @@ void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double time
 }
 
 void PrintTime(int hour, int minute, float second, short waring) {
-	FBrenderBlitText(screen.height+28,240,waring?config.colorSchema.cdi:config.colorSchema.text,config.colorSchema.background,0,"UTC: %02d:%02d:%02.0f",hour,minute,second);
+	FBrenderBlitText(screen.height+28,240,waring?config.colorSchema.warning:config.colorSchema.ok,config.colorSchema.background,0,"UTC: %02d:%02d:%02.0f",hour,minute,second);
 }
 
 void PrintDate(int day, int month, int year) {
@@ -667,19 +667,19 @@ void PrintDate(int day, int month, int year) {
 
 void PrintNumOfSats(int activeSats, int satsInView) {
 	unsigned short color;
-	if(activeSats>3) color=config.colorSchema.text; //green
-	else if(activeSats==3) color=config.colorSchema.cdi; //yellow
-	else color=config.colorSchema.warning; //red
+	if(activeSats>3) color=config.colorSchema.ok; //green
+	else if(activeSats==3) color=config.colorSchema.warning; //yellow
+	else color=config.colorSchema.caution; //red
 	FBrenderBlitText(screen.height+28,250,color,config.colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
 }
 
 void PrintFixMode(int fixMode) {
 	switch((enum GPSmode)fixMode) {
 		case MODE_GPS_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,0,"FIX: GPS Fix"); break;
-		case MODE_3D_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.text,config.colorSchema.background,0,"FIX: 3D mode"); break;
+		case MODE_3D_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.ok,config.colorSchema.background,0,"FIX: 3D mode"); break;
 		case MODE_2D_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,0,"FIX: 2D mode"); break;
-		case MODE_NO_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,0,"FIX: No Fix "); break;
-		default: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,0,"FIX: Unknown"); break;
+		case MODE_NO_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.caution,config.colorSchema.background,0,"FIX: No Fix "); break;
+		default: FBrenderBlitText(screen.height+28,260,config.colorSchema.caution,config.colorSchema.background,0,"FIX: Unknown"); break;
 	}
 }
 

@@ -36,7 +36,9 @@
 	vsi="FFFF"
 	altMarker="FFFF"
 	text="0F00"
-	warning="F000" />
+	ok="0F00"
+	warning="FF00"
+	cuation="F000" />
 </colorSchema>
 <GPSreceiver devName="/var/run/gpsfeed" baudRate="115200" dataBits="8" stopBits="1" parity="0" />
 </AirNavigatorConfig>
