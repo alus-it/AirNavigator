@@ -47,6 +47,20 @@ struct HSIstruct {
 	int PxAltScale;
 	double actualDir,actualMagDir,actualCourse,actualCDI;
 	long currentAltFt,expectedAltFt;
+	int symFuselageL;
+	int symFuselageR;
+	int symFuselageU;
+	int symFuselageD;
+	int symWingL;
+	int symWingR;
+	int symWingU;
+	int symWingC;
+	int symWingD;
+	int symTailL;
+	int symTailR;
+	int symTailU;
+	int symTailC;
+	int symTailD;
 };
 
 int HSIround(double d);
@@ -88,6 +102,20 @@ void HSIinitialize(double directionDeg, double courseDeg, double courseDeviation
 	HSI.currentAltFt=-5000;
 	HSI.expectedAltFt=-5000;
 	HSI.HalfAltScale=500;
+	HSI.symFuselageL=HSI.cx-1;
+	HSI.symFuselageR=HSI.cx+1;
+	HSI.symFuselageU=HSI.cy-18;
+	HSI.symFuselageD=HSI.cy+18;
+	HSI.symWingL=HSI.cx-16;
+	HSI.symWingR=HSI.cx+16;
+	HSI.symWingU=HSI.cy-8;
+	HSI.symWingC=HSI.cy-7;
+	HSI.symWingD=HSI.cy-6;
+	HSI.symTailL=HSI.cx-6;
+	HSI.symTailR=HSI.cx+6;
+	HSI.symTailU=HSI.cy+10;
+	HSI.symTailC=HSI.cy+11;
+	HSI.symTailD=HSI.cy+12;
 	if(screen.height==240) HSI.HalfAltScale=438;
 	HSI.PxAltScale=screen.height-12;
 	DrawTwoPointsLine(HSI.cx-1,0,HSI.cx-1,HSI.mark_start-4,config.colorSchema.dirMarker);
@@ -278,6 +306,15 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,cdiColor);
+	DrawTwoPointsLine(HSI.symFuselageL,HSI.symFuselageU,HSI.symFuselageL,HSI.symFuselageD,config.colorSchema.airplaneSymbol); //From here draw the airplane symbol
+	DrawTwoPointsLine(HSI.cx,HSI.symFuselageU,HSI.cx,HSI.symFuselageD,config.colorSchema.airplaneSymbol);
+	DrawTwoPointsLine(HSI.symFuselageR,HSI.symFuselageU,HSI.symFuselageR,HSI.symFuselageD,config.colorSchema.airplaneSymbol);
+	DrawTwoPointsLine(HSI.symWingL,HSI.symWingU,HSI.symWingR,HSI.symWingU,config.colorSchema.airplaneSymbol);
+	DrawTwoPointsLine(HSI.symWingL,HSI.symWingC,HSI.symWingR,HSI.symWingC,config.colorSchema.airplaneSymbol);
+	DrawTwoPointsLine(HSI.symWingL,HSI.symWingD,HSI.symWingR,HSI.symWingD,config.colorSchema.airplaneSymbol);
+	DrawTwoPointsLine(HSI.symTailL,HSI.symTailU,HSI.symTailR,HSI.symTailU,config.colorSchema.airplaneSymbol);
+	DrawTwoPointsLine(HSI.symTailL,HSI.symTailC,HSI.symTailR,HSI.symTailC,config.colorSchema.airplaneSymbol);
+	DrawTwoPointsLine(HSI.symTailL,HSI.symTailD,HSI.symTailR,HSI.symTailD,config.colorSchema.airplaneSymbol);
 }
 
 void diplayCDIvalue(double cdiMt) {

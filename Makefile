@@ -6,7 +6,7 @@
 # Copyright : (C) 2010-2013 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 4/12/2013
+# Last change : 6/12/2013
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -64,6 +64,9 @@ LIB = $(DIST)AirNavigator/lib/
 # List of libraries
 LIBFILES = libroxml.so
 LIBS= $(patsubst %.so, $(LIB)%.so, $(LIBFILES))
+
+# Path of mounted TomTom device disk
+DEVICE = /media/INTERNAL/
 
 # Name of the ditributions zip files
 ZIPNAME = AirNavigator_$(subst .,-,$(VERSION))
@@ -166,6 +169,12 @@ libclean:
 	@echo Cleaning: libraries and libraries object files
 	@make -C $(LIBSRC)libroxml clean
 	@rm -f $(LIB)*
+
+
+### Upload just the executable on the TomTom
+upload: all
+	@echo Uploading new executable on the TomTom
+	@cp -f $(DIST)AirNavigator/AirNavigator $(DEVICE)AirNavigator/
 
 
 ### Make the zip files with the final distribution normal and standalone

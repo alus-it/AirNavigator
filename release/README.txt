@@ -246,6 +246,7 @@ Here it is possible to choose the color of everything AirNavigator will display 
 * ok: color used to display information within the expected ranges
 * warning: color used to show some potential problem: 2D GPS fix but not 3D or got GPS UTC time but no fix.
 * caution: color used to highlight important risk situations: CDI or VSI markers out of scale (too left or right or too high or low respect the route) or no GPS fix.
+* airplaneSymbol: color of airplane symbol displyed in the center of HSI.
 
 GPS receiver configuration
 <GPSreceiver devName="/var/run/gpsfeed" baudRate="115200" dataBits="8" stopBits="1" parity="0" />

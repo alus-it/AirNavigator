@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 05/12/2013
+// Last change : 06/12/2013
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
@@ -53,7 +53,8 @@ struct configuration config = { //Default configuration values
 		.text=0x0f00,           //green
 		.ok=0x0f00,             //green
 		.warning=0xff00,        //yellow
-		.caution=0xf000         //red
+		.caution=0xf000,        //red
+		.airplaneSymbol=0xfa00  //orange
 	}
 };
 
@@ -265,6 +266,12 @@ void loadConfig(void) { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
 						config.colorSchema.caution=(unsigned short)color;
+					}
+					attr=roxml_get_attr(detail,"airplaneSymbol",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.airplaneSymbol=(unsigned short)color;
 					}
 				} else printLog("WARNING: in the color schema the colors are missing, using default colors.\n");
 			} else printLog("WARNING: no color schema found, using default colors.\n");
