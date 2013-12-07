@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/11/2013
+// Last change : 7/12/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -269,7 +269,7 @@ void GPSreceiverClose(void) {
 void updateHdiluition(float hDiluition) {
 	if(gps.hdop!=hDiluition) {
 		gps.hdop=hDiluition;
-		PrintDiluitions(gps.pdop,gps.hdop,gps.vdop);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintDiluitions(gps.pdop,gps.hdop,gps.vdop);
 	}
 }
 
@@ -278,7 +278,7 @@ void updateDiluition(float pDiluition, float hDiluition, float vDiluition) {
 		gps.pdop=pDiluition;
 		gps.hdop=hDiluition;
 		gps.vdop=vDiluition;
-		PrintDiluitions(pDiluition,hDiluition,vDiluition);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintDiluitions(pDiluition,hDiluition,vDiluition);
 	}
 }
 
@@ -288,7 +288,7 @@ char updateDate(int newDay, int newMonth, int newYear) {
 		gps.month=newMonth;
 		gps.year=newYear;
 		if(gps.year<2000) gps.year+=2000;
-		PrintDate(gps.day,gps.month,gps.year);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintDate(gps.day,gps.month,gps.year);
 		return 1;
 	}
 	return 0;
@@ -300,8 +300,10 @@ void updateTime(float timestamp, int newHour, int newMin, float newSec, bool tim
 		gps.hour=newHour;
 		gps.minute=newMin;
 		gps.second=newSec;
-		PrintTime(gps.hour,gps.minute,gps.second,timeWithNoFix);
-		if(timeWithNoFix) FBrenderFlush();
+		if(getMainStatus()==MAIN_STATUS_HSI) {
+			PrintTime(gps.hour,gps.minute,gps.second,timeWithNoFix);
+			if(timeWithNoFix) FBrenderFlush();
+		}
 	}
 }
 
@@ -309,12 +311,12 @@ void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float
 	if(newSpeedKnots!=gps.speedKnots) {
 		gps.speedKnots=newSpeedKnots;
 		gps.speedKmh=newSpeedKmh;
-		PrintSpeed(newSpeedKmh,newSpeedKnots);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintSpeed(newSpeedKmh,newSpeedKnots);
 	}
 	if(newSpeedKmh>2) if(newTrueTrack!=gps.trueTrack) {
 		gps.trueTrack=newTrueTrack;
 		gps.magneticTrack=newMagneticTrack;
-		HSIupdateDir(newTrueTrack,newMagneticTrack);
+		if(getMainStatus()==MAIN_STATUS_HSI) HSIupdateDir(newTrueTrack,newMagneticTrack);
 	}
 	BlackBoxRecordSpeed(Kmh2ms(newSpeedKmh));
 	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);
@@ -324,7 +326,7 @@ void updateSpeed(float newSpeedKnots) {
 	if(newSpeedKnots!=gps.speedKnots) {
 		gps.speedKnots=newSpeedKnots;
 		gps.speedKmh=Nm2Km(newSpeedKnots);
-		PrintSpeed(gps.speedKmh,gps.speedKnots);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintSpeed(gps.speedKmh,gps.speedKnots);
 	}
 	BlackBoxRecordSpeed(Kmh2ms(gps.speedKmh));
 }
@@ -332,14 +334,14 @@ void updateSpeed(float newSpeedKnots) {
 void updateNumOfTotalSatsInView(int totalSats) {
 	if(gps.satsInView!=totalSats) {
 		gps.satsInView=totalSats;
-		PrintNumOfSats(gps.activeSats,gps.satsInView);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintNumOfSats(gps.activeSats,gps.satsInView);
 	}
 }
 
 void updateNumOfActiveSats(int workingSats) {
 	if(gps.activeSats!=workingSats) {
 		gps.activeSats=workingSats;
-		PrintNumOfSats(gps.activeSats,gps.satsInView);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintNumOfSats(gps.activeSats,gps.satsInView);
 	}
 }
 
@@ -347,8 +349,10 @@ void updateFixMode(int fixMode) {
 	if(gps.fixMode!=fixMode) {
 		if(fixMode==MODE_GPS_FIX && (gps.fixMode==MODE_2D_FIX || gps.fixMode==MODE_3D_FIX)) return;
 		gps.fixMode=fixMode;
-		PrintFixMode(fixMode);
-		if(fixMode==MODE_NO_FIX) FBrenderFlush(); //because we want to show it immediately
+		if(getMainStatus()==MAIN_STATUS_HSI) {
+			PrintFixMode(fixMode);
+			if(fixMode==MODE_NO_FIX) FBrenderFlush(); //because we want to show it immediately
+		}
 	}
 }
 

@@ -55,6 +55,7 @@ struct configuration config = { //Default configuration values
 		.warning=0xff00,        //yellow
 		.caution=0xf000,        //red
 		.airplaneSymbol=0xfa00  //orange
+		//TODO: add colors for buttons
 	}
 };
 

@@ -157,7 +157,7 @@ void drawCompass(int dir) { //works with direction as integer
 		pix=HSI.cx; //Here we locate the label
 		piy=HSI.label_pos;
 		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-		FBrenderBlitText(pix-HSI.labelHalfWidth[i],piy-HSI.labelHalfHeight,config.colorSchema.compassRose,config.colorSchema.background,0,HSI.label[i]);
+		FBrenderBlitText(pix-HSI.labelHalfWidth[i],piy-HSI.labelHalfHeight,config.colorSchema.compassRose,config.colorSchema.background,false,HSI.label[i]);
 		int index2=indexCompass+5;
 		short minor=1,j;
 		for(j=0;j<5;index2+=5,j++,minor=!minor) {
@@ -183,7 +183,7 @@ void drawLabels(int dir) { //also here direction as integer
 		int pix=HSI.cx; //locate the label
 		int piy=HSI.label_pos;
 		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-		FBrenderBlitText(pix-HSI.labelHalfWidth[i],piy-HSI.labelHalfHeight,config.colorSchema.compassRose,config.colorSchema.background,0,HSI.label[i]);
+		FBrenderBlitText(pix-HSI.labelHalfWidth[i],piy-HSI.labelHalfHeight,config.colorSchema.compassRose,config.colorSchema.background,false,HSI.label[i]);
 	}
 }
 
@@ -322,16 +322,16 @@ void diplayCDIvalue(double cdiMt) {
 	switch(config.trackErrUnit) {
 		case FT:
 			cdi=m2Ft(cdi);
-			if(cdi>=MILE_FT) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,0,"%6.2f Mi",cdi/MILE_FT); //Display in miles
-			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,0,"%5.0f Ft",fabs(cdi));
+			if(cdi>=MILE_FT) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f Mi",cdi/MILE_FT); //Display in miles
+			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0f Ft",fabs(cdi));
 			break;
 		case NM:
-			FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,0,"%6.2f NM",m2Nm(cdi));
+			FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f NM",m2Nm(cdi));
 			break;
 		case MT:
 		default:
-			if(cdi>=1000) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,0,"%6.2f Km",cdi/1000); //Display in Km
-			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,0,"%5.0fm",fabs(cdi));
+			if(cdi>=1000) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f Km",cdi/1000); //Display in Km
+			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0fm",fabs(cdi));
 			/* no break */
 	}
 }
@@ -350,10 +350,10 @@ void HSIdraw(double direction, double course, double cdiMt) {
 			drawCDI(direction,course,cdiMt);
 		} //else no need to repaint the HSI
 	}
-	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,0,"%06.2f",direction);
+	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",direction);
 	//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
 	diplayCDIvalue(cdiMt);
-	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,0,"%06.2f",course);
+	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",course);
 	FBrenderFlush();
 }
 
@@ -366,10 +366,10 @@ void HSIupdateDir(double direction,double magneticDirection) {
 	} //else no need to repaint the HSI
 	HSI.actualDir=direction;
 	HSI.actualMagDir=magneticDirection;
-	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,0,"%06.2f",direction);
+	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",direction);
 	//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",magneticDirection);
 	diplayCDIvalue(HSI.actualCDI);
-	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,0,"%06.2f",HSI.actualCourse);
+	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",HSI.actualCourse);
 }
 
 void HSIupdateCDI(double course, double cdi) {
@@ -377,10 +377,10 @@ void HSIupdateCDI(double course, double cdi) {
 		FillCircle(HSI.cx,HSI.cy,HSI.cir,config.colorSchema.background); //clear the internal part of the compass
 		drawLabels(HSI.previousDir);
 		drawCDI(HSI.actualDir,course,cdi);
-		FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,0,"%06.2f",HSI.actualDir);
+		FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",HSI.actualDir);
 		//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
 		diplayCDIvalue(cdi);
-		FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,0,"%06.2f",course);
+		FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",course);
 	} //else no need to repaint the HSI
 }
 
@@ -394,7 +394,7 @@ void HSIdrawVSIscale(double altFt) {
 	int markerPx;
 	for(markerPx=round((maxScaleFt-markerFt)*0.26)+6;markerPx<HSI.PxAltScale+6&&markerFt>=0;markerPx+=13,markerFt-=50) { //1Ft=0.26Px
 		DrawTwoPointsLine(screen.height,markerPx,screen.height+6,markerPx,config.colorSchema.altScale);
-		if(markerFt==((markerFt/100)*100)) FBrenderBlitText(screen.height+7,markerPx-4,config.colorSchema.altScale,config.colorSchema.background,0,"%d",(int)(markerFt/100));
+		if(markerFt==((markerFt/100)*100)) FBrenderBlitText(screen.height+7,markerPx-4,config.colorSchema.altScale,config.colorSchema.background,false,"%d",(int)(markerFt/100));
 	}
 	DrawHorizontalLine(screen.height+12,HSI.cy-3,2,config.colorSchema.altMarker);
 	DrawHorizontalLine(screen.height+10,HSI.cy-2,4,config.colorSchema.altMarker);

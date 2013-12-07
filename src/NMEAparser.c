@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/11/2013
+// Last change : 7/12/2013
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
@@ -138,7 +138,7 @@ void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 		}
 		if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
 		pthread_mutex_unlock(&gps.mutex);
-		FBrenderFlush();
+		if(getMainStatus()==MAIN_STATUS_HSI) FBrenderFlush();
 		BlackBoxCommit();
 		NMEAparser.GGAfound=false;
 		NMEAparser.RMCfound=false;
@@ -206,7 +206,7 @@ bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDe
 		double latSec,lonSec;
 		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
 		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
-		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
+		if(getMainStatus()==MAIN_STATUS_HSI) PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
 		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,gps.hour,gps.minute,gps.second,gps.day,gps.month,gps.year,dateChaged);
 		return true;
 	}
@@ -239,24 +239,27 @@ bool updateAltitude(float newAltitude, char altUnit, float timestamp) {
 		double deltaMt=GeoidalGetSeparation(Rad2Deg(gps.lat),Rad2Deg(gps.lon));
 		newAltitudeMt-=deltaMt;
 		newAltitudeFt-=m2Ft(deltaMt);
-		HSIdrawVSIscale(newAltitudeFt);
-		PrintAltitude(newAltitudeMt,newAltitudeFt);
-		if(NMEAparser.altTimestamp!=0) {
-			float deltaT;
-			if(timestamp>NMEAparser.altTimestamp) deltaT=timestamp-NMEAparser.altTimestamp;
-			else if(timestamp!=NMEAparser.altTimestamp) {
-				deltaT=timestamp+86400-NMEAparser.altTimestamp;
-				float deltaH=newAltitudeFt-gps.altFt;
-				gps.climbFtMin=deltaH/(deltaT/60);
-				PrintVerticalSpeed(gps.climbFtMin);
-			}
+		if(getMainStatus()==MAIN_STATUS_HSI) {
+			HSIdrawVSIscale(newAltitudeFt);
+			PrintAltitude(newAltitudeMt,newAltitudeFt);
 		}
+//		if(NMEAparser.altTimestamp!=0) {
+//			float deltaT;
+//			if(timestamp>NMEAparser.altTimestamp) deltaT=timestamp-NMEAparser.altTimestamp;
+//			else if(timestamp!=NMEAparser.altTimestamp) {
+//				deltaT=timestamp+86400-NMEAparser.altTimestamp;
+//				float deltaH=newAltitudeFt-gps.altFt;
+//				gps.climbFtMin=deltaH/(deltaT/60);
+//				if(getMainStatus()==MAIN_STATUS_HSI) PrintVerticalSpeed(gps.climbFtMin);
+//			}
+//		}
 		gps.realAltMt=newAltitudeMt;
 		gps.realAltFt=newAltitudeFt;
-	} else if(gps.climbFtMin!=0) { //altitude remained the same: put the variometer to 0
-		gps.climbFtMin=0;
-		PrintVerticalSpeed(0);
 	}
+//else if(gps.climbFtMin!=0) { //altitude remained the same: put the variometer to 0
+//		gps.climbFtMin=0;
+//		if(getMainStatus()==MAIN_STATUS_HSI) PrintVerticalSpeed(0);
+//	}
 	BlackBoxRecordAlt(gps.realAltMt);
 	return updateAlt;
 }
@@ -266,15 +269,15 @@ void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, fl
 		if(newTrueTrack!=gps.trueTrack) {
 			gps.magneticVariation=magneticVar;
 			gps.isMagVarToEast=isVarToEast;
-			if(newTrueTrack<90&&newTrueTrack>270) { //sono sopra
+			if(newTrueTrack<90 && newTrueTrack>270) { // I'm up
 				if(isVarToEast) gps.magneticTrack=newTrueTrack+magneticVar;
 				else gps.magneticTrack=newTrueTrack-magneticVar;
-			} else { //sono sotto
+			} else { // I'm down
 				if(isVarToEast) gps.magneticTrack=newTrueTrack-magneticVar;
 				else gps.magneticTrack=newTrueTrack+magneticVar;
 			}
-			HSIupdateDir(newTrueTrack,gps.magneticTrack);
-			if(NMEAparser.dirTimestamp!=0&&gps.speedKmh>10) {
+			if(getMainStatus()==MAIN_STATUS_HSI) HSIupdateDir(newTrueTrack,gps.magneticTrack);
+			if(NMEAparser.dirTimestamp!=0 && gps.speedKmh>10) {
 				float deltaT;
 				if(timestamp>NMEAparser.dirTimestamp) deltaT=timestamp-NMEAparser.dirTimestamp;
 				else if(timestamp!=NMEAparser.dirTimestamp) deltaT=timestamp+86400-NMEAparser.dirTimestamp;
@@ -282,14 +285,14 @@ void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, fl
 				float deltaA=newTrueTrack-gps.trueTrack;
 				gps.turnRateDegSec=deltaA/deltaT;
 				gps.turnRateDegMin=gps.turnRateDegSec*60;
-				PrintTurnRate(gps.turnRateDegMin);
+				if(getMainStatus()==MAIN_STATUS_HSI) PrintTurnRate(gps.turnRateDegMin);
 			}
 			gps.trueTrack=newTrueTrack;
 		} else {
 			if(gps.turnRateDegSec!=0) {
 				gps.turnRateDegSec=0;
 				gps.turnRateDegMin=0;
-				PrintTurnRate(0);
+				if(getMainStatus()==MAIN_STATUS_HSI) PrintTurnRate(0);
 			}
 		}
 	}

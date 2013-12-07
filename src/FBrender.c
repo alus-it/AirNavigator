@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 5/12/2013
+// Last change : 7/12/2013
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -297,7 +297,7 @@ void FBrenderBlitCharacterItalic(int x, int y, unsigned short aColor, unsigned s
 	}
 }
 
-int FBrenderBlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, unsigned short italic, const char *args, ...) {
+int FBrenderBlitText(int x, int y, unsigned short aColor, unsigned short aBackColor, bool italic, const char *args, ...) {
 	int done=-1;
 	if(args!=NULL) {
 		va_list arg;
@@ -395,6 +395,11 @@ void FillRect(int ulx, int uly, int drx, int dry, unsigned short color) {
 	for(y=uly;y<=dry;y++) DrawHorizontalLine(ulx,y,lenght,color);
 }
 
+void DrawButton(int x, int y, bool active, const char *label, ...) {
+	FillRect(x,y,x+180,y+30,active?0x00f0:0x00b0);
+	FBrenderBlitText(x+10,y+10,active?0xfff0:0xddd0,active?0x00f0:0x00b0,!active,label);
+}
+
 //TODO: to be implemented and tested...
 /*void FillQuadrangle(int ax, int ay, int bx, int by, int cx, int cy, int dx, int dy, unsigned short color) {
 	int coord[4][2]={{ax,ay},{bx,by},{cx,cy},{dx,dy}};
@@ -461,8 +466,8 @@ void FillRect(int ulx, int uly, int drx, int dry, unsigned short color) {
 
 void PrintPosition(int latD, int latM, double latS, short N, int lonD, int lonM, double lonS, short E) {
 	if(screen.height!=240) {
-		FBrenderBlitText(screen.height+28,2,config.colorSchema.text,config.colorSchema.background,0,"%3d %2d' %6.3f\" %c ",latD,latM,latS,N?'N':'S');
-		FBrenderBlitText(screen.height+28,12,config.colorSchema.text,config.colorSchema.background,0,"%3d %2d' %6.3f\" %c ",lonD,lonM,lonS,E?'E':'W');
+		FBrenderBlitText(screen.height+28,2,config.colorSchema.text,config.colorSchema.background,false,"%3d %2d' %6.3f\" %c ",latD,latM,latS,N?'N':'S');
+		FBrenderBlitText(screen.height+28,12,config.colorSchema.text,config.colorSchema.background,false,"%3d %2d' %6.3f\" %c ",lonD,lonM,lonS,E?'E':'W');
 	}
 }
 
@@ -470,33 +475,33 @@ void PrintSpeed(double speedKmh, double speedKnots) {
 	if(screen.height!=240) {
 		switch(config.speedUnit) {
 			case KNOTS:
-				FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,0,"GS: %7.2f Knots",speedKnots);
+				FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,false,"GS: %7.2f Knots",speedKnots);
 				break;
 			case MPH:
-				FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,0,"GS: %7.2f MPH  ",Km2Miles(speedKmh));
+				FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,false,"GS: %7.2f MPH  ",Km2Miles(speedKmh));
 				break;
 			case KMH:
 			default:
-				FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,0,"GS: %7.2f Km/h ",speedKmh);
+				FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,false,"GS: %7.2f Km/h ",speedKmh);
 				/* no break */
 		}
 	} else switch(config.speedUnit) {
 		case KNOTS:
-			FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,0,"%.0f Knots",speedKnots);
+			FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,false,"%.0f Knots",speedKnots);
 			break;
 		case MPH:
-			FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,0,"%.0f MPH  ",Km2Miles(speedKmh));
+			FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,false,"%.0f MPH  ",Km2Miles(speedKmh));
 			break;
 		case KMH:
 		default:
-			FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,0,"%.0f Km/h ",speedKmh);
+			FBrenderBlitText(screen.height+28,32,config.colorSchema.text,config.colorSchema.background,false,"%.0f Km/h ",speedKmh);
 			/* no break */
 	}
 }
 
-void PrintNavStatus(int status, char *WPname) {
+void PrintNavStatus(int navStatus, char *WPname) {
 	char *statusName;
-	switch((enum navigatorStatus)status) {
+	switch((enum navigatorStatus)navStatus) {
 			case NAV_STATUS_NOT_INIT:         statusName=strdup("Nav not set   "); break;
 			case NAV_STATUS_NO_ROUTE_SET:     statusName=strdup("No route set  "); break;
 			case NAV_STATUS_TO_START_NAV:     statusName=strdup("Ready to start"); break;
@@ -510,11 +515,11 @@ void PrintNavStatus(int status, char *WPname) {
 			default:                          statusName=strdup("Unknown       "); break;
 	}
 	if(screen.height!=240) {
-		FBrenderBlitText(screen.height+28,52,config.colorSchema.text,config.colorSchema.background,0,"NAV: %s       ",statusName);
-		FBrenderBlitText(screen.height+28,62,config.colorSchema.text,config.colorSchema.background,0,"WPT: %s                 ",WPname);
+		FBrenderBlitText(screen.height+28,52,config.colorSchema.text,config.colorSchema.background,false,"NAV: %s       ",statusName);
+		FBrenderBlitText(screen.height+28,62,config.colorSchema.text,config.colorSchema.background,false,"WPT: %s                 ",WPname);
 	} else {
-		FBrenderBlitText(screen.height+28,52,config.colorSchema.text,config.colorSchema.background,0,"%s       ",statusName);
-		FBrenderBlitText(screen.height+28,62,config.colorSchema.text,config.colorSchema.background,0,"%s               ",WPname);
+		FBrenderBlitText(screen.height+28,52,config.colorSchema.text,config.colorSchema.background,false,"%s       ",statusName);
+		FBrenderBlitText(screen.height+28,62,config.colorSchema.text,config.colorSchema.background,false,"%s               ",WPname);
 	}
 	free(statusName);
 }
@@ -523,38 +528,38 @@ void PrintNavRemainingDistWP(double distKm, double averageSpeedKmh, double hours
 	if(screen.height!=240) {
 		switch(config.distUnit) { //Distance To Go
 			case NM:
-				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"DTG: %7.3f NM    ",Km2Nm(distKm));
+				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"DTG: %7.3f NM    ",Km2Nm(distKm));
 				break;
 			case MI:
-				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"DTG: %7.3f Mi    ",Km2Miles(distKm));
+				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"DTG: %7.3f Mi    ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"DTG: %7.3f Km    ",distKm);
+				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"DTG: %7.3f Km    ",distKm);
 				/* no break */
 		}
 		if(averageSpeedKmh>0) switch(config.speedUnit) {
 			case KNOTS:
-				FBrenderBlitText(screen.height+28,92,config.colorSchema.text,config.colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,92,config.colorSchema.text,config.colorSchema.background,false,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
 			case MPH:
-				FBrenderBlitText(screen.height+28,92,config.colorSchema.text,config.colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,92,config.colorSchema.text,config.colorSchema.background,false,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
 				break;
 			case KMH:
 			default:
-				FBrenderBlitText(screen.height+28,92,config.colorSchema.text,config.colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
+				FBrenderBlitText(screen.height+28,92,config.colorSchema.text,config.colorSchema.background,false,"AS: %5.1f Km/h    ",averageSpeedKmh);
 				/* no break */
 		}
 	} else switch(config.distUnit) { //Distance To Go
 			case NM:
-				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"%.2f NM    ",Km2Nm(distKm));
+				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"%.2f NM    ",Km2Nm(distKm));
 				break;
 			case MI:
-				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"%.2f Mi    ",Km2Miles(distKm));
+				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"%.2f Mi    ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"%.2f Km    ",distKm);
+				FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"%.2f Km    ",distKm);
 				/* no break */
 	}
 	if(hours<100 && hours>0) {
@@ -570,14 +575,14 @@ void PrintNavRemainingDistWP(double distKm, double averageSpeedKmh, double hours
 void PrintNavDTG(double distRad) { //Distance To Go
 	switch(config.distUnit) {
 		case NM:
-			FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"DTG: %7.3f NM    ",Rad2Nm(distRad));
+			FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"DTG: %7.3f NM    ",Rad2Nm(distRad));
 			break;
 		case MI:
-			FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"DTG: %7.3f Mi    ",Rad2Mi(distRad));
+			FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"DTG: %7.3f Mi    ",Rad2Mi(distRad));
 			break;
 		case KM:
 		default:
-			FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,0,"DTG: %7.3f Km    ",Rad2Km(distRad));
+			FBrenderBlitText(screen.height+28,72,config.colorSchema.text,config.colorSchema.background,false,"DTG: %7.3f Km    ",Rad2Km(distRad));
 			/* no break */
 	}
 }
@@ -585,66 +590,66 @@ void PrintNavDTG(double distRad) { //Distance To Go
 void PrintNavTrackATD(double atdRad) {
 	if(screen.height!=240) switch(config.distUnit) {
 		case NM:
-			FBrenderBlitText(screen.height+28,82,config.colorSchema.text,config.colorSchema.background,0,"ATD: %7.3f NM  ",Rad2Nm(atdRad));
+			FBrenderBlitText(screen.height+28,82,config.colorSchema.text,config.colorSchema.background,false,"ATD: %7.3f NM  ",Rad2Nm(atdRad));
 			break;
 		case MI:
-			FBrenderBlitText(screen.height+28,82,config.colorSchema.text,config.colorSchema.background,0,"ATD: %7.3f Mi  ",Rad2Mi(atdRad));
+			FBrenderBlitText(screen.height+28,82,config.colorSchema.text,config.colorSchema.background,false,"ATD: %7.3f Mi  ",Rad2Mi(atdRad));
 			break;
 		case KM:
 		default:
-			FBrenderBlitText(screen.height+28,82,config.colorSchema.text,config.colorSchema.background,0,"ATD: %7.3f Km  ",Rad2Km(atdRad));
+			FBrenderBlitText(screen.height+28,82,config.colorSchema.text,config.colorSchema.background,false,"ATD: %7.3f Km  ",Rad2Km(atdRad));
 			/* no break */
 	}
 }
 
 void PrintAltitude(double altMt, double altFt) {
-	FBrenderBlitText(screen.height+28,133,config.colorSchema.text,config.colorSchema.background,0,"%.0f Ft   %.0f m    ",altFt,altMt);
+	FBrenderBlitText(screen.height+28,133,config.colorSchema.text,config.colorSchema.background,false,"%.0f Ft   %.0f m    ",altFt,altMt);
 }
 
 void PrintVerticalSpeed(double FtMin) {
-	//FBrenderBlitText(2,42,config.colorSchema.text,config.colorSchema.background,str,0,"VS: %.0f Ft/min   ",FtMin);
+	//FBrenderBlitText(2,42,config.colorSchema.text,config.colorSchema.background,str,false,"VS: %.0f Ft/min   ",FtMin);
 }
 
 void PrintTurnRate(double DegMin) {
-	//FBrenderBlitText(2,52,config.colorSchema.text,config.colorSchema.background,str,0,"TR: %.2f Deg/min  ",DegMin);
+	//FBrenderBlitText(2,52,config.colorSchema.text,config.colorSchema.background,str,false,"TR: %.2f Deg/min  ",DegMin);
 }
 
 void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double timeHours) {
 	if(screen.height!=240) {
 		switch(config.distUnit) {
 			case NM:
-				FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,0,"Tot DTG: %7.3f NM     ",Km2Nm(distKm));
+				FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,false,"Tot DTG: %7.3f NM     ",Km2Nm(distKm));
 				break;
 			case MI:
-				FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,0,"Tot DTG: %7.3f Mi     ",Km2Miles(distKm));
+				FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,false,"Tot DTG: %7.3f Mi     ",Km2Miles(distKm));
 				break;
 			case KM:
 			default:
-				FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,0,"Tot DTG: %7.3f Km     ",distKm);
+				FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,false,"Tot DTG: %7.3f Km     ",distKm);
 				/* no break */
 		}
 		if(averageSpeedKmh>0) switch(config.speedUnit) {
 			case KNOTS:
-				FBrenderBlitText(screen.height+28,182,config.colorSchema.text,config.colorSchema.background,0,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,182,config.colorSchema.text,config.colorSchema.background,false,"AS: %5.1f Knots   ",Km2Nm(averageSpeedKmh));
 				break;
 			case MPH:
-				FBrenderBlitText(screen.height+28,182,config.colorSchema.text,config.colorSchema.background,0,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
+				FBrenderBlitText(screen.height+28,182,config.colorSchema.text,config.colorSchema.background,false,"AS: %5.1f MPH     ",Km2Miles(averageSpeedKmh));
 				break;
 			case KMH:
 			default:
-				FBrenderBlitText(screen.height+28,182,config.colorSchema.text,config.colorSchema.background,0,"AS: %5.1f Km/h    ",averageSpeedKmh);
+				FBrenderBlitText(screen.height+28,182,config.colorSchema.text,config.colorSchema.background,false,"AS: %5.1f Km/h    ",averageSpeedKmh);
 				/* no break */
 		}
 	} else switch(config.distUnit) {
 		case NM:
-			FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,0,"%.2f NM     ",Km2Nm(distKm));
+			FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,false,"%.2f NM     ",Km2Nm(distKm));
 			break;
 		case MI:
-			FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,0,"%.2f Mi     ",Km2Miles(distKm));
+			FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,false,"%.2f Mi     ",Km2Miles(distKm));
 			break;
 		case KM:
 		default:
-			FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,0,"%.2f Km     ",distKm);
+			FBrenderBlitText(screen.height+28,172,config.colorSchema.text,config.colorSchema.background,false,"%.2f Km     ",distKm);
 			/* no break */
 	}
 	//TODO: Continue here with the conversion to smaller screen
@@ -658,7 +663,7 @@ void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double time
 }
 
 void PrintTime(int hour, int minute, float second, short waring) {
-	FBrenderBlitText(screen.height+28,240,waring?config.colorSchema.warning:config.colorSchema.ok,config.colorSchema.background,0,"UTC: %02d:%02d:%02.0f",hour,minute,second);
+	FBrenderBlitText(screen.height+28,240,waring?config.colorSchema.warning:config.colorSchema.ok,config.colorSchema.background,false,"UTC: %02d:%02d:%02.0f",hour,minute,second);
 }
 
 void PrintDate(int day, int month, int year) {
@@ -670,16 +675,16 @@ void PrintNumOfSats(int activeSats, int satsInView) {
 	if(activeSats>3) color=config.colorSchema.ok; //green
 	else if(activeSats==3) color=config.colorSchema.warning; //yellow
 	else color=config.colorSchema.caution; //red
-	FBrenderBlitText(screen.height+28,250,color,config.colorSchema.background,0,"SAT: %2d/%2d",activeSats,satsInView);
+	FBrenderBlitText(screen.height+28,250,color,config.colorSchema.background,false,"SAT: %2d/%2d",activeSats,satsInView);
 }
 
 void PrintFixMode(int fixMode) {
 	switch((enum GPSmode)fixMode) {
-		case MODE_GPS_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,0,"FIX: GPS Fix"); break;
-		case MODE_3D_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.ok,config.colorSchema.background,0,"FIX: 3D mode"); break;
-		case MODE_2D_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,0,"FIX: 2D mode"); break;
-		case MODE_NO_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.caution,config.colorSchema.background,0,"FIX: No Fix "); break;
-		default: FBrenderBlitText(screen.height+28,260,config.colorSchema.caution,config.colorSchema.background,0,"FIX: Unknown"); break;
+		case MODE_GPS_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,false,"FIX: GPS Fix"); break;
+		case MODE_3D_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.ok,config.colorSchema.background,false,"FIX: 3D mode"); break;
+		case MODE_2D_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.warning,config.colorSchema.background,false,"FIX: 2D mode"); break;
+		case MODE_NO_FIX: FBrenderBlitText(screen.height+28,260,config.colorSchema.caution,config.colorSchema.background,false,"FIX: No Fix "); break;
+		default: FBrenderBlitText(screen.height+28,260,config.colorSchema.caution,config.colorSchema.background,false,"FIX: Unknown"); break;
 	}
 }
 
