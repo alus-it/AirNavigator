@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 7/12/2013
+// Last change : 8/12/2013
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -32,7 +32,6 @@
 #endif
 
 
-
 typedef struct fileName {
 	int seqNo;             //sequence number
 	char *name;            //name of the file
@@ -42,16 +41,16 @@ typedef struct fileName {
 
 void releaseAll(void);
 
-static enum mainStatus status=MAIN_STATUS_NOT_INIT;
+static enum mainStatus status=MAIN_NOT_INIT;
 
 int main(int argc, char** argv) {
 	if(openLog()) //if the log file has been created...
 		if(FBrenderOpen()) //if the frame buffer render is started
-			if(TSreaderStart()) status=MAIN_STATUS_MENU; //if the touch screen listening thread is started
+			if(TSreaderStart()) status=MAIN_DISPLAY_MENU; //if the touch screen listening thread is started
 			else printLog("ERROR: Unable to start the Touch Screen manager!\n");
 		else printLog("ERROR: Unable to start the Frame Buffer renderer!\n");
 	else printf("ERROR: Unable to create the logFile file!\n");
-	if(status!=MAIN_STATUS_MENU) {
+	if(status!=MAIN_DISPLAY_MENU) {
 		releaseAll();
 		exit(EXIT_FAILURE);
 	}
@@ -92,12 +91,10 @@ int main(int argc, char** argv) {
 	}
 	printLog("Screen resolution: %dx%d pixel\n",screen.width,screen.height); //logFile screen resolution
 	loadConfig(); //Load configuration
-
-	//Prepare the list of available flight plans found in the routes folder
 	fileEntry fileList=NULL, currFile=NULL; //the list of the found GPX flight plans and the pointer to the current one
 	int numGPXfiles=0;
 	struct dirent *entry;
-	char *routesPath;
+	char *routesPath; //... prepare the list of available flight plans found in the routes folder
 	asprintf(&routesPath,"%sRoutes",BASE_PATH);
 	DIR *dir = opendir(routesPath);
 	free(routesPath);
@@ -132,20 +129,18 @@ int main(int argc, char** argv) {
 		}
 	} else printLog("ERROR: could not open the Routes directory.\n");
 
-	//Here we start the GPS
-	if(!GPSreceiverStart()) printLog("ERROR: GPSreceiver failed to start.\n"); //Start reading from the GPSrecveiver
+	if(!GPSreceiverStart()) printLog("ERROR: GPSreceiver failed to start.\n"); //Start GPSrecveiver
 	//TODO: if GPS failed to start many buttons should be disabled...
 
 	//TODO: put all those possible error messages in a string to be shown in the confirmation bar in the menu
 
-	//TODO: test and debug!
 	bool doExit=false;
 	TS_EVENT lastTouch; //data of the last event from the touch screen
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
 	int numWPloaded=0; //the number of waypoints loaded from the selected flight plan
 	while(!doExit) { //Main loop
-		switch(status) { //Display different status
-			case MAIN_STATUS_MENU:
+		switch(status) { //Depending on status display the proper screen
+			case MAIN_DISPLAY_MENU:
 				FBrenderClear(0,screen.height,config.colorSchema.background);
 				FBrenderBlitText(10,10,config.colorSchema.dirMarker,config.colorSchema.background,false,"AirNavigator v.%s",VERSION);
 				FBrenderBlitText(200,10,config.colorSchema.magneticDir,config.colorSchema.background,true,"http://www.alus.it/airnavigator");
@@ -161,7 +156,7 @@ int main(int argc, char** argv) {
 				//TODO: make a bottom bar with advice messages like: FP loaded with n WP ecc...
 				FBrenderFlush();
 				break;
-			case MAIN_STATUS_SELECT_ROUTE: //Display the list of GPX files
+			case MAIN_DISPLAY_SELECT_ROUTE: //Display the select GPX flight plan screen
 				FBrenderClear(0,screen.height,config.colorSchema.background); //draw the main screen
 				FBrenderBlitText(20,20,config.colorSchema.dirMarker,config.colorSchema.background,0,"Select and load the desired GPX flight plan");
 				FBrenderBlitText(20,35,config.colorSchema.text,config.colorSchema.background,0,"%d GPX flight plans found.",numGPXfiles);
@@ -169,10 +164,10 @@ int main(int argc, char** argv) {
 				FBrenderBlitText(20,70,config.colorSchema.warning,config.colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
 				DrawButton(20,90,currFile->prev!=NULL,"<< Previous");
 				DrawButton(220,90,currFile->next!=NULL,"    Next >>");
-				DrawButton(180,210,currFile->next!=NULL,"    LOAD");
+				DrawButton(220,210,currFile->next!=NULL,"    LOAD");
 				FBrenderFlush();
 			break;
-			case MAIN_STATUS_HSI: //Display HSI, start reading from GPS and the track recorder
+			case MAIN_DISPLAY_HSI: //Display HSI, start reading from GPS and the track recorder
 				FBrenderClear(0,screen.height,config.colorSchema.background); //draw the main screen
 				HSIinitialize(0,0,0); //HSI initialization
 				//TODO here is necessary to draw all the instrumentation...
@@ -182,31 +177,20 @@ int main(int argc, char** argv) {
 		} //end of display switch
 		TSreaderGetTouch(&lastTouch); //wait that the user touches the screen and get the coordinates of the touch
 		switch(status) { //depending on the status process the input touch
-			case MAIN_STATUS_MENU: //here process main menu input
+			case MAIN_DISPLAY_MENU: //here process main menu input
 				if(lastTouch.x>=20 && lastTouch.x<=200) { //touched the first column of buttons
-					if(lastTouch.y>=50 && lastTouch.y<=80) { //touched load route button
-						if(numGPXfiles>0) status=MAIN_STATUS_SELECT_ROUTE;
+					if(lastTouch.y>=50 && lastTouch.y<=80 && numGPXfiles>0) status=MAIN_DISPLAY_SELECT_ROUTE; //touched load route button
+					if(lastTouch.y>=90 && lastTouch.y<=120 && NavGetStatus()==NAV_STATUS_TO_START_NAV) { //touched start navigation button
+						status=MAIN_DISPLAY_HSI;
+						NavStartNavigation();
 					}
-					if(lastTouch.y>=90 && lastTouch.y<=120) { //touched start navigation button
-						if(NavGetStatus()==NAV_STATUS_TO_START_NAV) {
-							NavStartNavigation();
-							status=MAIN_STATUS_HSI;
-						}
-					}
-					if(lastTouch.y>=130 && lastTouch.y<=160) { //touched reverse route button
-						if(toLoad!=NULL && numWPloaded>1) NavReverseRoute(); //reverse the route
-					}
-					if(lastTouch.y>=170 && lastTouch.y<=200) { //touched unload route button
-						if(toLoad!=NULL) {
-							NavClearRoute();
-							toLoad=NULL;
-							numWPloaded=0;
-						}
+					if(lastTouch.y>=130 && lastTouch.y<=160 && numWPloaded>1) NavReverseRoute();//touched reverse route button
+					if(lastTouch.y>=170 && lastTouch.y<=200 && numWPloaded>0) { //touched unload route button
+						NavClearRoute();
+						numWPloaded=0;
 					}
 				} else if(lastTouch.x>=220 && lastTouch.x<=400) { //touched second column of buttons
-					if(lastTouch.y>=50 && lastTouch.y<=80) { //touched show HSI button
-						status=MAIN_STATUS_HSI;
-					}
+					if(lastTouch.y>=50 && lastTouch.y<=80) status=MAIN_DISPLAY_HSI; //touched show HSI button
 					if(lastTouch.y>=90 && lastTouch.y<=120) { //touched start stop track recorder button
 						if(BlackBoxIsStarted()) BlackBoxClose();
 						else BlackBoxStart();
@@ -218,14 +202,14 @@ int main(int argc, char** argv) {
 					if(lastTouch.y>=210 && lastTouch.y<=240) doExit=true; //touched exit button
 				}
 				break;
-			case MAIN_STATUS_SELECT_ROUTE: //here process user input in select route screen
+			case MAIN_DISPLAY_SELECT_ROUTE: //here process user input in select route screen
 				if(lastTouch.y>=90 && lastTouch.y<=120) { //user touched at the height of prev and next buttons
 					if(lastTouch.x>=20 && lastTouch.x<=200 && currFile->prev!=NULL) { //user touched prev button
 						currFile=currFile->prev;
 					} else if(lastTouch.x>=220 && lastTouch.x<=400 && currFile->next!=NULL) { //user touched next button
 						currFile=currFile->next;
 					}
-				} else if(lastTouch.y>=210 && lastTouch.y<=240 && lastTouch.x>=180 && lastTouch.x<=360) { //user touched LOAD button
+				} else if(lastTouch.y>=210 && lastTouch.y<=240 && lastTouch.x>=220 && lastTouch.x<=400) { //user touched LOAD button
 					asprintf(&toLoad,"%s%s%s",BASE_PATH,"Routes/",currFile->name);
 					numWPloaded=NavLoadFlightPlan(toLoad); //Attempt to load the flight plan
 					if(numWPloaded<1) { //if load route failed
@@ -233,19 +217,18 @@ int main(int argc, char** argv) {
 						else printLog("ERROR: NULL pointer to the route file to be loaded.\n");
 					} else printLog("Loaded route with %d WayPoints.\n\n",numWPloaded);
 					free(toLoad);
-					status=MAIN_STATUS_MENU;
+					status=MAIN_DISPLAY_MENU;
 				}
 				break;
-			case MAIN_STATUS_HSI: //here process the user input the HSI screen
-				status=MAIN_STATUS_MENU; //a touch anywhere in the HSI screen bring back to main manu
+			case MAIN_DISPLAY_HSI: //here process the user input the HSI screen
+				status=MAIN_DISPLAY_MENU; //a touch anywhere in the HSI screen bring back to main menu
 				break;
 			default:
+				doExit=true;
 				break;
 		} //end of user input processing switch
-	}
-
-	//Clean and Close all the stuff
-	GPSreceiverClose();
+	} //end of main loop
+	GPSreceiverClose(); //Clean and Close all ...
 	free(config.GPSdevName);
 	NavClose();
 	BlackBoxClose();
@@ -257,7 +240,6 @@ int main(int argc, char** argv) {
 		fileList=currFile->next;
 		free(currFile);
 	} while(fileList!=NULL);
-	printLog("Releasing all... Goodbye!\n");
 	releaseAll();
 	exit(EXIT_SUCCESS);
 }

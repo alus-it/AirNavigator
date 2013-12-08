@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 7/12/2013
+// Last change : 8/12/2013
 // Description : Common definitions of AirNavigator
 //============================================================================
 
@@ -20,10 +20,10 @@ typedef char bool;
 enum boolean { false, true };
 
 enum mainStatus {
-	MAIN_STATUS_NOT_INIT,
-	MAIN_STATUS_MENU,
-	MAIN_STATUS_SELECT_ROUTE,
-	MAIN_STATUS_HSI
+	MAIN_NOT_INIT,
+	MAIN_DISPLAY_MENU,
+	MAIN_DISPLAY_SELECT_ROUTE,
+	MAIN_DISPLAY_HSI
 };
 
 bool openLog(void);
