@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 27/11/2013
+// Last change : 8/12/2013
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
@@ -105,6 +105,14 @@ void BlackBoxPause(void) {
 
 void BlackBoxResume(void) {
 	if(BlackBox.status==BBS_PAUSED && BlackBox.tracklogFile!=NULL) BlackBox.status=BBS_WAIT_POS;
+}
+
+bool BlackBoxIsStarted(void) {
+	return(BlackBox.status!=BBS_NOT_SET);
+}
+
+bool BlackBoxIsPaused(void) {
+	return(BlackBox.status==BBS_PAUSED);
 }
 
 void recordPos(double lat, double lon, float timestamp, int year, int month, int day, int hour, int min, float sec) {

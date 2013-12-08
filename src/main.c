@@ -134,7 +134,9 @@ int main(int argc, char** argv) {
 
 	//Here we start the GPS
 	if(!GPSreceiverStart()) printLog("ERROR: GPSreceiver failed to start.\n"); //Start reading from the GPSrecveiver
-	BlackBoxStart(); //Start the track recorder
+	//TODO: if GPS failed to start many buttons should be disabled...
+
+	//TODO: put all those possible error messages in a string to be shown in the confirmation bar in the menu
 
 	//TODO: test and debug!
 	bool doExit=false;
@@ -153,7 +155,8 @@ int main(int argc, char** argv) {
 				DrawButton(20,130,numWPloaded>1,"Reverse flight plan");
 				DrawButton(20,170,numWPloaded>0,"Unload flight plan");
 				DrawButton(220,50,true,"Show HSI");
-				//TODO: make also a button to start and stop the track recorder
+				DrawButton(220,90,true,BlackBoxIsStarted()?"Stop Track Recorder":"Start Track Recorder");
+				DrawButton(220,130,BlackBoxIsStarted(),BlackBoxIsPaused()?"Resume Track Recorder":"Pause Track Recorder");
 				DrawButton(220,210,true,"EXIT");
 				//TODO: make a bottom bar with advice messages like: FP loaded with n WP ecc...
 				FBrenderFlush();
@@ -191,11 +194,7 @@ int main(int argc, char** argv) {
 						}
 					}
 					if(lastTouch.y>=130 && lastTouch.y<=160) { //touched reverse route button
-						if(toLoad!=NULL && numWPloaded>1) {
-							BlackBoxClose(); //Stop the recorder in order to finalize the track of the first way
-							NavReverseRoute(); //reverse the route
-							BlackBoxStart(); //Restart the track recorder for the return way
-						}
+						if(toLoad!=NULL && numWPloaded>1) NavReverseRoute(); //reverse the route
 					}
 					if(lastTouch.y>=170 && lastTouch.y<=200) { //touched unload route button
 						if(toLoad!=NULL) {
@@ -204,9 +203,17 @@ int main(int argc, char** argv) {
 							numWPloaded=0;
 						}
 					}
-				} else if(lastTouch.y>=220 && lastTouch.y<=400) { //touched second column of buttons
+				} else if(lastTouch.x>=220 && lastTouch.x<=400) { //touched second column of buttons
 					if(lastTouch.y>=50 && lastTouch.y<=80) { //touched show HSI button
 						status=MAIN_STATUS_HSI;
+					}
+					if(lastTouch.y>=90 && lastTouch.y<=120) { //touched start stop track recorder button
+						if(BlackBoxIsStarted()) BlackBoxClose();
+						else BlackBoxStart();
+					}
+					if(lastTouch.y>=130 && lastTouch.y<=160 && BlackBoxIsStarted()) { //touched pause resume track recorder button
+						if(BlackBoxIsPaused()) BlackBoxResume();
+						else BlackBoxPause();
 					}
 					if(lastTouch.y>=210 && lastTouch.y<=240) doExit=true; //touched exit button
 				}
