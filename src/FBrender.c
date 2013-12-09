@@ -1,6 +1,6 @@
 //============================================================================
 // Name        : FBrender.c
-// Since       : 8/7/2011
+// Since       : 9/7/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : http://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
@@ -396,8 +396,8 @@ void FillRect(int ulx, int uly, int drx, int dry, unsigned short color) {
 }
 
 void DrawButton(int x, int y, bool active, const char *label, ...) {
-	FillRect(x,y,x+180,y+30,active?0x00f0:0x00b0);
-	FBrenderBlitText(x+10,y+10,active?0xfff0:0xddd0,active?0x00f0:0x00b0,!active,label);
+	FillRect(x,y,x+180,y+30,active?config.colorSchema.buttonEnabled:config.colorSchema.buttonDisabled);
+	FBrenderBlitText(x+10,y+10,active?config.colorSchema.buttonLabelEnabled:config.colorSchema.buttonLabelDisabled,active?config.colorSchema.buttonEnabled:config.colorSchema.buttonDisabled,!active,label);
 }
 
 //TODO: to be implemented and tested...

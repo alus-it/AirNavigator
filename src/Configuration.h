@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 6/12/2013
+// Last change : 9/12/2013
 // Description : Header of Config with the shared config data struct
 //============================================================================
 
@@ -45,6 +45,10 @@ struct colorConfig {
 	unsigned short warning;
 	unsigned short caution;
 	unsigned short airplaneSymbol;
+	unsigned short buttonEnabled;
+	unsigned short buttonDisabled;
+	unsigned short buttonLabelEnabled;
+	unsigned short buttonLabelDisabled;
 };
 
 struct configuration {

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 06/12/2013
+// Last change : 09/12/2013
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
@@ -40,22 +40,26 @@ struct configuration config = { //Default configuration values
 	.tomtomModel=NULL,
 	.serialNumber=NULL,
 	.colorSchema = {       //Default colors
-		.background=0x0000,     //black
-		.compassRose=0xffff,    //white
-		.dirMarker=0xf000,      //red
-		.magneticDir=0x00f0,    //blue
-		.routeIndicator=0x0f00, //green
-		.cdi=0xff00,            //yellow
-		.cdiScale=0xffff,       //white
-		.altScale=0xffff,       //white
-		.vsi=0xffff,            //white
-		.altMarker=0xffff,      //white
-		.text=0x0f00,           //green
-		.ok=0x0f00,             //green
-		.warning=0xff00,        //yellow
-		.caution=0xf000,        //red
-		.airplaneSymbol=0xfa00  //orange
-		//TODO: add colors for buttons
+		.background=0x0000,         //black
+		.compassRose=0xffff,        //white
+		.dirMarker=0xf000,          //red
+		.magneticDir=0x00f0,        //blue
+		.routeIndicator=0x0f00,     //green
+		.cdi=0xff00,                //yellow
+		.cdiScale=0xffff,           //white
+		.altScale=0xffff,           //white
+		.vsi=0xffff,                //white
+		.altMarker=0xffff,          //white
+		.text=0x0f00,               //green
+		.ok=0x0f00,                 //green
+		.warning=0xff00,            //yellow
+		.caution=0xf000,            //red
+		.airplaneSymbol=0xfa00,     //orange
+		//FIXME: colors for button not correct
+		.buttonEnabled=0x00f0,      //blue
+		.buttonDisabled=0x00b0,     //dark blue
+		.buttonLabelEnabled=0xfff0, //white
+		.buttonLabelDisabled=0xddd0 //dark grey
 	}
 };
 
@@ -273,6 +277,30 @@ void loadConfig(void) { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
 						config.colorSchema.airplaneSymbol=(unsigned short)color;
+					}
+					attr=roxml_get_attr(detail,"buttonEnabled",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.buttonEnabled=(unsigned short)color;
+					}
+					attr=roxml_get_attr(detail,"buttonDisabled",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.buttonDisabled=(unsigned short)color;
+					}
+					attr=roxml_get_attr(detail,"buttonLabelEnabled",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.buttonLabelEnabled=(unsigned short)color;
+					}
+					attr=roxml_get_attr(detail,"buttonLabelDisabled",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.buttonLabelDisabled=(unsigned short)color;
 					}
 				} else printLog("WARNING: in the color schema the colors are missing, using default colors.\n");
 			} else printLog("WARNING: no color schema found, using default colors.\n");
