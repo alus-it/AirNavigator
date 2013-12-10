@@ -63,6 +63,14 @@ $ make zip
 The make process will produce automatically the two distributions zip files.
 
 
+And with:
+
+$ make upload
+
+The make process will copy just the AirNavigator executable to your TomTom connected via USB.
+In this case the TomTom disk should be mounted under: /media/INTERNAL/
+
+
 
 CONTACTS
 ========

@@ -213,5 +213,6 @@ void BlackBoxClose(void) {
 		fclose(BlackBox.tracklogFile);
 	}
 	free(BlackBox.filename);
+	BlackBox.filename=NULL;
 }
 

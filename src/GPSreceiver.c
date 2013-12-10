@@ -211,7 +211,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 	tcsetattr(fd,TCSANOW,&newtio); // Set the new options for the port...
 	tcflush(fd,TCIFLUSH);
 #endif
-	static unsigned char *buf; //read buffer
+	static unsigned char *buf=NULL; //read buffer
 //	if(GPSreceiver.isSiRF) { //allocate buffer for SiRF protocol
 //		buf=(unsigned char *) malloc(SIRF_BUFFER_SIZE*sizeof(unsigned char));
 //	} else { //allocate buffer for NMEA protocol
@@ -238,6 +238,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 #endif
 	if(fd>=0) close(fd); //close the serial port
 	free(buf);
+	buf=NULL;
 	pthread_exit(NULL);
 	return NULL;
 }

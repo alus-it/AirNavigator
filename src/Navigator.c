@@ -288,8 +288,10 @@ void NavClearRoute(void) {
 		do {
 			Navigator.currWP=Navigator.dept;
 			free(Navigator.currWP->name);
+			Navigator.currWP->name=NULL;
 			Navigator.dept=Navigator.currWP->next;
 			free(Navigator.currWP);
+			Navigator.currWP=NULL;
 		} while(Navigator.dept!=NULL);
 		Navigator.numWayPoints=0;
 	}

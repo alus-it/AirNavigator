@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 	loadConfig(); //Load configuration
 	fileEntry fileList=NULL, currFile=NULL; //the list of the found GPX flight plans and the pointer to the current one
 	int numGPXfiles=0;
-	struct dirent *entry;
+	struct dirent *entry=NULL;
 	char *routesPath; //... prepare the list of available flight plans found in the routes folder
 	asprintf(&routesPath,"%sRoutes",BASE_PATH);
 	DIR *dir = opendir(routesPath);
@@ -294,7 +294,10 @@ enum mainStatus getMainStatus(void) {
 int showMessage(unsigned short color, const char *args, ...) {
 	int done=-1;
 	if(args!=NULL) {
-		if(mainData.bottomBarMsg!=NULL) free(mainData.bottomBarMsg);
+		if(mainData.bottomBarMsg!=NULL) {
+			free(mainData.bottomBarMsg);
+			mainData.bottomBarMsg=NULL;
+		}
 		va_list arg;
 		va_start(arg,args);
 		done=vasprintf(&mainData.bottomBarMsg,args,arg);
