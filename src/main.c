@@ -171,7 +171,8 @@ int main(int argc, char** argv) {
 				FBrenderBlitText(20,70,config.colorSchema.warning,config.colorSchema.background,0,"%s                                         ",currFile->name); //print the name of the current file
 				DrawButton(20,90,currFile->prev!=NULL,"<< Previous");
 				DrawButton(220,90,currFile->next!=NULL,"    Next >>");
-				DrawButton(220,210,currFile->next!=NULL,"    LOAD");
+				DrawButton(220,210,currFile!=NULL,"    LOAD");
+				DrawButton(20,210,true,"Back to menu");
 				FBrenderFlush();
 			break;
 			case MAIN_DISPLAY_HSI: //Display HSI, start reading from GPS and the track recorder
@@ -198,6 +199,7 @@ int main(int argc, char** argv) {
 					if(lastTouch.y>=170 && lastTouch.y<=200 && numWPloaded>0) { //touched unload route button
 						NavClearRoute();
 						numWPloaded=0;
+						currFile=fileList;
 						showMessage(config.colorSchema.ok,"Route unloaded.");
 					}
 				} else if(lastTouch.x>=220 && lastTouch.x<=400) { //touched second column of buttons
@@ -230,20 +232,24 @@ int main(int argc, char** argv) {
 				break;
 			case MAIN_DISPLAY_SELECT_ROUTE: //here process user input in select route screen
 				if(lastTouch.y>=90 && lastTouch.y<=120) { //user touched at the height of prev and next buttons
-					if(lastTouch.x>=20 && lastTouch.x<=200 && currFile->prev!=NULL) { //user touched prev button
-						currFile=currFile->prev;
-					} else if(lastTouch.x>=220 && lastTouch.x<=400 && currFile->next!=NULL) { //user touched next button
-						currFile=currFile->next;
+					if(lastTouch.x>=20 && lastTouch.x<=200 && currFile->prev!=NULL) currFile=currFile->prev;  //user touched prev button
+					else if(lastTouch.x>=220 && lastTouch.x<=400 && currFile->next!=NULL) currFile=currFile->next; //user touched next button
+				} else if(lastTouch.y>=210 && lastTouch.y<=240) { //user touched at the height of back, load buttons
+					if(lastTouch.x>=20 && lastTouch.x<=200) {  //user touched back button
+						mainData.status=MAIN_DISPLAY_MENU; //go back to main menu
+						free(mainData.bottomBarMsg); //remove previous message
+						mainData.bottomBarMsg=NULL;
+					} else if(lastTouch.x>=220 && lastTouch.x<=400) { //user touched LOAD button
+						asprintf(&toLoad,"%s%s%s",BASE_PATH,"Routes/",currFile->name);
+						numWPloaded=NavLoadFlightPlan(toLoad); //Attempt to load the flight plan
+						if(numWPloaded<1) { //if load route failed
+							if(toLoad!=NULL) showMessage(config.colorSchema.caution,"ERROR: while opening: %s",toLoad);
+							else showMessage(config.colorSchema.caution,"ERROR: NULL pointer to the route file to be loaded.");
+						} else showMessage(config.colorSchema.ok,"Loaded route with %d WayPoints.",numWPloaded);
+						free(toLoad);
+						toLoad=NULL;
+						mainData.status=MAIN_DISPLAY_MENU;
 					}
-				} else if(lastTouch.y>=210 && lastTouch.y<=240 && lastTouch.x>=220 && lastTouch.x<=400) { //user touched LOAD button
-					asprintf(&toLoad,"%s%s%s",BASE_PATH,"Routes/",currFile->name);
-					numWPloaded=NavLoadFlightPlan(toLoad); //Attempt to load the flight plan
-					if(numWPloaded<1) { //if load route failed
-						if(toLoad!=NULL) showMessage(config.colorSchema.caution,"ERROR: while opening: %s",toLoad);
-						else showMessage(config.colorSchema.caution,"ERROR: NULL pointer to the route file to be loaded.");
-					} else showMessage(config.colorSchema.ok,"Loaded route with %d WayPoints.",numWPloaded);
-					free(toLoad);
-					mainData.status=MAIN_DISPLAY_MENU;
 				}
 				break;
 			case MAIN_DISPLAY_HSI: //here process the user input the HSI screen

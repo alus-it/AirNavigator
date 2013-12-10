@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/11/2013
+// Last change : 10/12/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -294,6 +294,7 @@ void NavClearRoute(void) {
 		Navigator.numWayPoints=0;
 	}
 	free(Navigator.routeLogPath);
+	Navigator.routeLogPath=NULL;
 	PrintNavStatus(Navigator.status,"Nowhere");
 	Navigator.status=NAV_STATUS_NO_ROUTE_SET;
 }
