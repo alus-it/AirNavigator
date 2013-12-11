@@ -176,9 +176,10 @@ int main(int argc, char** argv) {
 				FBrenderFlush();
 			break;
 			case MAIN_DISPLAY_HSI: //Display HSI, start reading from GPS and the track recorder
-				FBrenderClear(0,screen.height,config.colorSchema.background); //draw the main screen
-				HSIinitialize(0,0,0); //HSI initialization //FIXME: init should be done in two steps not always from 0 (from the route course if we have a route loaded)
-				//TODO here is necessary to draw all the instrumentation...
+				FBrenderClear(0,screen.height,config.colorSchema.background);
+				HSIfirstTimeDraw();
+				NavRedrawNavInfo();
+				FBrenderFlush();
 				break;
 			default:
 				break;
@@ -189,8 +190,8 @@ int main(int argc, char** argv) {
 				if(lastTouch.x>=20 && lastTouch.x<=200) { //touched the first column of buttons
 					if(lastTouch.y>=50 && lastTouch.y<=80 && numGPXfiles>0) mainData.status=MAIN_DISPLAY_SELECT_ROUTE; //touched load route button
 					if(lastTouch.y>=90 && lastTouch.y<=120 && NavGetStatus()==NAV_STATUS_TO_START_NAV) { //touched start navigation button
-						mainData.status=MAIN_DISPLAY_HSI;
 						NavStartNavigation();
+						mainData.status=MAIN_DISPLAY_HSI;
 					}
 					if(lastTouch.y>=130 && lastTouch.y<=160 && numWPloaded>1) { //touched reverse route button
 						if(NavReverseRoute()) showMessage(config.colorSchema.ok,"Route reversed."); //reverse the route

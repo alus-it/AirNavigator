@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 10/12/2013
+// Last change : 11/12/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -48,13 +48,18 @@ typedef struct wp {
 struct NavigatorStruct {
 	enum navigatorStatus status;
 	int numWayPoints;
-	double trueCourse, previousAltitude;
+	double trueCourse, remainDist, previousAltitude, heading;
 	double totalDistKm, prevWPsTotDist; //Km
 	double prevWpAvgSpeed, prevTotAvgSpeed; //Km/h
 	wayPoint dept, currWP, dest;
 	char *routeLogPath;
 	FILE *routeLog;
 	double sunZenith; //here in rad
+
+	double atd, trackErr;
+
+	double WPreaminDist,WPaverageSpeed,WPremaingTime;
+	double TotRemainDist,TotAverageSpeed,TotArrivalTime;
 };
 
 void NavConfigure(void);
@@ -66,7 +71,8 @@ static struct NavigatorStruct Navigator = {
 	.status=NAV_STATUS_NOT_INIT,
 	.numWayPoints=0,
 	.previousAltitude=-1000,
-	.routeLog=NULL
+	.routeLog=NULL,
+	.currWP=NULL
 };
 
 void NavConfigure(void) {
@@ -80,10 +86,8 @@ void NavConfigure(void) {
 }
 
 short NavCalculateRoute(void) {
-	if(Navigator.status==NAV_STATUS_NO_ROUTE_SET) {
-		Navigator.status=NAV_STATUS_NAV_BUSY;
-		PrintNavStatus(Navigator.status,"Unknown");
-	} else if(Navigator.status!=NAV_STATUS_NAV_BUSY) return -1;
+	if(Navigator.status==NAV_STATUS_NO_ROUTE_SET) Navigator.status=NAV_STATUS_NAV_BUSY;
+	else if(Navigator.status!=NAV_STATUS_NAV_BUSY) return -1;
 	if(Navigator.dept!=NULL) {
 		if(Navigator.numWayPoints>1) {
 				if(Navigator.dept->next==NULL) return -3;
@@ -97,15 +101,15 @@ short NavCalculateRoute(void) {
 		do {
 			Navigator.currWP->initialCourse=calcGreatCircleRoute(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->latitude,Navigator.currWP->longitude,&Navigator.currWP->dist);
 			Navigator.currWP->finalCourse=calcGreatCircleFinalCourse(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->latitude,Navigator.currWP->longitude);
-			double remainDist=Rad2Km(Navigator.currWP->dist);
-			Navigator.totalDistKm+=remainDist;
+			double remainDistance=Rad2Km(Navigator.currWP->dist);
+			Navigator.totalDistKm+=remainDistance;
 			fprintf(Navigator.routeLog,"* Travel from %s to %s\n",Navigator.currWP->prev->name,Navigator.currWP->name);
 			fprintf(Navigator.routeLog,"Initial course to WP: %07.3f°\n",Rad2Deg(Navigator.currWP->initialCourse));
 			fprintf(Navigator.routeLog,"Final   course to WP: %07.3f°\n",Rad2Deg(Navigator.currWP->finalCourse));
-			fprintf(Navigator.routeLog,"Horizontal distance to WP is: %.3f Km\n",remainDist);
+			fprintf(Navigator.routeLog,"Horizontal distance to WP is: %.3f Km\n",remainDistance);
 			if(Navigator.currWP->prev!=Navigator.dept) calcBisector(Navigator.currWP->prev->finalCourse,Navigator.currWP->initialCourse,&Navigator.currWP->prev->bisector1,&Navigator.currWP->prev->bisector2); //calc bisectors for prev WP
-			double timeHours=remainDist/config.cruiseSpeed; //hours
-			if(Navigator.currWP==Navigator.dept->next) PrintNavRemainingDistWP(remainDist,config.cruiseSpeed,timeHours);
+			double timeHours=remainDistance/config.cruiseSpeed; //hours
+			if(Navigator.currWP==Navigator.dept->next) PrintNavRemainingDistWP(remainDistance,config.cruiseSpeed,timeHours);
 			int hours,mins;
 			float secs;
 			convertDecimal2DegMinSec(timeHours,&hours,&mins,&secs);
@@ -113,7 +117,7 @@ short NavCalculateRoute(void) {
 			fprintf(Navigator.routeLog,"Initial altitude: %.0f m  %.0f Ft\n",Navigator.currWP->prev->altitude,m2Ft(Navigator.currWP->prev->altitude));
 			fprintf(Navigator.routeLog,"Final altitude: %.0f m  %.0f Ft\n",Navigator.currWP->altitude,m2Ft(Navigator.currWP->altitude));
 			double altDiff=Navigator.currWP->altitude-Navigator.currWP->prev->altitude;
-			double slope=altDiff/1000/remainDist;
+			double slope=altDiff/1000/remainDistance;
 			fprintf(Navigator.routeLog,"Slope: %.2f %%\n",slope*100);
 			double climb=altDiff/(timeHours*3600); // m/s
 			fprintf(Navigator.routeLog,"Estimated climb rate: %.2f m/s  %.0f Ft/min\n\n",climb,ms2FtMin(climb)); //just to have an idea
@@ -133,16 +137,14 @@ short NavCalculateRoute(void) {
 		PrintNavRemainingDistDST(Navigator.totalDistKm,config.cruiseSpeed,timeCalc);
 		double fuelNeeded=config.fuelConsumption*totalTimeHours;
 		fprintf(Navigator.routeLog,"TOTAL fuel needed: %.2f liters\n\n",fuelNeeded);
-		checkDaytime(0);
+		checkDaytime(false);
 		Navigator.currWP=Navigator.dept->next;
 	} else { //Navigator.numWayPoints==1
 		fprintf(Navigator.routeLog,"* Route with only one waypoint: %s\n",Navigator.currWP->name);
-		checkDaytime(1);
+		checkDaytime(true);
 	}
 	if(Navigator.routeLog!=NULL) fclose(Navigator.routeLog); //Close the route log file when not needed
 	Navigator.status=NAV_STATUS_TO_START_NAV;
-	PrintNavStatus(Navigator.status,Navigator.currWP->name);
-	FBrenderFlush();
 	return 1;
 }
 
@@ -283,7 +285,6 @@ int NavReverseRoute(void) {
 
 void NavClearRoute(void) {
 	Navigator.status=NAV_STATUS_NAV_BUSY;
-	PrintNavStatus(Navigator.status,"Unknown");
 	if(Navigator.numWayPoints!=0) {
 		do {
 			Navigator.currWP=Navigator.dept;
@@ -295,9 +296,15 @@ void NavClearRoute(void) {
 		} while(Navigator.dept!=NULL);
 		Navigator.numWayPoints=0;
 	}
+	Navigator.heading=0;
+	Navigator.trueCourse=0;
+	Navigator.trackErr=0;
+	Navigator.remainDist=-1;
+	Navigator.atd=-1;
+	Navigator.WPreaminDist=-1;
+	Navigator.TotRemainDist=-1;
 	free(Navigator.routeLogPath);
 	Navigator.routeLogPath=NULL;
-	PrintNavStatus(Navigator.status,"Nowhere");
 	Navigator.status=NAV_STATUS_NO_ROUTE_SET;
 }
 
@@ -346,11 +353,8 @@ void NavFindNextWP(double lat, double lon) {
 		}
 		Navigator.status=NAV_STATUS_NAV_TO_WPT;
 	}
-
 	if(Navigator.currWP==Navigator.dest) Navigator.status=NAV_STATUS_NAV_TO_DST;
-	PrintNavStatus(Navigator.status,Navigator.currWP->name);
 	printLog("Next waypoint is: %s\n\n\n",Navigator.currWP->name);
-	FBrenderFlush();
 }
 
 void NavStartNavigation() {
@@ -372,8 +376,6 @@ void NavStartNavigation() {
 		Navigator.status=NAV_STATUS_WAIT_FIX;
 	}
 	pthread_mutex_unlock(&gps.mutex);
-	PrintNavStatus(Navigator.status,Navigator.currWP->name);
-	FBrenderFlush();
 }
 
 void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
@@ -386,7 +388,12 @@ void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 			Navigator.prevWpAvgSpeed=averageSpeed;
 		} else averageSpeed=Navigator.prevWpAvgSpeed; //with negative ATDs we estimate using previous average speed
 		timeVal=remainDist/averageSpeed; //ETE (remaining time) in hours
-		PrintNavRemainingDistWP(remainDist,averageSpeed,timeVal);
+		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistWP(remainDist,averageSpeed,timeVal);
+		else {
+			Navigator.WPreaminDist=remainDist;
+			Navigator.WPaverageSpeed=averageSpeed;
+			Navigator.WPremaingTime=timeVal;
+		}
 	}
 	if(timestamp>Navigator.dept->arrTimestamp) {
 		double totCoveredDistKm=Navigator.prevWPsTotDist+Rad2Km(atd);
@@ -397,12 +404,17 @@ void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 		remainDist=Navigator.totalDistKm-totCoveredDistKm; //Km
 		timeVal=remainDist/averageSpeed; //hours
 		timeVal+=timestamp/3600; //hours, in order to obtain the ETA
-		PrintNavRemainingDistDST(remainDist,averageSpeed,timeVal);
+		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistDST(remainDist,averageSpeed,timeVal);
+		else {
+			Navigator.TotRemainDist=remainDist;
+			Navigator.TotAverageSpeed=averageSpeed;
+			Navigator.TotArrivalTime=timeVal;
+		}
 	}
 }
 
 void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, double dir, float timestamp) {
-	double actualTrueCourse, remainDist;
+	Navigator.heading=dir;
 	switch(Navigator.status) {
 		case NAV_STATUS_NOT_INIT:     //Do nothing...
 		case NAV_STATUS_NO_ROUTE_SET:
@@ -413,91 +425,100 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 				NavFindNextWP(lat,lon);
 				if(Navigator.status==NAV_STATUS_NAV_TO_WPT || Navigator.status==NAV_STATUS_NAV_TO_DST || Navigator.status==NAV_STATUS_NAV_TO_SINGLE_WP) Navigator.dept->arrTimestamp=timestamp; //record the starting time for whole route
 				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //recursive call
-				PrintNavStatus(Navigator.status,Navigator.currWP->name);
+				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,Navigator.currWP->name);
 				break;
 			}
-			if(Navigator.numWayPoints>1) actualTrueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->next->latitude,Navigator.dept->next->longitude,&remainDist); //calc just course and distance
-			else actualTrueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&remainDist); //numWayPoint==1
-			PrintNavDTG(remainDist);
-			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
+			if(Navigator.numWayPoints>1) Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->next->latitude,Navigator.dept->next->longitude,&Navigator.remainDist); //calc just course and distance
+			else Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //numWayPoint==1
+			if(getMainStatus()==MAIN_DISPLAY_HSI) {
+				PrintNavDTG(Navigator.remainDist);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+			}
 			break;
 		case NAV_STATUS_NAV_TO_DPT: //we are still going to the departure point
-			actualTrueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->latitude,Navigator.dept->longitude,&remainDist); //calc just course and distance
-			PrintNavDTG(remainDist);
-			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
-			if(remainDist<m2Rad(config.deptDistTolerance)) {
+			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->latitude,Navigator.dept->longitude,&Navigator.remainDist); //calc just course and distance
+			if(getMainStatus()==MAIN_DISPLAY_HSI) {
+				PrintNavDTG(Navigator.remainDist);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+			}
+			if(Navigator.remainDist<m2Rad(config.deptDistTolerance)) {
 				Navigator.currWP=Navigator.dept->next;
 				Navigator.dept->arrTimestamp=timestamp; //here we record the starting time for whole route
 				if(Navigator.currWP!=Navigator.dest) Navigator.status=NAV_STATUS_NAV_TO_WPT;
 				else Navigator.status=NAV_STATUS_NAV_TO_DST; //Next WP is already the final Navigator.destination
-				PrintNavStatus(Navigator.status,Navigator.currWP->name);
+				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,Navigator.currWP->name);
 				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //recursive call
 			}
 			break;
 		case NAV_STATUS_NAV_TO_WPT: {
-			double atd, trackErr;
-			trackErr=Rad2m(calcGCCrossTrackError(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->longitude,lat,lon,Navigator.currWP->initialCourse,&atd));
-			if(atd>=0) remainDist=Navigator.currWP->dist-atd;
-			else remainDist=Navigator.currWP->dist+fabs(atd); //negative ATD: we are still before the prev WP
-			actualTrueCourse=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
-			if(atd>=0 && (atd>=Navigator.currWP->dist || bisectorOverpassed(Navigator.currWP->finalCourse,actualTrueCourse,Navigator.currWP->bisector1,Navigator.currWP->bisector2))) { //consider this WP as reached
+			Navigator.trackErr=Rad2m(calcGCCrossTrackError(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->longitude,lat,lon,Navigator.currWP->initialCourse,&Navigator.atd));
+			if(Navigator.atd>=0) Navigator.remainDist=Navigator.currWP->dist-Navigator.atd;
+			else Navigator.remainDist=Navigator.currWP->dist+fabs(Navigator.atd); //negative ATD: we are still before the prev WP
+			Navigator.trueCourse=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
+			if(Navigator.atd>=0 && (Navigator.atd>=Navigator.currWP->dist || bisectorOverpassed(Navigator.currWP->finalCourse,Navigator.trueCourse,Navigator.currWP->bisector1,Navigator.currWP->bisector2))) { //consider this WP as reached
 				Navigator.currWP->arrTimestamp=timestamp;
 				Navigator.prevWPsTotDist+=Rad2Km(Navigator.currWP->dist);
 				Navigator.currWP=Navigator.currWP->next;
 				if(Navigator.currWP==Navigator.dest) Navigator.status=NAV_STATUS_NAV_TO_DST; //Next WP is the final Navigator.destination
-				PrintNavStatus(Navigator.status,Navigator.currWP->name);
+				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,Navigator.currWP->name);
 				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
 				return;
 			} //else the WP or bisector is still not reached...
-			if(fabs(trackErr)>config.trackErrorTolearnce) { //if we have bigger error
+			if(fabs(Navigator.trackErr)>config.trackErrorTolearnce) { //if we have bigger error
 				double latI,lonI; //the perpendicular point on the route
-				calcIntermediatePoint(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->latitude,Navigator.currWP->longitude,atd,Navigator.currWP->dist,&latI,&lonI);
-				actualTrueCourse=calcGreatCircleCourse(latI,lonI,Navigator.currWP->latitude,Navigator.currWP->longitude);
-			} //else with a small error the actualTrueCourse calculated before is fine
-			HSIupdateCDI(Rad2Deg(actualTrueCourse),trackErr);
-			PrintNavTrackATD(atd);
-			if(atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*atd+Navigator.currWP->prev->altitude));
-			updateDtgEteEtaAs(atd,timestamp,remainDist);
+				calcIntermediatePoint(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->latitude,Navigator.currWP->longitude,Navigator.atd,Navigator.currWP->dist,&latI,&lonI);
+				Navigator.trueCourse=calcGreatCircleCourse(latI,lonI,Navigator.currWP->latitude,Navigator.currWP->longitude);
+			} //else with a small error the Navigator.trueCourse calculated before is fine
+			if(getMainStatus()==MAIN_DISPLAY_HSI) {
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),Navigator.trackErr);
+				PrintNavTrackATD(Navigator.atd);
+				if(Navigator.atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*Navigator.atd+Navigator.currWP->prev->altitude));
+			}
+			updateDtgEteEtaAs(Navigator.atd,timestamp,Navigator.remainDist);
 		} break;
 		case NAV_STATUS_NAV_TO_DST: {
 			double atd, trackErr;
 			trackErr=Rad2m(calcGCCrossTrackError(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->longitude,lat,lon,Navigator.currWP->initialCourse,&atd));
-			if(atd>=0) remainDist=Navigator.currWP->dist-atd;
-			else remainDist=Navigator.currWP->dist+fabs(atd); //negative ATD: we are still before the prev WP
+			if(atd>=0) Navigator.remainDist=Navigator.currWP->dist-atd;
+			else Navigator.remainDist=Navigator.currWP->dist+fabs(atd); //negative ATD: we are still before the prev WP
 			if(atd>=Navigator.currWP->dist) { //consider Navigator.destination as reached (90 degrees bisector)
 				Navigator.currWP->arrTimestamp=timestamp;
 				Navigator.status=NAV_STATUS_END_NAV;
-				PrintNavStatus(Navigator.status,"Nowhere");
+				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,"Nowhere");
 				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
 				return;
 			} //else the Navigator.destination is still not reached...
 			if(fabs(trackErr)<config.trackErrorTolearnce) //with a really small error
-				actualTrueCourse=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //just find the direct direction to the Navigator.destination
+				Navigator.trueCourse=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //just find the direct direction to the Navigator.destination
 			else { //otherwise we have bigger error and so we calculate it better...
 				double latI,lonI; //the perpendicular point on the route
 				calcIntermediatePoint(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->latitude,Navigator.currWP->longitude,atd,Navigator.currWP->dist,&latI,&lonI);
-				actualTrueCourse=calcGreatCircleCourse(latI,lonI,Navigator.currWP->latitude,Navigator.currWP->longitude);
+				Navigator.trueCourse=calcGreatCircleCourse(latI,lonI,Navigator.currWP->latitude,Navigator.currWP->longitude);
 			}
-			PrintNavTrackATD(atd);
-			HSIupdateCDI(Rad2Deg(actualTrueCourse),trackErr);
-			if(atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*atd+Navigator.currWP->prev->altitude));
-			updateDtgEteEtaAs(atd,timestamp,remainDist);
+			if(getMainStatus()==MAIN_DISPLAY_HSI) {
+				PrintNavTrackATD(atd);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),trackErr);
+				if(atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*atd+Navigator.currWP->prev->altitude));
+			}
+			updateDtgEteEtaAs(atd,timestamp,Navigator.remainDist);
 		} break;
 		case NAV_STATUS_NAV_TO_SINGLE_WP: {
-			actualTrueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&remainDist); //calc just course and distance
-			PrintNavDTG(remainDist);
-			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
-			double timeVal; //Hours
-			remainDist=Rad2Km(remainDist); //Km
-			timeVal=remainDist/speedKmh; //ETE (remaining time) in hours
-			PrintNavRemainingDistWP(remainDist,-1,timeVal);
-			timeVal+=timestamp/3600; //hours, in order to obtain the ETA
-			PrintNavRemainingDistDST(remainDist,-1,timeVal);
+			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
+			if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+			Navigator.WPreaminDist=Rad2Km(Navigator.remainDist); //Km
+			Navigator.WPremaingTime=Navigator.WPreaminDist/speedKmh; //ETE (remaining time) in hours
+			if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistWP(Navigator.WPreaminDist,-1,Navigator.WPremaingTime);
+			else Navigator.WPaverageSpeed=-1;
+			Navigator.TotArrivalTime=Navigator.WPremaingTime+timestamp/3600; //hours, in order to obtain the ETA
+			if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistDST(Navigator.remainDist,-1,Navigator.TotArrivalTime);
+			else Navigator.TotAverageSpeed=-1;
 		} break;
 		case NAV_STATUS_END_NAV: //We have reached or passed the Navigator.destination
-			actualTrueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&remainDist); //calc just course and distance
-			PrintNavDTG(remainDist);
-			HSIupdateCDI(Rad2Deg(actualTrueCourse),0);
+			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
+			if(getMainStatus()==MAIN_DISPLAY_HSI) {
+				PrintNavDTG(Navigator.remainDist);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+			}
 			break;
 		case NAV_STATUS_NAV_BUSY: //Do nothing
 			break;
@@ -510,13 +531,50 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 	}
 }
 
+void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from main menu
+	HSIdraw(Navigator.heading,Navigator.trueCourse,Navigator.trackErr);
+	switch(Navigator.status) {
+		case NAV_STATUS_NOT_INIT:
+		case NAV_STATUS_NO_ROUTE_SET:
+			PrintNavStatus(Navigator.status,"Nowhere");
+			break;
+		case NAV_STATUS_TO_START_NAV:
+		case NAV_STATUS_NAV_TO_DPT:
+			PrintNavStatus(Navigator.status,Navigator.currWP->name);
+			if(Navigator.remainDist!=-1) PrintNavDTG(Navigator.remainDist);
+			break;
+		case NAV_STATUS_NAV_TO_WPT:
+		case NAV_STATUS_NAV_TO_DST:
+			PrintNavStatus(Navigator.status,Navigator.currWP->name);
+			if(Navigator.WPreaminDist!=-1) PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
+			if(Navigator.TotRemainDist!=-1) PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
+			if(Navigator.atd!=-1) PrintNavTrackATD(Navigator.atd);
+			break;
+		case NAV_STATUS_NAV_TO_SINGLE_WP:
+			PrintNavStatus(Navigator.status,Navigator.currWP->name);
+			if(Navigator.WPreaminDist!=-1) PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
+			if(Navigator.TotRemainDist!=-1) PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
+			break;
+		case NAV_STATUS_END_NAV:
+			PrintNavStatus(Navigator.status,"Nowhere");
+			if(Navigator.remainDist!=-1) PrintNavDTG(Navigator.remainDist);
+			break;
+		case NAV_STATUS_NAV_BUSY:
+			PrintNavStatus(Navigator.status,"Unknown");
+			break;
+		case NAV_STATUS_WAIT_FIX:
+			PrintNavStatus(Navigator.status,Navigator.currWP->name);
+			break;
+		default: //unknown state, we should be never here
+			break;
+	}
+}
+
 void NavSkipCurrentWayPoint(void) {
 	if(Navigator.status==NAV_STATUS_NAV_TO_WPT || Navigator.status==NAV_STATUS_NAV_TO_DST) {
 		Navigator.status=NAV_STATUS_NAV_BUSY;
-		PrintNavStatus(Navigator.status,"Skipping next WP");
 		if(Navigator.currWP==Navigator.dest) {
 			Navigator.status=NAV_STATUS_END_NAV;
-			PrintNavStatus(Navigator.status,"Nowhere");
 			return;
 		}
 		pthread_mutex_lock(&gps.mutex);
@@ -535,11 +593,10 @@ void NavSkipCurrentWayPoint(void) {
 		Navigator.totalDistKm+=Rad2Km(Navigator.currWP->dist); //we add the new dst form current pos to the next WP
 		if(Navigator.currWP!=Navigator.dest) Navigator.status=NAV_STATUS_NAV_TO_WPT;
 		else Navigator.status=NAV_STATUS_NAV_TO_DST;
-		PrintNavStatus(Navigator.status,Navigator.currWP->name);
 	}
 }
 
-short checkDaytime(short calcOnlyDest) {
+short checkDaytime(bool calcOnlyDest) {
 	short retVal=1;
 	double riseTime,setTime;
 	struct tm time_str;

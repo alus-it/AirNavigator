@@ -39,7 +39,11 @@
 	ok="0F00"
 	warning="FF00"
 	caution="F000"
-	airplaneSymbol="FA00" />
+	airplaneSymbol="FA00"
+	buttonEnabled="00F0"
+	buttonDisabled="00B0"
+	buttonLabelEnabled="FFF0"
+	buttonLabelDisabled="DDD0" />
 </colorSchema>
 <GPSreceiver devName="/var/run/gpspipe" baudRate="115200" dataBits="8" stopBits="1" parity="0" />
 </AirNavigatorConfig>

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 5/12/2011
+// Last change : 11/12/2011
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -63,6 +63,7 @@ struct HSIstruct {
 	int symTailD;
 };
 
+void HSIinitialize(void);
 int HSIround(double d);
 void rotatePoint(int mx, int my, int *px, int *py, double angle);
 void drawCompass(int dir);
@@ -71,12 +72,13 @@ void drawCDI(double direction, double course, double cdi);
 void diplayCDIvalue(double cdiMt);
 
 static struct HSIstruct HSI = {
+	.cx=-1, //this means that it is still not initialized
 	.label={"N","03","06","E","12","15","S","21","24","W","30","33"},
 	.labelHalfWidth={2,6,6,2,6,6,2,6,6,2,6,6},
 	.labelHalfHeight=4
 };
 
-void HSIinitialize(double directionDeg, double courseDeg, double courseDeviationMt) {
+void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.cx=screen.height/2; //aligned on the left
 	HSI.cy=screen.height/2; //half height
 	HSI.mark_start=10;
@@ -96,11 +98,12 @@ void HSIinitialize(double directionDeg, double courseDeg, double courseDeviation
 	HSI.cdi_scale_mark=15;
 	HSI.cdi_scale=500; // 0.3NM = 0.56 Km
 	HSI.previousDir=-456;
+	HSI.actualDir=0;
 	HSI.actualMagDir=0;
-	HSI.actualCourse=-456;
+	HSI.actualCourse=0;
 	HSI.actualCDI=0;
-	HSI.currentAltFt=-5000;
-	HSI.expectedAltFt=-5000;
+	HSI.currentAltFt=0;
+	HSI.expectedAltFt=0;
 	HSI.HalfAltScale=500;
 	HSI.symFuselageL=HSI.cx-1;
 	HSI.symFuselageR=HSI.cx+1;
@@ -118,10 +121,14 @@ void HSIinitialize(double directionDeg, double courseDeg, double courseDeviation
 	HSI.symTailD=HSI.cy+12;
 	if(screen.height==240) HSI.HalfAltScale=438;
 	HSI.PxAltScale=screen.height-12;
+}
+
+void HSIfirstTimeDraw(void) {
+	if(HSI.cx==-1) HSIinitialize();
 	DrawTwoPointsLine(HSI.cx-1,0,HSI.cx-1,HSI.mark_start-4,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx,0,HSI.cx,HSI.mark_start,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx+1,0,HSI.cx+1,HSI.mark_start-4,config.colorSchema.dirMarker);
-	HSIdraw(directionDeg,courseDeg,courseDeviationMt);
+	//HSIdraw(HSI.actualDir,HSI.actualCourse,HSI.actualCDI);
 	DrawTwoPointsLine(screen.height,6,screen.height,screen.height-6,config.colorSchema.altScale); //the line of the altitude scale
 }
 
