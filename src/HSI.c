@@ -123,12 +123,12 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.PxAltScale=screen.height-12;
 }
 
-void HSIfirstTimeDraw(void) {
+void HSIfirstTimeDraw(double direction, double course, double cdiMt) {
 	if(HSI.cx==-1) HSIinitialize();
 	DrawTwoPointsLine(HSI.cx-1,0,HSI.cx-1,HSI.mark_start-4,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx,0,HSI.cx,HSI.mark_start,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx+1,0,HSI.cx+1,HSI.mark_start-4,config.colorSchema.dirMarker);
-	//HSIdraw(HSI.actualDir,HSI.actualCourse,HSI.actualCDI);
+	HSIdraw(direction,course,cdiMt,true);
 	DrawTwoPointsLine(screen.height,6,screen.height,screen.height-6,config.colorSchema.altScale); //the line of the altitude scale
 }
 
@@ -343,15 +343,15 @@ void diplayCDIvalue(double cdiMt) {
 	}
 }
 
-void HSIdraw(double direction, double course, double cdiMt) {
+void HSIdraw(double direction, double course, double cdiMt, bool force) {
 	if(direction<0||direction>360) return;
 	int dir=360-HSIround(direction);
 	HSI.actualDir=direction;
-	if(dir!=HSI.previousDir) { //need to update all the compass
+	if(dir!=HSI.previousDir || force) { //need to update all the compass
 		drawCompass(dir);
 		drawCDI(direction,course,cdiMt);
 	} else {
-		if(course!=HSI.actualCourse || cdiMt!=HSI.actualCDI) {
+		if(course!=HSI.actualCourse || cdiMt!=HSI.actualCDI || force) {
 			FillCircle(HSI.cx,HSI.cy,HSI.cir,config.colorSchema.background); //clear the internal part of the compass
 			drawLabels(dir);
 			drawCDI(direction,course,cdiMt);

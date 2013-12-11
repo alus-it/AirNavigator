@@ -55,9 +55,7 @@ struct NavigatorStruct {
 	char *routeLogPath;
 	FILE *routeLog;
 	double sunZenith; //here in rad
-
 	double atd, trackErr;
-
 	double WPreaminDist,WPaverageSpeed,WPremaingTime;
 	double TotRemainDist,TotAverageSpeed,TotArrivalTime;
 };
@@ -72,7 +70,10 @@ static struct NavigatorStruct Navigator = {
 	.numWayPoints=0,
 	.previousAltitude=-1000,
 	.routeLog=NULL,
-	.currWP=NULL
+	.currWP=NULL,
+	.heading=0,
+	.trueCourse=0,
+	.trackErr=0
 };
 
 void NavConfigure(void) {
@@ -414,7 +415,7 @@ void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 }
 
 void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, double dir, float timestamp) {
-	Navigator.heading=dir;
+	Navigator.heading=dir; //TODO: maybe we can avoid to do that
 	switch(Navigator.status) {
 		case NAV_STATUS_NOT_INIT:     //Do nothing...
 		case NAV_STATUS_NO_ROUTE_SET:
@@ -532,7 +533,8 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 }
 
 void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from main menu
-	HSIdraw(Navigator.heading,Navigator.trueCourse,Navigator.trackErr);
+	HSIfirstTimeDraw(Navigator.heading,Navigator.trueCourse,Navigator.trackErr);
+	//TODO: make a mutex on gps and get all the remaining informations
 	switch(Navigator.status) {
 		case NAV_STATUS_NOT_INIT:
 		case NAV_STATUS_NO_ROUTE_SET:

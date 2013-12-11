@@ -13,8 +13,10 @@
 #ifndef HSI_H_
 #define HSI_H_
 
-void HSIfirstTimeDraw(void);
-void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt);
+#include "Common.h"
+
+void HSIfirstTimeDraw(double direction, double course, double cdiMt);
+void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt, bool force);
 void HSIupdateDir(double trueDirectionDeg, double magneticDirectionDeg);
 void HSIupdateCDI(double courseDeg, double courseDeviationMt);
 void HSIdrawVSIscale(double altFt);

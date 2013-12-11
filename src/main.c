@@ -177,7 +177,6 @@ int main(int argc, char** argv) {
 			break;
 			case MAIN_DISPLAY_HSI: //Display HSI, start reading from GPS and the track recorder
 				FBrenderClear(0,screen.height,config.colorSchema.background);
-				HSIfirstTimeDraw();
 				NavRedrawNavInfo();
 				FBrenderFlush();
 				break;
