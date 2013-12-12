@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 10/12/2013
+// Last change : 12/12/2013
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -47,7 +47,7 @@ struct mainStruct {
 };
 
 void releaseAll(void);
-int showMessage(unsigned short color, const char *args, ...);
+int showMessage(unsigned short color, bool logMessage, const char *args, ...);
 
 static struct mainStruct mainData = {
 	.status=MAIN_NOT_INIT,
@@ -133,13 +133,13 @@ int main(int argc, char** argv) {
 				}
 		}
 		closedir(dir);
-		if(numGPXfiles==0) showMessage(config.colorSchema.warning,"WARNING: No GPX flight plan files found.");
+		if(numGPXfiles==0) showMessage(config.colorSchema.warning,true,"WARNING: No GPX flight plan files found.");
 		else {
-			showMessage(config.colorSchema.ok,"Found %d GPX flight plan files.",numGPXfiles);
+			showMessage(config.colorSchema.ok,true,"Found %d GPX flight plan files.",numGPXfiles);
 			currFile=fileList;
 		}
-	} else showMessage(config.colorSchema.caution,"ERROR: could not open the Routes directory.");
-	if(!GPSreceiverStart()) showMessage(config.colorSchema.caution,"ERROR: GPSreceiver failed to start."); //Start GPSrecveiver
+	} else showMessage(config.colorSchema.caution,true,"ERROR: could not open the Routes directory.");
+	if(!GPSreceiverStart()) showMessage(config.colorSchema.caution,true,"ERROR: GPSreceiver failed to start."); //Start GPSrecveiver
 	//TODO: if GPS failed to start many buttons should be disabled...
 	bool doExit=false;
 	TS_EVENT lastTouch; //data of the last event from the touch screen
@@ -193,38 +193,38 @@ int main(int argc, char** argv) {
 						mainData.status=MAIN_DISPLAY_HSI;
 					}
 					if(lastTouch.y>=130 && lastTouch.y<=160 && numWPloaded>1) { //touched reverse route button
-						if(NavReverseRoute()) showMessage(config.colorSchema.ok,"Route reversed."); //reverse the route
-						else showMessage(config.colorSchema.caution,"ERROR: Failed to reverse route.");
+						if(NavReverseRoute()) showMessage(config.colorSchema.ok,false,"Route reversed."); //reverse the route
+						else showMessage(config.colorSchema.caution,true,"ERROR: Failed to reverse route.");
 					}
 					if(lastTouch.y>=170 && lastTouch.y<=200 && numWPloaded>0) { //touched unload route button
 						NavClearRoute();
 						numWPloaded=0;
 						currFile=fileList;
-						showMessage(config.colorSchema.ok,"Route unloaded.");
+						showMessage(config.colorSchema.ok,false,"Route unloaded.");
 					}
 				} else if(lastTouch.x>=220 && lastTouch.x<=400) { //touched second column of buttons
 					if(lastTouch.y>=50 && lastTouch.y<=80) mainData.status=MAIN_DISPLAY_HSI; //touched show HSI button
 					if(lastTouch.y>=90 && lastTouch.y<=120) { //touched start stop track recorder button
 						if(BlackBoxIsStarted()) {
 							BlackBoxClose();
-							showMessage(config.colorSchema.ok,"Track recorder stopped.");
+							showMessage(config.colorSchema.ok,true,"Track recorder stopped.");
 						} else {
 							BlackBoxStart();
-							showMessage(config.colorSchema.ok,"Track recorder started.");
+							showMessage(config.colorSchema.ok,true,"Track recorder started.");
 						}
 					}
 					if(lastTouch.y>=130 && lastTouch.y<=160 && BlackBoxIsStarted()) { //touched pause resume track recorder button
 						if(BlackBoxIsPaused()) {
 							BlackBoxResume();
-							showMessage(config.colorSchema.ok,"Track recorder resumed.");
+							showMessage(config.colorSchema.ok,false,"Track recorder resumed.");
 						} else {
 							BlackBoxPause();
-							showMessage(config.colorSchema.ok,"Track recorder paused.");
+							showMessage(config.colorSchema.ok,false,"Track recorder paused.");
 						}
 					}
 					if(lastTouch.y>=210 && lastTouch.y<=240) { //touched exit button
 						doExit=true;
-						showMessage(config.colorSchema.warning,"Exit: releasing all... Goodbye!"); //Show goodbye message
+						showMessage(config.colorSchema.warning,false,"Exit: releasing all... Goodbye!"); //Show goodbye message
 						FBrenderBlitText(10,260,mainData.bottomBarMsgColor,config.colorSchema.background,false,"%s                                                         ",mainData.bottomBarMsg);
 						FBrenderFlush();
 					}
@@ -243,9 +243,9 @@ int main(int argc, char** argv) {
 						asprintf(&toLoad,"%s%s%s",BASE_PATH,"Routes/",currFile->name);
 						numWPloaded=NavLoadFlightPlan(toLoad); //Attempt to load the flight plan
 						if(numWPloaded<1) { //if load route failed
-							if(toLoad!=NULL) showMessage(config.colorSchema.caution,"ERROR: while opening: %s",toLoad);
-							else showMessage(config.colorSchema.caution,"ERROR: NULL pointer to the route file to be loaded.");
-						} else showMessage(config.colorSchema.ok,"Loaded route with %d WayPoints.",numWPloaded);
+							if(toLoad!=NULL) showMessage(config.colorSchema.caution,true,"ERROR: while opening: %s",toLoad);
+							else showMessage(config.colorSchema.caution,true,"ERROR: NULL pointer to the route file to be loaded.");
+						} else showMessage(config.colorSchema.ok,true,"Loaded route: %s - %d WayPoints",currFile->name,numWPloaded);
 						free(toLoad);
 						toLoad=NULL;
 						mainData.status=MAIN_DISPLAY_MENU;
@@ -254,9 +254,11 @@ int main(int argc, char** argv) {
 				break;
 			case MAIN_DISPLAY_HSI: //here process the user input the HSI screen
 				mainData.status=MAIN_DISPLAY_MENU; //a touch anywhere in the HSI screen bring back to main menu
-				//FIXME: here instead of removing previous message should be nice to show the status of the navigator
-				free(mainData.bottomBarMsg);
-				mainData.bottomBarMsg=NULL;
+				if(numWPloaded>0) showMessage(config.colorSchema.ok,false,"Loaded route: %s - %d WayPoints",currFile->name,numWPloaded);
+				else { //Nothing to display
+					free(mainData.bottomBarMsg);
+					mainData.bottomBarMsg=NULL;
+				}
 				break;
 			default:
 				doExit=true;
@@ -291,7 +293,7 @@ enum mainStatus getMainStatus(void) {
 	return mainData.status;
 }
 
-int showMessage(unsigned short color, const char *args, ...) {
+int showMessage(unsigned short color, bool logMessage, const char *args, ...) {
 	int done=-1;
 	if(args!=NULL) {
 		if(mainData.bottomBarMsg!=NULL) {
@@ -303,7 +305,7 @@ int showMessage(unsigned short color, const char *args, ...) {
 		done=vasprintf(&mainData.bottomBarMsg,args,arg);
 		if(done) {
 			mainData.bottomBarMsgColor=color;
-			printLog("%s\n",mainData.bottomBarMsg);
+			if(logMessage) printLog("%s\n",mainData.bottomBarMsg);
 		}
 	}
 	return done;

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 11/12/2013
+// Last change : 12/12/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -48,7 +48,7 @@ typedef struct wp {
 struct NavigatorStruct {
 	enum navigatorStatus status;
 	int numWayPoints;
-	double trueCourse, remainDist, previousAltitude, heading;
+	double trueCourse, remainDist, previousAltitude;
 	double totalDistKm, prevWPsTotDist; //Km
 	double prevWpAvgSpeed, prevTotAvgSpeed; //Km/h
 	wayPoint dept, currWP, dest;
@@ -71,7 +71,6 @@ static struct NavigatorStruct Navigator = {
 	.previousAltitude=-1000,
 	.routeLog=NULL,
 	.currWP=NULL,
-	.heading=0,
 	.trueCourse=0,
 	.trackErr=0
 };
@@ -110,7 +109,11 @@ short NavCalculateRoute(void) {
 			fprintf(Navigator.routeLog,"Horizontal distance to WP is: %.3f Km\n",remainDistance);
 			if(Navigator.currWP->prev!=Navigator.dept) calcBisector(Navigator.currWP->prev->finalCourse,Navigator.currWP->initialCourse,&Navigator.currWP->prev->bisector1,&Navigator.currWP->prev->bisector2); //calc bisectors for prev WP
 			double timeHours=remainDistance/config.cruiseSpeed; //hours
-			if(Navigator.currWP==Navigator.dept->next) PrintNavRemainingDistWP(remainDistance,config.cruiseSpeed,timeHours);
+			if(Navigator.currWP==Navigator.dept->next) {
+				Navigator.WPreaminDist=remainDistance;
+				Navigator.WPaverageSpeed=config.cruiseSpeed;
+				Navigator.WPremaingTime=timeHours;
+			}
 			int hours,mins;
 			float secs;
 			convertDecimal2DegMinSec(timeHours,&hours,&mins,&secs);
@@ -131,11 +134,12 @@ short NavCalculateRoute(void) {
 		convertDecimal2DegMinSec(totalTimeHours,&hours,&mins,&secs);
 		fprintf(Navigator.routeLog,"TOTAL flight time: %2d:%02d:%02d\n",hours,mins,(int)secs);
 		pthread_mutex_lock(&gps.mutex);
-		float timeCalc=gps.timestamp;
+		Navigator.TotArrivalTime=gps.timestamp;
 		pthread_mutex_unlock(&gps.mutex);
-		if(timeCalc<0) timeCalc=getCurrentTime(); //In this case we don't have the time from GPS so we take it from the internal clock
-		timeCalc=timeCalc/3600+totalTimeHours; //hours, in order to obtain the ETA
-		PrintNavRemainingDistDST(Navigator.totalDistKm,config.cruiseSpeed,timeCalc);
+		if(Navigator.TotArrivalTime<0) Navigator.TotArrivalTime=getCurrentTime(); //In this case we don't have the time from GPS so we take it from the internal clock
+		Navigator.TotArrivalTime=Navigator.TotArrivalTime/3600+totalTimeHours; //hours, in order to obtain the ETA
+		Navigator.TotRemainDist=Navigator.totalDistKm;
+		Navigator.TotAverageSpeed=config.cruiseSpeed;
 		double fuelNeeded=config.fuelConsumption*totalTimeHours;
 		fprintf(Navigator.routeLog,"TOTAL fuel needed: %.2f liters\n\n",fuelNeeded);
 		checkDaytime(false);
@@ -252,7 +256,6 @@ void NavAddWayPoint(double latWP, double lonWP, double altWPmt, char *WPname) {
 int NavReverseRoute(void) {
 	if(Navigator.status==NAV_STATUS_NAV_BUSY || Navigator.status==NAV_STATUS_NO_ROUTE_SET || Navigator.numWayPoints<2) return 0;
 	Navigator.status=NAV_STATUS_NAV_BUSY;
-	PrintNavStatus(Navigator.status,"Reversing...");
 	Navigator.dest=Navigator.dept;
 	Navigator.currWP=Navigator.dept;
 	wayPoint next;
@@ -297,7 +300,6 @@ void NavClearRoute(void) {
 		} while(Navigator.dept!=NULL);
 		Navigator.numWayPoints=0;
 	}
-	Navigator.heading=0;
 	Navigator.trueCourse=0;
 	Navigator.trackErr=0;
 	Navigator.remainDist=-1;
@@ -370,7 +372,7 @@ void NavStartNavigation() {
 	if(gps.fixMode>MODE_NO_FIX && gps.lat!=100) { //if have fix give immediately the position to the nav. The lat!=100 is just to avoid the case of having fix but still not a position stored
 		NavFindNextWP(gps.lat,gps.lon);
 		if(Navigator.status==NAV_STATUS_NAV_TO_WPT || Navigator.status==NAV_STATUS_NAV_TO_DST || Navigator.status==NAV_STATUS_NAV_TO_SINGLE_WP) Navigator.dept->arrTimestamp=timestamp; //record the starting time for whole route
-		NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,timestamp);
+		NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,timestamp);
 	} else {
 		if(Navigator.numWayPoints>1) Navigator.currWP=Navigator.dept->next;
 		else Navigator.currWP=Navigator.dest;
@@ -380,42 +382,29 @@ void NavStartNavigation() {
 }
 
 void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
-	double averageSpeed; //Km/h
-	double timeVal; //Hours
 	if(timestamp>Navigator.currWP->prev->arrTimestamp) { //to avoid infinite, null or negative speed and time
-		remainDist=Rad2Km(remainDist); //Km
+		Navigator.WPreaminDist=Rad2Km(remainDist); //Km
 		if(atd>=0) {
-			averageSpeed=ms2Kmh(Rad2m(atd)/(timestamp-Navigator.currWP->prev->arrTimestamp));
-			Navigator.prevWpAvgSpeed=averageSpeed;
-		} else averageSpeed=Navigator.prevWpAvgSpeed; //with negative ATDs we estimate using previous average speed
-		timeVal=remainDist/averageSpeed; //ETE (remaining time) in hours
-		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistWP(remainDist,averageSpeed,timeVal);
-		else {
-			Navigator.WPreaminDist=remainDist;
-			Navigator.WPaverageSpeed=averageSpeed;
-			Navigator.WPremaingTime=timeVal;
-		}
+			Navigator.WPaverageSpeed=ms2Kmh(Rad2m(atd)/(timestamp-Navigator.currWP->prev->arrTimestamp));
+			Navigator.prevWpAvgSpeed=Navigator.WPaverageSpeed;
+		} else Navigator.WPaverageSpeed=Navigator.prevWpAvgSpeed; //with negative ATDs we estimate using previous average speed
+		Navigator.WPremaingTime=Navigator.WPreaminDist/Navigator.WPaverageSpeed; //ETE (remaining time) in hours
+		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
 	}
 	if(timestamp>Navigator.dept->arrTimestamp) {
 		double totCoveredDistKm=Navigator.prevWPsTotDist+Rad2Km(atd);
 		if(atd>=0) {
-			averageSpeed=ms2Kmh((totCoveredDistKm*1000)/(timestamp-Navigator.dept->arrTimestamp)); //Km/h
-			Navigator.prevTotAvgSpeed=averageSpeed;
-		} else averageSpeed=Navigator.prevTotAvgSpeed;
-		remainDist=Navigator.totalDistKm-totCoveredDistKm; //Km
-		timeVal=remainDist/averageSpeed; //hours
-		timeVal+=timestamp/3600; //hours, in order to obtain the ETA
-		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistDST(remainDist,averageSpeed,timeVal);
-		else {
-			Navigator.TotRemainDist=remainDist;
-			Navigator.TotAverageSpeed=averageSpeed;
-			Navigator.TotArrivalTime=timeVal;
-		}
+			Navigator.TotAverageSpeed=ms2Kmh((totCoveredDistKm*1000)/(timestamp-Navigator.dept->arrTimestamp)); //Km/h
+			Navigator.prevTotAvgSpeed=Navigator.TotAverageSpeed;
+		} else Navigator.TotAverageSpeed=Navigator.prevTotAvgSpeed;
+		Navigator.TotRemainDist=Navigator.totalDistKm-totCoveredDistKm; //Km
+		Navigator.TotArrivalTime=Navigator.TotRemainDist/Navigator.TotAverageSpeed; //hours
+		Navigator.TotArrivalTime+=timestamp/3600; //hours, in order to obtain the ETA
+		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
 	}
 }
 
-void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, double dir, float timestamp) {
-	Navigator.heading=dir; //TODO: maybe we can avoid to do that
+void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, float timestamp) {
 	switch(Navigator.status) {
 		case NAV_STATUS_NOT_INIT:     //Do nothing...
 		case NAV_STATUS_NO_ROUTE_SET:
@@ -425,7 +414,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			else if(altMt-Navigator.previousAltitude>config.takeOffdiffAlt && speedKmh>config.stallSpeed) { //in this case start the navigation
 				NavFindNextWP(lat,lon);
 				if(Navigator.status==NAV_STATUS_NAV_TO_WPT || Navigator.status==NAV_STATUS_NAV_TO_DST || Navigator.status==NAV_STATUS_NAV_TO_SINGLE_WP) Navigator.dept->arrTimestamp=timestamp; //record the starting time for whole route
-				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //recursive call
+				NavUpdatePosition(lat,lon,altMt,speedKmh,timestamp); //recursive call
 				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,Navigator.currWP->name);
 				break;
 			}
@@ -448,7 +437,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 				if(Navigator.currWP!=Navigator.dest) Navigator.status=NAV_STATUS_NAV_TO_WPT;
 				else Navigator.status=NAV_STATUS_NAV_TO_DST; //Next WP is already the final Navigator.destination
 				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,Navigator.currWP->name);
-				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //recursive call
+				NavUpdatePosition(lat,lon,altMt,speedKmh,timestamp); //recursive call
 			}
 			break;
 		case NAV_STATUS_NAV_TO_WPT: {
@@ -462,7 +451,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 				Navigator.currWP=Navigator.currWP->next;
 				if(Navigator.currWP==Navigator.dest) Navigator.status=NAV_STATUS_NAV_TO_DST; //Next WP is the final Navigator.destination
 				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,Navigator.currWP->name);
-				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
+				NavUpdatePosition(lat,lon,altMt,speedKmh,timestamp); //Recursive call on the new WayPoint
 				return;
 			} //else the WP or bisector is still not reached...
 			if(fabs(Navigator.trackErr)>config.trackErrorTolearnce) { //if we have bigger error
@@ -486,7 +475,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 				Navigator.currWP->arrTimestamp=timestamp;
 				Navigator.status=NAV_STATUS_END_NAV;
 				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,"Nowhere");
-				NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp); //Recursive call on the new WayPoint
+				NavUpdatePosition(lat,lon,altMt,speedKmh,timestamp); //Recursive call on the new WayPoint
 				return;
 			} //else the Navigator.destination is still not reached...
 			if(fabs(trackErr)<config.trackErrorTolearnce) //with a really small error
@@ -525,7 +514,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 			break;
 		case NAV_STATUS_WAIT_FIX:
 			NavFindNextWP(lat,lon);
-			NavUpdatePosition(lat,lon,altMt,speedKmh,dir,timestamp);
+			NavUpdatePosition(lat,lon,altMt,speedKmh,timestamp);
 			break;
 		default: //unknown state, we should be never here
 			break;
@@ -533,29 +522,49 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, do
 }
 
 void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from main menu
-	HSIfirstTimeDraw(Navigator.heading,Navigator.trueCourse,Navigator.trackErr);
-	//TODO: make a mutex on gps and get all the remaining informations
+	if(getMainStatus()!=MAIN_DISPLAY_HSI) return;
+	int latMin,lonMin;
+	double latSec,lonSec;
+	pthread_mutex_lock(&gps.mutex);
+	HSIfirstTimeDraw(gps.trueTrack,Navigator.trueCourse,Navigator.trackErr);
+	if(gps.altFt!=-100 && gps.altMt!=-100) {
+		HSIdrawVSIscale(gps.altFt);
+		PrintAltitude(gps.altMt,gps.altFt);
+	}
+	if(gps.latMinDecimal!=-70) {
+		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
+		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
+		PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
+		PrintSpeed(gps.speedKmh,gps.speedKnots);
+	}
+	PrintTime(gps.hour,gps.minute,gps.second,true);
+	PrintNumOfSats(gps.activeSats,gps.satsInView);
+	PrintFixMode(gps.fixMode);
+	pthread_mutex_unlock(&gps.mutex);
 	switch(Navigator.status) {
 		case NAV_STATUS_NOT_INIT:
 		case NAV_STATUS_NO_ROUTE_SET:
 			PrintNavStatus(Navigator.status,"Nowhere");
 			break;
 		case NAV_STATUS_TO_START_NAV:
+		case NAV_STATUS_WAIT_FIX:
 		case NAV_STATUS_NAV_TO_DPT:
 			PrintNavStatus(Navigator.status,Navigator.currWP->name);
+			PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
+			PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
 			if(Navigator.remainDist!=-1) PrintNavDTG(Navigator.remainDist);
 			break;
 		case NAV_STATUS_NAV_TO_WPT:
 		case NAV_STATUS_NAV_TO_DST:
 			PrintNavStatus(Navigator.status,Navigator.currWP->name);
-			if(Navigator.WPreaminDist!=-1) PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
-			if(Navigator.TotRemainDist!=-1) PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
+			PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
+			PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
 			if(Navigator.atd!=-1) PrintNavTrackATD(Navigator.atd);
 			break;
 		case NAV_STATUS_NAV_TO_SINGLE_WP:
 			PrintNavStatus(Navigator.status,Navigator.currWP->name);
-			if(Navigator.WPreaminDist!=-1) PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
-			if(Navigator.TotRemainDist!=-1) PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
+			PrintNavRemainingDistWP(Navigator.WPreaminDist,Navigator.WPaverageSpeed,Navigator.WPremaingTime);
+			PrintNavRemainingDistDST(Navigator.TotRemainDist,Navigator.TotAverageSpeed,Navigator.TotArrivalTime);
 			break;
 		case NAV_STATUS_END_NAV:
 			PrintNavStatus(Navigator.status,"Nowhere");
@@ -563,9 +572,6 @@ void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from
 			break;
 		case NAV_STATUS_NAV_BUSY:
 			PrintNavStatus(Navigator.status,"Unknown");
-			break;
-		case NAV_STATUS_WAIT_FIX:
-			PrintNavStatus(Navigator.status,Navigator.currWP->name);
 			break;
 		default: //unknown state, we should be never here
 			break;

@@ -5,7 +5,7 @@ The aim of this project is to develop an experimental GPS navigation application
 
 DISCLAIMER
 
-This software comes without any warranty. This is an experimental project, actually the main purpose it is just to understand if it works and to test it. During a flight this program must not be used as the only navigation system.
+This software is open source and free: it comes without any warranty. This is an experimental project. During a real flight this program must not be used as the only navigation system.
 
 
 REQUIREMENTS
@@ -69,7 +69,12 @@ UPGRADE
 If you wish to upgrade to a new version of AirNavigator simply uninstall it and then install the new version.
 
 
-DISPLAYED DATA
+MAIN MENU
+
+TODO: describe here main menu
+
+
+DATA DISPLAYED IN THE HSI SCREEN
 
 On the left side, Horizontal Situation Indicator:
 
@@ -112,6 +117,7 @@ Right side:
 
 FEATURES
 
+	Basic touch screen interface
 	Tracking of: position, altitude, speed and direction during flight in GPX track files
 	Calculation of routes using Great Circle distance
 	Calculation of sunrise and sunset time along the route
@@ -147,24 +153,28 @@ Another way to prepare your GPX route is to use the free on line tools of Flight
 
 GPX tracks
 
-When AirNavigator gets a fix from the GPS receiver starts to record: position, altitude, heading and ground speed in a GPX track file saved in the directory: /AirNavigator/Tracks/. Every track file is named with his date and UTC time of creation. You can download them from your device and analyze the track of your flight using for example Google Earth. To prevent excessive size of track files AirNavigator doesn't record every time a sentence is received, but this is done considering a maximum interval of time and a minimum distance covered from the last tracked point. This means that, for example, if you stand for one hour in the same place without moving AirNavigator will record this position only one time.
+When the user starts the track recorder via the main menu, AirNavigator records: position, altitude, heading and ground speed in a GPX track file saved in the directory: /AirNavigator/Tracks/. Every track file is named with his date and UTC time of creation. You can download them from your device and analyze the track of your flight using for example Google Earth. To prevent excessive size of track files AirNavigator doesn't record every time a sentence is received, but this is done considering a maximum interval of time and a minimum distance covered from the last tracked point. This means that, for example, if you stand for one hour in the same place without moving AirNavigator will record this position only one time.
 
 
-USAGE AND TEST PROCEDURE
+TYPICAL USAGE
 
-By downloading and using this program you understand that it just an experiment and must not used for real navigation purposes.
-Actually the only one use of AirNavigator is to test itself, here the procedure:
+By downloading and using this program you understand that it is an experimental project: use it at your own risk.
 
  1. Prepare your flight plan as described previously: a flight that you know where you can recognize if the program is wrong
  2. You can check your GPX flight plans with Google Earth, just to see if you're not going to "fly inside mountains"
  3. Upload your GPX flight plan in the Routes folder of AirNavigator on the TomTom navigator
  4. Start AirNavigator
- 5. At the first screen of AirNavigator you can select the desired GPX file with your route, then choose "LOAD"
- 6. Now AirNavigator is displaying the main screen, "Wait to get a fix" or "Ready to start" depending if you got already a fix 
- 7. When you have a fix, touch the screen once to start the navigation immediately before the take off.
- 8. During the the flight, try to understand if, what AirNavigator says, have sense...
- 9. When arrived you can touch the screen another time to reverse the route and start to fly back to the original departure
-10. After the second touch of the screen, AirNavigator can be closed touching the upper left corner of the screen
+ 5. In the main menu choose "Load flight plan"
+ 6. Then you can select the desired route (between the GPX files in the "Routes" folder), and choose "LOAD"
+ 7. The program will go back to the main menu, this is the moment to prepare for take off
+ 8. When ready to go press "Start Track Recorder" to start recording your effective track...
+ 9. ... and then press "Start navigation": AirNavigator will display the HSI screen
+10. The program will display "Wait to get a fix" or "Nav to ..." depending if the GPS unit got already a fix 
+11. During the the flight the HSI will give the indications to follow exactly the route
+12. Once arrived touch the HSI screen to go back to main menu and pressing "Reverse flight plan" you can reverse your route to the original departure location
+13. When ready to fly back press "Start Navigation" to show again the HSI screen working on the reversed route
+14. Pressing anywhere in the HSI screen it is possible to go back to the main menu
+15. In the main menu, pressing "EXIT", AirNavigator will be terminated, if necessary it will unload the route and stop the track recorder automatically
 11. Download from the Track folder of AirNavigator the GPX track of your flight, again with Google Earth you can display it for analysis purposes
 
 
@@ -230,6 +240,8 @@ Colors schema configuration
 	altMarker="FFFF"
 	text="0F00"
 	warning="F000" />
+	
+	TODO: add the rest
 </colorSchema>
 Here it is possible to choose the color of everything AirNavigator will display on the screen of your TomTom, the colors must be encoded with a four digit hexadecimal number starting from 0000 that is black up to FFFF that is white. (Red=F000, green=0F00, blue=00F0, yellow=FF00)
 * background: the color of the background
@@ -247,6 +259,8 @@ Here it is possible to choose the color of everything AirNavigator will display 
 * warning: color used to show some potential problem: 2D GPS fix but not 3D or got GPS UTC time but no fix.
 * caution: color used to highlight important risk situations: CDI or VSI markers out of scale (too left or right or too high or low respect the route) or no GPS fix.
 * airplaneSymbol: color of airplane symbol displyed in the center of HSI.
+TODO: add the latest
+
 
 GPS receiver configuration
 <GPSreceiver devName="/var/run/gpsfeed" baudRate="115200" dataBits="8" stopBits="1" parity="0" />
@@ -334,9 +348,9 @@ Version 0.2.9
 	Executable optimized for TomTom processor ARM 920T
 
 Version 0.3.0
-	Added configuration for: ok, warning and caution indication's color
+	Added application main menu
+	Added configuration for: ok, warning and caution indication's colors
 	Added airplane symbol at the center of HSI
-	TODO: Work in progress...
 
 
 CONTACTS

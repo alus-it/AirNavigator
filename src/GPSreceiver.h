@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/11/2013
+// Last change : 12/12/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -93,7 +93,7 @@ void updateSpeed(float newSpeedKnots);
 void updateNumOfTotalSatsInView(int totalSats);
 void updateNumOfActiveSats(int workingSats);
 void updateFixMode(int fixMode);
-void updateHdiluition(float hDiluition);
-void updateDiluition(float pDiluition, float hDiluition, float vDiluition);
+//void updateHdiluition(float hDiluition);
+//void updateDiluition(float pDiluition, float hDiluition, float vDiluition);
 
 #endif /* GPSRECEIVER_H_ */

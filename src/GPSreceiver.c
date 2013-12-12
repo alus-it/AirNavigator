@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 7/12/2013
+// Last change : 12/12/2013
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -267,7 +267,7 @@ void GPSreceiverClose(void) {
 	pthread_join(GPSreceiver.thread,NULL); //wait for thread death
 }
 
-void updateHdiluition(float hDiluition) {
+/*void updateHdiluition(float hDiluition) {
 	if(gps.hdop!=hDiluition) {
 		gps.hdop=hDiluition;
 		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintDiluitions(gps.pdop,gps.hdop,gps.vdop);
@@ -281,7 +281,7 @@ void updateDiluition(float pDiluition, float hDiluition, float vDiluition) {
 		gps.vdop=vDiluition;
 		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintDiluitions(pDiluition,hDiluition,vDiluition);
 	}
-}
+}*/
 
 char updateDate(int newDay, int newMonth, int newYear) {
 	if(gps.day!=newDay) {
@@ -289,7 +289,7 @@ char updateDate(int newDay, int newMonth, int newYear) {
 		gps.month=newMonth;
 		gps.year=newYear;
 		if(gps.year<2000) gps.year+=2000;
-		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintDate(gps.day,gps.month,gps.year);
+		//if(getMainStatus()==MAIN_DISPLAY_HSI) PrintDate(gps.day,gps.month,gps.year);
 		return 1;
 	}
 	return 0;

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 7/12/2013
+// Last change : 12/12/2013
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
@@ -125,8 +125,8 @@ void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 			updateNumOfTotalSatsInView(NMEAparser.SatsInView);
 			if(NMEAparser.GSAfound) {
 				updateNumOfActiveSats(NMEAparser.SatsInUse);
-				updateDiluition(NMEAparser.pdop,NMEAparser.hdop,NMEAparser.vdop);
-			} else updateHdiluition(NMEAparser.hdop);
+				//updateDiluition(NMEAparser.pdop,NMEAparser.hdop,NMEAparser.vdop);
+			} //else updateHdiluition(NMEAparser.hdop);
 		}
 		if(NMEAparser.RMCfound) {
 			if(!NMEAparser.GGAfound) {
@@ -136,7 +136,7 @@ void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 			updateSpeed(NMEAparser.groundSpeedKnots);
 			updateDirection(NMEAparser.trueTrack,NMEAparser.magneticVariation,NMEAparser.magneticVariationToEast,NMEAparser.newerTimestamp);
 		}
-		if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.trueTrack,gps.timestamp);
+		if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.timestamp);
 		pthread_mutex_unlock(&gps.mutex);
 		if(getMainStatus()==MAIN_DISPLAY_HSI) FBrenderFlush();
 		BlackBoxCommit();
@@ -202,11 +202,13 @@ bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDe
 		gps.isLonE=newisLonE;
 		gps.lat=latDegMin2rad(gps.latDeg,gps.latMinDecimal,gps.isLatN);
 		gps.lon=lonDegMin2rad(gps.lonDeg,gps.lonMinDecimal,gps.isLonE);
-		int latMin,lonMin;
-		double latSec,lonSec;
-		convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
-		convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
-		if(getMainStatus()==MAIN_DISPLAY_HSI) PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
+		if(getMainStatus()==MAIN_DISPLAY_HSI) {
+			int latMin,lonMin;
+			double latSec,lonSec;
+			convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
+			convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
+			PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
+		}
 		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,gps.hour,gps.minute,gps.second,gps.day,gps.month,gps.year,dateChaged);
 		return true;
 	}
@@ -282,17 +284,17 @@ void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, fl
 				if(timestamp>NMEAparser.dirTimestamp) deltaT=timestamp-NMEAparser.dirTimestamp;
 				else if(timestamp!=NMEAparser.dirTimestamp) deltaT=timestamp+86400-NMEAparser.dirTimestamp;
 				else return;
-				float deltaA=newTrueTrack-gps.trueTrack;
-				gps.turnRateDegSec=deltaA/deltaT;
-				gps.turnRateDegMin=gps.turnRateDegSec*60;
-				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintTurnRate(gps.turnRateDegMin);
+//				float deltaA=newTrueTrack-gps.trueTrack;
+//				gps.turnRateDegSec=deltaA/deltaT;
+//				gps.turnRateDegMin=gps.turnRateDegSec*60;
+//				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintTurnRate(gps.turnRateDegMin);
 			}
 			gps.trueTrack=newTrueTrack;
 		} else {
 			if(gps.turnRateDegSec!=0) {
 				gps.turnRateDegSec=0;
 				gps.turnRateDegMin=0;
-				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintTurnRate(0);
+//				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintTurnRate(0);
 			}
 		}
 	}

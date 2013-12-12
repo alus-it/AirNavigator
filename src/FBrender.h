@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 7/12/2013
+// Last change : 12/12/2013
 // Description : Header of FBrender.c the FrameBuffer renderer
 //============================================================================
 
@@ -39,13 +39,13 @@ void DrawButton(int x, int y, bool active, const char *label, ...);
 void PrintPosition(int latD, int latM, double latS, short N, int lonD, int lonM, double lonS, short E);
 void PrintSpeed(double speedKmh, double speedKnots);
 void PrintAltitude(double altMt, double altFt);
-void PrintVerticalSpeed(double FtMin);
-void PrintTurnRate(double DegMin);
-void PrintDate(int day, int month, int year);
+//void PrintVerticalSpeed(double FtMin);
+//void PrintTurnRate(double DegMin);
+//void PrintDate(int day, int month, int year);
 void PrintTime(int hour, int minute, float second, short waring);
 void PrintFixMode(int fixMode);
 void PrintNumOfSats(int activeSats, int satsInView);
-void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition);
+//void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition);
 void PrintNavStatus(int navStatus, char *WPname);
 void PrintNavTrackATD(double atdRad);
 void PrintNavRemainingDistWP(double dist, double averageSpeed, double hours);

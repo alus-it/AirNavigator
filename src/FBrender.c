@@ -606,13 +606,13 @@ void PrintAltitude(double altMt, double altFt) {
 	FBrenderBlitText(screen.height+28,133,config.colorSchema.text,config.colorSchema.background,false,"%.0f Ft   %.0f m    ",altFt,altMt);
 }
 
-void PrintVerticalSpeed(double FtMin) {
-	//FBrenderBlitText(2,42,config.colorSchema.text,config.colorSchema.background,str,false,"VS: %.0f Ft/min   ",FtMin);
+/*void PrintVerticalSpeed(double FtMin) {
+	FBrenderBlitText(2,42,config.colorSchema.text,config.colorSchema.background,str,false,"VS: %.0f Ft/min   ",FtMin);
 }
 
 void PrintTurnRate(double DegMin) {
-	//FBrenderBlitText(2,52,config.colorSchema.text,config.colorSchema.background,str,false,"TR: %.2f Deg/min  ",DegMin);
-}
+	FBrenderBlitText(2,52,config.colorSchema.text,config.colorSchema.background,str,false,"TR: %.2f Deg/min  ",DegMin);
+}*/
 
 void PrintNavRemainingDistDST(double distKm, double averageSpeedKmh, double timeHours) {
 	if(screen.height!=240) {
@@ -666,9 +666,9 @@ void PrintTime(int hour, int minute, float second, short waring) {
 	FBrenderBlitText(screen.height+28,240,waring?config.colorSchema.warning:config.colorSchema.ok,config.colorSchema.background,false,"UTC: %02d:%02d:%02.0f",hour,minute,second);
 }
 
-void PrintDate(int day, int month, int year) {
-	//FBrenderBlitText(2,230,config.colorSchema.text,config.colorSchema.background,0,"Date: %2d/%02d/%4d",day,month,year);
-}
+/*void PrintDate(int day, int month, int year) {
+	FBrenderBlitText(2,230,config.colorSchema.text,config.colorSchema.background,0,"Date: %2d/%02d/%4d",day,month,year);
+}*/
 
 void PrintNumOfSats(int activeSats, int satsInView) {
 	unsigned short color;
@@ -688,6 +688,6 @@ void PrintFixMode(int fixMode) {
 	}
 }
 
-void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition) {
-	//FBrenderBlitText(2,260,config.colorSchema.text,config.colorSchema.background,0,"DOP P:%4.1f H:%4.1f V:%4.1f",pDiluition,hDiluition,vDiluition);
-}
+/*void PrintDiluitions(float pDiluition, float hDiluition, float vDiluition) {
+	FBrenderBlitText(2,260,config.colorSchema.text,config.colorSchema.background,0,"DOP P:%4.1f H:%4.1f V:%4.1f",pDiluition,hDiluition,vDiluition);
+}*/
