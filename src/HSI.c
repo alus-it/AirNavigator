@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 11/12/2011
+// Last change : 13/12/2011
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -66,9 +66,10 @@ struct HSIstruct {
 void HSIinitialize(void);
 int HSIround(double d);
 void rotatePoint(int mx, int my, int *px, int *py, double angle);
-void drawCompass(int dir);
+void drawCompass(int dir, bool drawPlaneSymbol);
 void drawLabels(int dir);
 void drawCDI(double direction, double course, double cdi);
+void drawAirplaneSymbol(void);
 void diplayCDIvalue(double cdiMt);
 
 static struct HSIstruct HSI = {
@@ -123,12 +124,12 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.PxAltScale=screen.height-12;
 }
 
-void HSIfirstTimeDraw(double direction, double course, double cdiMt) {
+void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection) {
 	if(HSI.cx==-1) HSIinitialize();
 	DrawTwoPointsLine(HSI.cx-1,0,HSI.cx-1,HSI.mark_start-4,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx,0,HSI.cx,HSI.mark_start,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx+1,0,HSI.cx+1,HSI.mark_start-4,config.colorSchema.dirMarker);
-	HSIdraw(direction,course,cdiMt,true);
+	HSIdraw(direction,course,cdiMt,true,onlyDirection);
 	DrawTwoPointsLine(screen.height,6,screen.height,screen.height-6,config.colorSchema.altScale); //the line of the altitude scale
 }
 
@@ -146,7 +147,7 @@ void rotatePoint(int mx, int my, int *px, int *py, double angle) {
   *py=y2+my;
 }
 
-void drawCompass(int dir) { //works with direction as integer
+void drawCompass(int dir, bool drawPlaneSymbol) { //works with direction as integer
 	HSI.previousDir=dir;
 	FillCircle(HSI.cx,HSI.cy,HSI.re,config.colorSchema.background); //clear all the compass
 	int pex,pey,pix,piy,indexCompass;
@@ -179,6 +180,7 @@ void drawCompass(int dir) { //works with direction as integer
 			DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.compassRose);
 		}
 	}
+	if(drawPlaneSymbol) drawAirplaneSymbol();
 }
 
 void drawLabels(int dir) { //also here direction as integer
@@ -313,6 +315,10 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,cdiColor);
+	drawAirplaneSymbol();
+}
+
+void drawAirplaneSymbol(void) {
 	DrawTwoPointsLine(HSI.symFuselageL,HSI.symFuselageU,HSI.symFuselageL,HSI.symFuselageD,config.colorSchema.airplaneSymbol); //From here draw the airplane symbol
 	DrawTwoPointsLine(HSI.cx,HSI.symFuselageU,HSI.cx,HSI.symFuselageD,config.colorSchema.airplaneSymbol);
 	DrawTwoPointsLine(HSI.symFuselageR,HSI.symFuselageU,HSI.symFuselageR,HSI.symFuselageD,config.colorSchema.airplaneSymbol);
@@ -343,24 +349,26 @@ void diplayCDIvalue(double cdiMt) {
 	}
 }
 
-void HSIdraw(double direction, double course, double cdiMt, bool force) {
+void HSIdraw(double direction, double course, double cdiMt, bool force, bool onlyDirection) {
 	if(direction<0||direction>360) return;
 	int dir=360-HSIround(direction);
 	HSI.actualDir=direction;
-	if(dir!=HSI.previousDir || force) { //need to update all the compass
-		drawCompass(dir);
-		drawCDI(direction,course,cdiMt);
-	} else {
-		if(course!=HSI.actualCourse || cdiMt!=HSI.actualCDI || force) {
-			FillCircle(HSI.cx,HSI.cy,HSI.cir,config.colorSchema.background); //clear the internal part of the compass
-			drawLabels(dir);
+	if(!onlyDirection) { //a route is present need to draw also CDI
+		if(dir!=HSI.previousDir || force) { //need to update all the compass
+			drawCompass(dir,false);
 			drawCDI(direction,course,cdiMt);
-		} //else no need to repaint the HSI
-	}
+		} else {
+			if(course!=HSI.actualCourse || cdiMt!=HSI.actualCDI || force) { //just redraw internal CDI
+				FillCircle(HSI.cx,HSI.cy,HSI.cir,config.colorSchema.background); //clear the internal part of the compass
+				drawLabels(dir);
+				drawCDI(direction,course,cdiMt);
+			} //else no need to repaint the HSI
+		}
+		//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
+		diplayCDIvalue(cdiMt);
+		FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",course);
+	} else drawCompass(dir,true); //just draw the compass without CDI but with the airplane symbol
 	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",direction);
-	//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
-	diplayCDIvalue(cdiMt);
-	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",course);
 	FBrenderFlush();
 }
 
@@ -368,7 +376,7 @@ void HSIupdateDir(double direction,double magneticDirection) {
 	if(direction<0||direction>360) return;
 	int dir=360-(int)round(direction);
 	if(dir!=HSI.previousDir) { //need to update all the compass
-		drawCompass(dir);
+		drawCompass(dir,false);
 		drawCDI(direction,HSI.actualCourse,HSI.actualCDI);
 	} //else no need to repaint the HSI
 	HSI.actualDir=direction;

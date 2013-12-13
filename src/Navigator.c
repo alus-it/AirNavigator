@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 12/12/2013
+// Last change : 13/12/2013
 // Description : Navigation manager
 //============================================================================
 
@@ -128,6 +128,7 @@ short NavCalculateRoute(void) {
 			Navigator.currWP=Navigator.currWP->next;
 		} while(Navigator.currWP!=NULL);
 		fprintf(Navigator.routeLog,"TOTAL distance from departure along all WPs to Navigator.destination is: %.3f Km\n",Navigator.totalDistKm);
+		Navigator.trueCourse=Navigator.dept->next->initialCourse;
 		double totalTimeHours=Navigator.totalDistKm/config.cruiseSpeed;
 		int hours,mins;
 		float secs;
@@ -406,8 +407,9 @@ void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 
 void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, float timestamp) {
 	switch(Navigator.status) {
-		case NAV_STATUS_NOT_INIT:     //Do nothing...
+		case NAV_STATUS_NOT_INIT:
 		case NAV_STATUS_NO_ROUTE_SET:
+		case NAV_STATUS_NAV_BUSY: //Do nothing ...
 			break;
 		case NAV_STATUS_TO_START_NAV:
 			if(Navigator.previousAltitude==-1000) Navigator.previousAltitude=altMt;
@@ -510,8 +512,6 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
 			}
 			break;
-		case NAV_STATUS_NAV_BUSY: //Do nothing
-			break;
 		case NAV_STATUS_WAIT_FIX:
 			NavFindNextWP(lat,lon);
 			NavUpdatePosition(lat,lon,altMt,speedKmh,timestamp);
@@ -526,7 +526,7 @@ void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from
 	int latMin,lonMin;
 	double latSec,lonSec;
 	pthread_mutex_lock(&gps.mutex);
-	HSIfirstTimeDraw(gps.trueTrack,Navigator.trueCourse,Navigator.trackErr);
+	HSIfirstTimeDraw(gps.trueTrack,Rad2Deg(Navigator.trueCourse),Navigator.trackErr,Navigator.status<=NAV_STATUS_NAV_BUSY);
 	if(gps.altFt!=-100 && gps.altMt!=-100) {
 		HSIdrawVSIscale(gps.altFt);
 		PrintAltitude(gps.altMt,gps.altFt);
@@ -545,6 +545,9 @@ void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from
 		case NAV_STATUS_NOT_INIT:
 		case NAV_STATUS_NO_ROUTE_SET:
 			PrintNavStatus(Navigator.status,"Nowhere");
+			break;
+		case NAV_STATUS_NAV_BUSY:
+			PrintNavStatus(Navigator.status,"Unknown");
 			break;
 		case NAV_STATUS_TO_START_NAV:
 		case NAV_STATUS_WAIT_FIX:
@@ -569,9 +572,6 @@ void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from
 		case NAV_STATUS_END_NAV:
 			PrintNavStatus(Navigator.status,"Nowhere");
 			if(Navigator.remainDist!=-1) PrintNavDTG(Navigator.remainDist);
-			break;
-		case NAV_STATUS_NAV_BUSY:
-			PrintNavStatus(Navigator.status,"Unknown");
 			break;
 		default: //unknown state, we should be never here
 			break;

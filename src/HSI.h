@@ -15,8 +15,8 @@
 
 #include "Common.h"
 
-void HSIfirstTimeDraw(double direction, double course, double cdiMt);
-void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt, bool force);
+void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection);
+void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt, bool force, bool onlyDirection);
 void HSIupdateDir(double trueDirectionDeg, double magneticDirectionDeg);
 void HSIupdateCDI(double courseDeg, double courseDeviationMt);
 void HSIdrawVSIscale(double altFt);
