@@ -151,7 +151,6 @@ int main(int argc, char** argv) {
 				FBrenderClear(0,screen.height,config.colorSchema.background);
 				FBrenderBlitText(10,10,config.colorSchema.dirMarker,config.colorSchema.background,false,"AirNavigator v.%s",VERSION);
 				FBrenderBlitText(200,10,config.colorSchema.magneticDir,config.colorSchema.background,true,"http://www.alus.it/airnavigator");
-				//TODO: show the UTC time and fix in the menu???
 				DrawButton(20,50,numGPXfiles>0,"Load flight plan");
 				DrawButton(20,90,NavGetStatus()==NAV_STATUS_TO_START_NAV,"Start navigation");
 				DrawButton(20,130,numWPloaded>1,"Reverse flight plan");

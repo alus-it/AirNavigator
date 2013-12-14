@@ -1,11 +1,24 @@
 AirNavigator - README file
 
-The aim of this project is to develop an experimental GPS navigation application for ultralight/microlight aircrafts, using as hardware a vehicular and inexpensive TomTom navigator. The program, given a flight plan defined by the user, is able to provide navigation indications, including an HSI (Horizontal Situation Indicator), along all the way points of the route until the final destination.
+The aim of this project is to develop an experimental GPS navigation application for light aircraft’s, using as hardware a vehicular and inexpensive TomTom navigator. The program, given a flight plan defined by the user, is able to provide navigation indications, including an HSI (Horizontal Situation Indicator), along all the way points of the route until the final destination.
 
 
 DISCLAIMER
 
 This software is open source and free: it comes without any warranty. This is an experimental project. During a real flight this program must not be used as the only navigation system.
+
+
+FEATURES
+	
+	Basic touch screen interface
+	Tracking of: position, altitude, speed and direction during flight in GPX track files
+	Calculation of routes using Great Circle distance
+	Calculation of sunrise and sunset time along the route
+	Normal distribution: to be used in parallel with the original TomTom software
+	Standalone distribution with own operating system: to be used without the original TomTom software
+	Estimation of remaining fuel
+	XML configuration file
+	GPS and touch screen managed by parallel threads
 
 
 REQUIREMENTS
@@ -19,8 +32,9 @@ To use this software you need and old TomTom device with a screen resolution of 
 * Series One: XL, XL S, XL HDT
 * XL
 
-On all the devices listed above the program should work. Anyway I repeat: I tested it only on the "One XL" model and I still had any notice about the program working correctly or not on different models.
-Anyway, soon, I'm going to adapt the program to work also with the resolution of 320x240 used by the others TomTom devices. In this way the HSI will work almost all TomTom navigators, including the basic models like the "One" or the well known "GO 300".
+On all the devices listed above the program should work. Anyway it have been tested only on the "One XL" model and I still had any notice about the program working correctly or not on different models.
+I'm going to adapt the program to work also with the resolution of 320x240 used by the others TomTom devices. In this way the HSI will work almost all TomTom navigators, including the basic models like the "One" or the well known "GO 300".
+
 
 ASSUMPTIONS
 
@@ -29,7 +43,7 @@ We expect that the user planned the flight before, on the ground, studying the c
 
 HOW IT WORKS
 
-Once started, the program will ask the user to select a flight plan then it will process data from the integrated GPS receiver. The HSI will give visual indications to the next way point until the final destination is reached.
+Once started, the program will display the main menu where the user can select a flight plan then, starting the navigation, the program will process data from the integrated GPS receiver. The HSI will give visual indications to the next way point until the final destination is reached.
 
 
 INSTALLATION
@@ -71,7 +85,31 @@ If you wish to upgrade to a new version of AirNavigator simply uninstall it and 
 
 MAIN MENU
 
-TODO: describe here main menu
+The program just started will display its main menu, that is formed by buttons. When a button is disabled the text inside is displayed in italics. Those are buttons currently available:
+
+* Load flight plan
+Allows to select and load the desired flight plan between the GPX files present in the Routes folder. If there aren't GPX files in the Routes folder this button will be not active. If pressed when a route is already loaded, the loaded route will be automatically unloaded when loading a new one.
+
+* Start navigation
+Active only if a flight plan has been loaded and the navigation has been not yet started. Instructs the HSI to start to give indications to reach the next waypoint. When pressed the HSI screen is than displayed.
+
+* Reverse flight plan
+Active only if a flight plan has been loaded. Allows to reverse the current flight plan. After reversing the navigation has to be restarted with the previous button.
+
+* Unload flight plan
+Active only if a flight plan has been loaded. It unloads the current loaded route.
+
+* Show HSI
+Shows the HSI screen, where more or less information’s will be displayed depending if a route has been loaded and if it has been started. A single touch anywhere in the HSI screen brings back the application to the main menu.
+
+* Start Track Recorder / Stop Track Recorder
+Pressing start a new track file is created (in the Tracks folder) and the application will start to record in it. Pressing stop the application will stop recording and the track file will be closed.
+
+* Pause Track Recorder / Resume Track Recorder
+Active only if the track recorder has been started. Without closing the track file, allows to suspend and resume the registration of the current track.
+
+* EXIT
+Takes care of releasing all the used memory and terminate the application. If the application is installed as normal distribution, together with the TomTom software this button will bring back to the original TomTom navigation software. Otherwise if the application is installed as standalone distribution this button after terminating the application will switch off the TomTom device.
 
 
 DATA DISPLAYED IN THE HSI SCREEN
@@ -113,19 +151,6 @@ Right side:
 	UTC: UTC time received from the GPS
 	SAT: Active GPS satellites / GPS satellites in view
 	FIX: Type of GPS fix
-
-
-FEATURES
-
-	Basic touch screen interface
-	Tracking of: position, altitude, speed and direction during flight in GPX track files
-	Calculation of routes using Great Circle distance
-	Calculation of sunrise and sunset time along the route
-	Normal distribution: to be used in parallel with the original TomTom software
-	Standalone distribution with own operating system: to be used without the original TomTom software
-	Estimation of remaining fuel
-	XML configuration file
-	GPS and touch screen managed by parallel threads
 
 
 ROUTES AND TRACKS AS GPX FILES
@@ -239,9 +264,14 @@ Colors schema configuration
 	vsi="FFFF"
 	altMarker="FFFF"
 	text="0F00"
-	warning="F000" />
-	
-	TODO: add the rest
+	ok="0F00"
+	warning="FF00"
+	caution="F000"
+	airplaneSymbol="FA00"
+	buttonEnabled="00F0"
+	buttonDisabled="00B0"
+	buttonLabelEnabled="FFF0"
+	buttonLabelDisabled="DDD0" />
 </colorSchema>
 Here it is possible to choose the color of everything AirNavigator will display on the screen of your TomTom, the colors must be encoded with a four digit hexadecimal number starting from 0000 that is black up to FFFF that is white. (Red=F000, green=0F00, blue=00F0, yellow=FF00)
 * background: the color of the background
@@ -254,13 +284,15 @@ Here it is possible to choose the color of everything AirNavigator will display 
 * altScale: color of the altitude/VSI scale
 * vsi: color of the VSI marker on the left pointing the route altitude
 * altMarker: color of the altitude marker pointing the current altitude
-* text: color of the textual informations displayed on the left
+* text: color of the textual information’s displayed on the left
 * ok: color used to display information within the expected ranges
 * warning: color used to show some potential problem: 2D GPS fix but not 3D or got GPS UTC time but no fix.
 * caution: color used to highlight important risk situations: CDI or VSI markers out of scale (too left or right or too high or low respect the route) or no GPS fix.
-* airplaneSymbol: color of airplane symbol displyed in the center of HSI.
-TODO: add the latest
-
+* airplaneSymbol: color of airplane symbol displayed in the center of HSI.
+* buttonEnabled: color of enabled buttons
+* buttonDisabled: color of disabled buttons
+* buttonLabelEnabled: color of text label of enabled buttons
+* buttonLabelDisabled: color of text label of disabled buttons
 
 GPS receiver configuration
 <GPSreceiver devName="/var/run/gpsfeed" baudRate="115200" dataBits="8" stopBits="1" parity="0" />
