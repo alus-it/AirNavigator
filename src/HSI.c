@@ -336,7 +336,7 @@ void diplayCDIvalue(double cdiMt) {
 		case FT:
 			cdi=m2Ft(cdi);
 			if(cdi>=MILE_FT) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f Mi",cdi/MILE_FT); //Display in miles
-			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0f Ft",fabs(cdi));
+			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0f Ft ",fabs(cdi));
 			break;
 		case NM:
 			FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f NM",m2Nm(cdi));
@@ -344,7 +344,7 @@ void diplayCDIvalue(double cdiMt) {
 		case MT:
 		default:
 			if(cdi>=1000) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f Km",cdi/1000); //Display in Km
-			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0fm",fabs(cdi));
+			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0fm   ",fabs(cdi));
 			/* no break */
 	}
 }
