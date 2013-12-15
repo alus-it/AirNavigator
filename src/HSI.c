@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 13/12/2011
+// Last change : 15/12/2011
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -110,12 +110,12 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.symFuselageR=HSI.cx+1;
 	HSI.symFuselageU=HSI.cy-18;
 	HSI.symFuselageD=HSI.cy+18;
-	HSI.symWingL=HSI.cx-16;
+	HSI.symWingL=HSI.cx-15;
 	HSI.symWingR=HSI.cx+16;
 	HSI.symWingU=HSI.cy-8;
 	HSI.symWingC=HSI.cy-7;
 	HSI.symWingD=HSI.cy-6;
-	HSI.symTailL=HSI.cx-6;
+	HSI.symTailL=HSI.cx-5;
 	HSI.symTailR=HSI.cx+6;
 	HSI.symTailU=HSI.cy+10;
 	HSI.symTailC=HSI.cy+11;
