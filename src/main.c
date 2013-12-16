@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2013 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 12/12/2013
+// Last change : 16/12/2013
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -29,7 +29,7 @@
 #include "HSI.h"
 
 #ifndef VERSION
-#define VERSION "0.3.0"
+#define VERSION "0.3.1"
 #endif
 
 

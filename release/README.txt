@@ -384,6 +384,8 @@ Version 0.3.0
 	Added configuration for: ok, warning and caution indication's colors
 	Added airplane symbol at the center of HSI
 
+Version 0.3.1
+	TODO...
 
 CONTACTS
 Author: Alberto Realis-Luc
