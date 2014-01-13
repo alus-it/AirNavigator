@@ -39,9 +39,11 @@ struct HSIstruct {
 	int cdi_border;
 	int cdi_end;
 	int cdi_pixel_scale;
-	int cdi_pixel_tick;
+	int cdi_pixel_bigScale_tick;
+	int cdi_pixel_smallScale_tick;
 	int cdi_scale_mark;
-	int cdi_scale;
+	const int bigCDIscale;
+	const int smallCDIscale;
 	int previousDir;
 	int HalfAltScale;
 	int PxAltScale;
@@ -76,7 +78,9 @@ static struct HSIstruct HSI = {
 	.cx=-1, //this means that it is still not initialized
 	.label={"N","03","06","E","12","15","S","21","24","W","30","33"},
 	.labelHalfWidth={2,6,6,2,6,6,2,6,6,2,6,6},
-	.labelHalfHeight=4
+	.labelHalfHeight=4,
+	.bigCDIscale=9260, //Large Course Deviation Indicator scale: 5 nautical miles (9260 m)
+	.smallCDIscale=557 //Narrow (zoomed) CDI scale: 0.3 nautical miles (557 m)
 };
 
 void HSIinitialize() { //depending on the screen size calculate all dimensions
@@ -95,9 +99,9 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.cdi_border=HSI.major_mark+31; //ri-ri*sen(45°)=31
 	HSI.cdi_end=screen.height-HSI.cdi_border;
 	HSI.cdi_pixel_scale=75; //ri*sen(45°)=75
-	HSI.cdi_pixel_tick=HSI.cdi_pixel_scale/5;
-	HSI.cdi_scale_mark=15;
-	HSI.cdi_scale=500; // 0.3NM = 0.56 Km
+	HSI.cdi_pixel_bigScale_tick=HSI.cdi_pixel_scale/5;
+	HSI.cdi_pixel_smallScale_tick=HSI.cdi_pixel_scale/3;
+	HSI.cdi_scale_mark=10;
 	HSI.previousDir=-456;
 	HSI.actualDir=0;
 	HSI.actualMagDir=0;
@@ -134,17 +138,17 @@ void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDi
 }
 
 int HSIround(double d) {
-  int n =(int)d;
-  return (d-(double)n)>0.5 ? (int)(n+1) : (int)n;
+	int n =(int)d;
+	return (d-(double)n)>0.5 ? (int)(n+1) : (int)n;
 }
 
 void rotatePoint(int mx, int my, int *px, int *py, double angle) {
-  double cos_theta = cos(angle); //convert the angle to a useful form
-  double sin_theta = sin(angle);
-  int x2 = round((*px-mx)*(cos_theta)-(*py-my)*(sin_theta)); // calc the transformation
-  int y2 = round((*px-mx)*(sin_theta)+(*py-my)*(cos_theta));
-  *px=x2+mx;
-  *py=y2+my;
+	double cos_theta = cos(angle); //convert the angle to a useful form
+	double sin_theta = sin(angle);
+	int x2 = round((*px-mx)*(cos_theta)-(*py-my)*(sin_theta)); // calc the transformation
+	int y2 = round((*px-mx)*(sin_theta)+(*py-my)*(cos_theta));
+	*px=x2+mx;
+	*py=y2+my;
 }
 
 void drawCompass(int dir, bool drawPlaneSymbol) { //works with direction as integer
@@ -273,26 +277,34 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle+M_PI);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle+M_PI);
 	DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.routeIndicator);
-	short i;
-	for(i=-5;i<6;i++) { //ticks of the CDI scale
-		pex=pix=HSI.cx+i*HSI.cdi_pixel_tick;
-		pey=HSI.cy-HSI.cdi_scale_mark;
-		piy=HSI.cy+HSI.cdi_scale_mark;
-		rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
-		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-		DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
-	}
 	int dev; //deviation in pixel
-	unsigned short cdiColor;
-	if(cdi>HSI.cdi_scale) {
-		dev=-HSI.cdi_pixel_scale;
-		cdiColor=config.colorSchema.caution;
-	} else if(cdi<-HSI.cdi_scale) {
-		dev=HSI.cdi_pixel_scale;
-		cdiColor=config.colorSchema.caution;
-	} else {
-		dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.cdi_scale));
-		cdiColor=config.colorSchema.cdi;
+	unsigned short cdiColor=config.colorSchema.cdi;
+	if(abs(cdi)<HSI.smallCDIscale) { //use small scale
+		for(int i=-3;i<4;i++) { //ticks of the small CDI scale
+			pex=pix=HSI.cx+i*HSI.cdi_pixel_smallScale_tick;
+			pey=HSI.cy-HSI.cdi_scale_mark;
+			piy=HSI.cy+HSI.cdi_scale_mark;
+			rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
+			rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
+			DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
+		}
+		dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.smallCDIscale));
+	} else { //use full scale
+		for(int i=-5;i<6;i++) { //ticks of the big CDI scale
+			pex=pix=HSI.cx+i*HSI.cdi_pixel_bigScale_tick;
+			pey=HSI.cy-HSI.cdi_scale_mark;
+			piy=HSI.cy+HSI.cdi_scale_mark;
+			rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
+			rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
+			DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
+		}
+		if(cdi>HSI.bigCDIscale) {
+			dev=-HSI.cdi_pixel_scale;
+			cdiColor=config.colorSchema.caution;
+		} else if(cdi<-HSI.bigCDIscale) {
+			dev=HSI.cdi_pixel_scale;
+			cdiColor=config.colorSchema.caution;
+		} else dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.bigCDIscale));
 	}
 	pex=HSI.cx+dev-1; //CDI left
 	pey=HSI.cdi_border+2;
