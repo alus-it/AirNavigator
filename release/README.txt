@@ -119,8 +119,9 @@ On the left side, Horizontal Situation Indicator:
 	In white the compass rose
 	In red the indicator of current true heading
 	In green the course indicator to the next way point
-	In yellow the course deviation indicator, displayed also in meters
-    
+	In yellow the Course Deviation Indicator, displayed also in meters
+The CDI moves on a scale to show the actual distance left or right of the programmed courseline. Scale sensitivity is automatically switched between 5 Nautical Miles (9.3 Km) deviation at full scale and 0.3 Nautical Miles (0.56 Km) at full scale. When using the 5 NM scale every marker represents 1 NM (1852 m) and when using the 0.3 NM scale every marker represents 0.1 NM (185 m).
+
 In the center, the altitude scale:
 	
 	Every marker represents 50 Ft
@@ -385,7 +386,9 @@ Version 0.3.0
 	Added airplane symbol at the center of HSI
 
 Version 0.3.1
-	TODO...
+	Course Deviation Indicator scale sensitivity switched automatically
+	Course Deviation Indicator and his scale are displayed only when needed (when flying a predefined route leg)
+
 
 CONTACTS
 Author: Alberto Realis-Luc

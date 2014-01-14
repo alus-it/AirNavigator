@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 11/12/2011
+// Last change : 14/1/2014
 // Description : Header of HSI.c to manage the Horizontal Situation Indicator
 //============================================================================
 
@@ -15,10 +15,9 @@
 
 #include "Common.h"
 
-void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection);
-void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt, bool force, bool onlyDirection);
+void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection, bool validCrossTrackError);
 void HSIupdateDir(double trueDirectionDeg, double magneticDirectionDeg);
-void HSIupdateCDI(double courseDeg, double courseDeviationMt);
+void HSIupdateCDI(double courseDeg, double courseDeviationMt, bool validCrossTrackError);
 void HSIdrawVSIscale(double altFt);
 void HSIupdateVSI(double expectedAltFt);
 

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 15/12/2011
+// Last change : 15/1/2014
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -22,11 +22,11 @@
 
 
 struct HSIstruct {
-	char *label[12];
-	int labelHalfWidth[12];
-	int labelHalfHeight;
+	const char *label[12];
+	const int labelHalfWidth[12];
+	const int labelHalfHeight;
 	int cx,cy; //center
-	int mark_start;
+	const int mark_start;
 	int re; //external radius
 	int major_mark;
 	int label_pos;
@@ -35,13 +35,13 @@ struct HSIstruct {
 	int cir; //clear internal radius
 	int minor_mark;
 	int arrow_end;
-	int arrow_side;
+	const int arrow_side;
 	int cdi_border;
 	int cdi_end;
 	int cdi_pixel_scale;
 	int cdi_pixel_bigScale_tick;
 	int cdi_pixel_smallScale_tick;
-	int cdi_scale_mark;
+	const int cdi_scale_mark; //dimension of CDI marks
 	const int bigCDIscale;
 	const int smallCDIscale;
 	int previousDir;
@@ -49,6 +49,7 @@ struct HSIstruct {
 	int PxAltScale;
 	double actualDir,actualMagDir,actualCourse,actualCDI;
 	long currentAltFt,expectedAltFt;
+	bool drawCDI;
 	int symFuselageL;
 	int symFuselageR;
 	int symFuselageU;
@@ -68,6 +69,7 @@ struct HSIstruct {
 void HSIinitialize(void);
 int HSIround(double d);
 void rotatePoint(int mx, int my, int *px, int *py, double angle);
+void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt, bool force, bool onlyDirection, bool validCrossTrackError);
 void drawCompass(int dir, bool drawPlaneSymbol);
 void drawLabels(int dir);
 void drawCDI(double direction, double course, double cdi);
@@ -79,6 +81,9 @@ static struct HSIstruct HSI = {
 	.label={"N","03","06","E","12","15","S","21","24","W","30","33"},
 	.labelHalfWidth={2,6,6,2,6,6,2,6,6,2,6,6},
 	.labelHalfHeight=4,
+	.mark_start=10,
+	.arrow_side=8,
+	.cdi_scale_mark=10,
 	.bigCDIscale=9260, //Large Course Deviation Indicator scale: 5 nautical miles (9260 m)
 	.smallCDIscale=557 //Narrow (zoomed) CDI scale: 0.3 nautical miles (557 m)
 };
@@ -86,7 +91,6 @@ static struct HSIstruct HSI = {
 void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.cx=screen.height/2; //aligned on the left
 	HSI.cy=screen.height/2; //half height
-	HSI.mark_start=10;
 	HSI.re=HSI.cy-HSI.mark_start+1; //external radius
 	HSI.major_mark=HSI.mark_start+20;
 	HSI.label_pos=HSI.major_mark+10;
@@ -95,18 +99,17 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.cir=HSI.ri+11; //clear internal radius used to clear the CDI but not the external compass
 	HSI.minor_mark=HSI.mark_start+12;
 	HSI.arrow_end=HSI.major_mark+18;
-	HSI.arrow_side=8;
 	HSI.cdi_border=HSI.major_mark+31; //ri-ri*sen(45°)=31
 	HSI.cdi_end=screen.height-HSI.cdi_border;
 	HSI.cdi_pixel_scale=75; //ri*sen(45°)=75
 	HSI.cdi_pixel_bigScale_tick=HSI.cdi_pixel_scale/5;
 	HSI.cdi_pixel_smallScale_tick=HSI.cdi_pixel_scale/3;
-	HSI.cdi_scale_mark=10;
 	HSI.previousDir=-456;
 	HSI.actualDir=0;
 	HSI.actualMagDir=0;
 	HSI.actualCourse=0;
 	HSI.actualCDI=0;
+	HSI.drawCDI=true;
 	HSI.currentAltFt=0;
 	HSI.expectedAltFt=0;
 	HSI.HalfAltScale=500;
@@ -128,12 +131,12 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.PxAltScale=screen.height-12;
 }
 
-void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection) {
+void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection, bool validXTD) {
 	if(HSI.cx==-1) HSIinitialize();
 	DrawTwoPointsLine(HSI.cx-1,0,HSI.cx-1,HSI.mark_start-4,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx,0,HSI.cx,HSI.mark_start,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx+1,0,HSI.cx+1,HSI.mark_start-4,config.colorSchema.dirMarker);
-	HSIdraw(direction,course,cdiMt,true,onlyDirection);
+	HSIdraw(direction,course,cdiMt,true,onlyDirection,validXTD);
 	DrawTwoPointsLine(screen.height,6,screen.height,screen.height-6,config.colorSchema.altScale); //the line of the altitude scale
 }
 
@@ -277,34 +280,37 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle+M_PI);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle+M_PI);
 	DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.routeIndicator);
-	int dev; //deviation in pixel
-	unsigned short cdiColor=config.colorSchema.cdi;
-	if(abs(cdi)<HSI.smallCDIscale) { //use small scale
-		for(int i=-3;i<4;i++) { //ticks of the small CDI scale
-			pex=pix=HSI.cx+i*HSI.cdi_pixel_smallScale_tick;
-			pey=HSI.cy-HSI.cdi_scale_mark;
-			piy=HSI.cy+HSI.cdi_scale_mark;
-			rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
-			rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-			DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
+	int dev=0; //deviation in pixel
+	unsigned short cdiColor=config.colorSchema.routeIndicator; //same color of course direction arrow in case we don have to draw the CDI
+	if(HSI.drawCDI) { //Draw CDI only when we are flying a on predefined courseline leg otherwise just draw the course direction arrow
+		cdiColor=config.colorSchema.cdi; //set default color for CDI
+		if(abs(cdi)<HSI.smallCDIscale) { //use small scale
+			for(int i=-3;i<4;i++) { //ticks of the small CDI scale
+				pex=pix=HSI.cx+i*HSI.cdi_pixel_smallScale_tick;
+				pey=HSI.cy-HSI.cdi_scale_mark;
+				piy=HSI.cy+HSI.cdi_scale_mark;
+				rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
+				rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
+				DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
+			}
+			dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.smallCDIscale));
+		} else { //use full scale
+			for(int i=-5;i<6;i++) { //ticks of the big CDI scale
+				pex=pix=HSI.cx+i*HSI.cdi_pixel_bigScale_tick;
+				pey=HSI.cy-HSI.cdi_scale_mark;
+				piy=HSI.cy+HSI.cdi_scale_mark;
+				rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
+				rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
+				DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
+			}
+			if(cdi>HSI.bigCDIscale) {
+				dev=-HSI.cdi_pixel_scale;
+				cdiColor=config.colorSchema.caution;
+			} else if(cdi<-HSI.bigCDIscale) {
+				dev=HSI.cdi_pixel_scale;
+				cdiColor=config.colorSchema.caution;
+			} else dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.bigCDIscale));
 		}
-		dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.smallCDIscale));
-	} else { //use full scale
-		for(int i=-5;i<6;i++) { //ticks of the big CDI scale
-			pex=pix=HSI.cx+i*HSI.cdi_pixel_bigScale_tick;
-			pey=HSI.cy-HSI.cdi_scale_mark;
-			piy=HSI.cy+HSI.cdi_scale_mark;
-			rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
-			rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
-			DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.cdiScale);
-		}
-		if(cdi>HSI.bigCDIscale) {
-			dev=-HSI.cdi_pixel_scale;
-			cdiColor=config.colorSchema.caution;
-		} else if(cdi<-HSI.bigCDIscale) {
-			dev=HSI.cdi_pixel_scale;
-			cdiColor=config.colorSchema.caution;
-		} else dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.bigCDIscale));
 	}
 	pex=HSI.cx+dev-1; //CDI left
 	pey=HSI.cdi_border+2;
@@ -361,10 +367,11 @@ void diplayCDIvalue(double cdiMt) {
 	}
 }
 
-void HSIdraw(double direction, double course, double cdiMt, bool force, bool onlyDirection) {
+void HSIdraw(double direction, double course, double cdiMt, bool force, bool onlyDirection, bool validXTD) {
 	if(direction<0||direction>360) return;
 	int dir=360-HSIround(direction);
 	HSI.actualDir=direction;
+	HSI.drawCDI=validXTD;
 	if(!onlyDirection) { //a route is present need to draw also CDI
 		if(dir!=HSI.previousDir || force) { //need to update all the compass
 			drawCompass(dir,false);
@@ -399,10 +406,11 @@ void HSIupdateDir(double direction,double magneticDirection) {
 	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",HSI.actualCourse);
 }
 
-void HSIupdateCDI(double course, double cdi) {
+void HSIupdateCDI(double course, double cdi, bool validXTD) {
 	if(course!=HSI.actualCourse||cdi!=HSI.actualCDI) {
 		FillCircle(HSI.cx,HSI.cy,HSI.cir,config.colorSchema.background); //clear the internal part of the compass
 		drawLabels(HSI.previousDir);
+		HSI.drawCDI=validXTD;
 		drawCDI(HSI.actualDir,course,cdi);
 		FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",HSI.actualDir);
 		//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);

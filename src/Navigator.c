@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 13/12/2013
+// Last change : 14/1/2014
 // Description : Navigation manager
 //============================================================================
 
@@ -424,14 +424,14 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 			else Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //numWayPoint==1
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavDTG(Navigator.remainDist);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
 			}
 			break;
 		case NAV_STATUS_NAV_TO_DPT: //we are still going to the departure point
 			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->latitude,Navigator.dept->longitude,&Navigator.remainDist); //calc just course and distance
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavDTG(Navigator.remainDist);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
 			}
 			if(Navigator.remainDist<m2Rad(config.deptDistTolerance)) {
 				Navigator.currWP=Navigator.dept->next;
@@ -462,7 +462,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 				Navigator.trueCourse=calcGreatCircleCourse(latI,lonI,Navigator.currWP->latitude,Navigator.currWP->longitude);
 			} //else with a small error the Navigator.trueCourse calculated before is fine
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),Navigator.trackErr);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),Navigator.trackErr,true);
 				PrintNavTrackATD(Navigator.atd);
 				if(Navigator.atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*Navigator.atd+Navigator.currWP->prev->altitude));
 			}
@@ -489,14 +489,14 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 			}
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavTrackATD(atd);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),trackErr);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),trackErr,true);
 				if(atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*atd+Navigator.currWP->prev->altitude));
 			}
 			updateDtgEteEtaAs(atd,timestamp,Navigator.remainDist);
 		} break;
 		case NAV_STATUS_NAV_TO_SINGLE_WP: {
 			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
-			if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+			if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
 			Navigator.WPreaminDist=Rad2Km(Navigator.remainDist); //Km
 			Navigator.WPremaingTime=Navigator.WPreaminDist/speedKmh; //ETE (remaining time) in hours
 			if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistWP(Navigator.WPreaminDist,-1,Navigator.WPremaingTime);
@@ -509,7 +509,7 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavDTG(Navigator.remainDist);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
 			}
 			break;
 		case NAV_STATUS_WAIT_FIX:
@@ -526,7 +526,7 @@ void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from
 	int latMin,lonMin;
 	double latSec,lonSec;
 	pthread_mutex_lock(&gps.mutex);
-	HSIfirstTimeDraw(gps.trueTrack,Rad2Deg(Navigator.trueCourse),Navigator.trackErr,Navigator.status<=NAV_STATUS_NAV_BUSY);
+	HSIfirstTimeDraw(gps.trueTrack,Rad2Deg(Navigator.trueCourse),Navigator.trackErr,Navigator.status<=NAV_STATUS_NAV_BUSY,Navigator.status>=NAV_STATUS_NAV_TO_WPT && Navigator.status<=NAV_STATUS_NAV_TO_DST);
 	if(gps.altFt!=-100 && gps.altMt!=-100) {
 		HSIdrawVSIscale(gps.altFt);
 		PrintAltitude(gps.altMt,gps.altFt);
