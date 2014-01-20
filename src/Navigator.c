@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 14/1/2014
+// Last change : 20/1/2014
 // Description : Navigation manager
 //============================================================================
 
@@ -55,7 +55,7 @@ struct NavigatorStruct {
 	char *routeLogPath;
 	FILE *routeLog;
 	double sunZenith; //here in rad
-	double atd, trackErr;
+	double atd, trackErr, bearing;
 	double WPreaminDist,WPaverageSpeed,WPremaingTime;
 	double TotRemainDist,TotAverageSpeed,TotArrivalTime;
 };
@@ -420,18 +420,18 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 				if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavStatus(Navigator.status,Navigator.currWP->name);
 				break;
 			}
-			if(Navigator.numWayPoints>1) Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->next->latitude,Navigator.dept->next->longitude,&Navigator.remainDist); //calc just course and distance
-			else Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //numWayPoint==1
+			if(Navigator.numWayPoints>1) Navigator.bearing=calcGreatCircleRoute(lat,lon,Navigator.dept->next->latitude,Navigator.dept->next->longitude,&Navigator.remainDist); //calc just course and distance
+			else Navigator.bearing=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //numWayPoint==1
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavDTG(Navigator.remainDist);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
+				HSIupdateCDI(Rad2Deg(Navigator.bearing),0,false,0);
 			}
 			break;
 		case NAV_STATUS_NAV_TO_DPT: //we are still going to the departure point
-			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dept->latitude,Navigator.dept->longitude,&Navigator.remainDist); //calc just course and distance
+			Navigator.bearing=calcGreatCircleRoute(lat,lon,Navigator.dept->latitude,Navigator.dept->longitude,&Navigator.remainDist); //calc just course and distance
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavDTG(Navigator.remainDist);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
+				HSIupdateCDI(Rad2Deg(Navigator.bearing),0,false,0);
 			}
 			if(Navigator.remainDist<m2Rad(config.deptDistTolerance)) {
 				Navigator.currWP=Navigator.dept->next;
@@ -446,8 +446,9 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 			Navigator.trackErr=Rad2m(calcGCCrossTrackError(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->longitude,lat,lon,Navigator.currWP->initialCourse,&Navigator.atd));
 			if(Navigator.atd>=0) Navigator.remainDist=Navigator.currWP->dist-Navigator.atd;
 			else Navigator.remainDist=Navigator.currWP->dist+fabs(Navigator.atd); //negative ATD: we are still before the prev WP
-			Navigator.trueCourse=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
-			if(Navigator.atd>=0 && (Navigator.atd>=Navigator.currWP->dist || bisectorOverpassed(Navigator.currWP->finalCourse,Navigator.trueCourse,Navigator.currWP->bisector1,Navigator.currWP->bisector2))) { //consider this WP as reached
+			//TODO: Need to check here, the bearing can be taken from here...
+			Navigator.bearing=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //Find the direct direction to curr WP (needed to check if we passed the bisector)
+			if(Navigator.atd>=0 && (Navigator.atd>=Navigator.currWP->dist || bisectorOverpassed(Navigator.currWP->finalCourse,Navigator.bearing,Navigator.currWP->bisector1,Navigator.currWP->bisector2))) { //consider this WP as reached
 				Navigator.currWP->arrTimestamp=timestamp;
 				Navigator.prevWPsTotDist+=Rad2Km(Navigator.currWP->dist);
 				Navigator.currWP=Navigator.currWP->next;
@@ -460,9 +461,9 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 				double latI,lonI; //the perpendicular point on the route
 				calcIntermediatePoint(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->latitude,Navigator.currWP->longitude,Navigator.atd,Navigator.currWP->dist,&latI,&lonI);
 				Navigator.trueCourse=calcGreatCircleCourse(latI,lonI,Navigator.currWP->latitude,Navigator.currWP->longitude);
-			} //else with a small error the Navigator.trueCourse calculated before is fine
+			} else Navigator.trueCourse=Navigator.bearing; //with small error the bearing is fine enough
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),Navigator.trackErr,true);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),Navigator.trackErr,true,Rad2Deg(Navigator.bearing));
 				PrintNavTrackATD(Navigator.atd);
 				if(Navigator.atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*Navigator.atd+Navigator.currWP->prev->altitude));
 			}
@@ -480,8 +481,8 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 				NavUpdatePosition(lat,lon,altMt,speedKmh,timestamp); //Recursive call on the new WayPoint
 				return;
 			} //else the Navigator.destination is still not reached...
-			if(fabs(trackErr)<config.trackErrorTolearnce) //with a really small error
-				Navigator.trueCourse=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //just find the direct direction to the Navigator.destination
+			Navigator.bearing=calcGreatCircleCourse(lat,lon,Navigator.currWP->latitude,Navigator.currWP->longitude); //just find the direct direction to the Navigator.destination
+			if(fabs(trackErr)<config.trackErrorTolearnce) Navigator.trueCourse=Navigator.bearing; //with really small error
 			else { //otherwise we have bigger error and so we calculate it better...
 				double latI,lonI; //the perpendicular point on the route
 				calcIntermediatePoint(Navigator.currWP->prev->latitude,Navigator.currWP->prev->longitude,Navigator.currWP->latitude,Navigator.currWP->longitude,atd,Navigator.currWP->dist,&latI,&lonI);
@@ -489,14 +490,14 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 			}
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavTrackATD(atd);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),trackErr,true);
+				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),trackErr,true,Rad2Deg(Navigator.bearing));
 				if(atd>=0) HSIupdateVSI(m2Ft((Navigator.currWP->altitude-Navigator.currWP->prev->altitude)/Navigator.currWP->dist*atd+Navigator.currWP->prev->altitude));
 			}
 			updateDtgEteEtaAs(atd,timestamp,Navigator.remainDist);
 		} break;
 		case NAV_STATUS_NAV_TO_SINGLE_WP: {
-			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
-			if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
+			Navigator.bearing=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
+			if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateCDI(Rad2Deg(Navigator.bearing),0,false,0);
 			Navigator.WPreaminDist=Rad2Km(Navigator.remainDist); //Km
 			Navigator.WPremaingTime=Navigator.WPreaminDist/speedKmh; //ETE (remaining time) in hours
 			if(getMainStatus()==MAIN_DISPLAY_HSI) PrintNavRemainingDistWP(Navigator.WPreaminDist,-1,Navigator.WPremaingTime);
@@ -506,10 +507,10 @@ void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, fl
 			else Navigator.TotAverageSpeed=-1;
 		} break;
 		case NAV_STATUS_END_NAV: //We have reached or passed the Navigator.destination
-			Navigator.trueCourse=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
+			Navigator.bearing=calcGreatCircleRoute(lat,lon,Navigator.dest->latitude,Navigator.dest->longitude,&Navigator.remainDist); //calc just course and distance
 			if(getMainStatus()==MAIN_DISPLAY_HSI) {
 				PrintNavDTG(Navigator.remainDist);
-				HSIupdateCDI(Rad2Deg(Navigator.trueCourse),0,false);
+				HSIupdateCDI(Rad2Deg(Navigator.bearing),0,false,0);
 			}
 			break;
 		case NAV_STATUS_WAIT_FIX:
@@ -526,7 +527,10 @@ void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from
 	int latMin,lonMin;
 	double latSec,lonSec;
 	pthread_mutex_lock(&gps.mutex);
-	HSIfirstTimeDraw(gps.trueTrack,Rad2Deg(Navigator.trueCourse),Navigator.trackErr,Navigator.status<=NAV_STATUS_NAV_BUSY,Navigator.status>=NAV_STATUS_NAV_TO_WPT && Navigator.status<=NAV_STATUS_NAV_TO_DST);
+	HSIfirstTimeDraw(gps.trueTrack,Rad2Deg(Navigator.trueCourse),Navigator.trackErr,
+			Navigator.status<=NAV_STATUS_NAV_BUSY, //This is when we have only a heading to show and no route planned
+			Navigator.status>=NAV_STATUS_NAV_TO_WPT && Navigator.status<=NAV_STATUS_NAV_TO_DST,
+			Rad2Deg(Navigator.bearing));
 	if(gps.altFt!=-100 && gps.altMt!=-100) {
 		HSIdrawVSIscale(gps.altFt);
 		PrintAltitude(gps.altMt,gps.altFt);

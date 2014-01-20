@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 09/12/2013
+// Last change : 20/1/2014
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
@@ -47,6 +47,7 @@ struct configuration config = { //Default configuration values
 		.routeIndicator=0x0f00,     //green
 		.cdi=0xff00,                //yellow
 		.cdiScale=0xffff,           //white
+		.bearing=0xf0f0,            //purple
 		.altScale=0xffff,           //white
 		.vsi=0xffff,                //white
 		.altMarker=0xffff,          //white
@@ -229,6 +230,12 @@ void loadConfig(void) { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						sscanf(text,"%x",&color);
 						config.colorSchema.cdiScale=(unsigned short)color;
+					}
+					attr=roxml_get_attr(detail,"bearing",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						sscanf(text,"%x",&color);
+						config.colorSchema.bearing=(unsigned short)color;
 					}
 					attr=roxml_get_attr(detail,"altScale",0);
 					if(attr!=NULL) {

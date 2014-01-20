@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 9/12/2013
+// Last change : 20/1/2014
 // Description : Header of Config with the shared config data struct
 //============================================================================
 
@@ -37,6 +37,7 @@ struct colorConfig {
 	unsigned short routeIndicator;
 	unsigned short cdi;
 	unsigned short cdiScale;
+	unsigned short bearing;
 	unsigned short altScale;
 	unsigned short vsi;
 	unsigned short altMarker;

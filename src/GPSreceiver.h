@@ -60,7 +60,7 @@ struct GPSdata {
 	double altMt,altFt;                            //altitudes in m and feet respect WGS84 as received by the GPS
 	double realAltMt,realAltFt;                    //altitudes in m and feet respect m.s.l.
 	double climbFtMin;                             //calculated vertical speed rate in feet/min
-	double trueTrack,magneticTrack;                //true and magnetc track in deg
+	double trueTrack,magneticTrack;                //true and magnetic track in deg
 	double magneticVariation;                      //magnetic variation in deg
 	bool isMagVarToEast;                           // true if magnetic variation is to east
 	double turnRateDegMin,turnRateDegSec;          //calculated turn rate in deg/min and deg/sec

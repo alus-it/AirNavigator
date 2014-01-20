@@ -317,7 +317,7 @@ void updateGroundSpeedAndDirection(float newSpeedKmh, float newSpeedKnots, float
 	if(newSpeedKmh>2) if(newTrueTrack!=gps.trueTrack) {
 		gps.trueTrack=newTrueTrack;
 		gps.magneticTrack=newMagneticTrack;
-		if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateDir(newTrueTrack,newMagneticTrack);
+		if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateDir(newTrueTrack);
 	}
 	BlackBoxRecordSpeed(Kmh2ms(newSpeedKmh));
 	if(gps.speedKmh>4) BlackBoxRecordCourse(newTrueTrack);

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 15/1/2014
+// Last change : 20/1/2014
 // Description : Draws and updates the Horizontal Situation Indicator
 //============================================================================
 
@@ -47,7 +47,7 @@ struct HSIstruct {
 	int previousDir;
 	int HalfAltScale;
 	int PxAltScale;
-	double actualDir,actualMagDir,actualCourse,actualCDI;
+	double actualDir,actualCourse,actualCDI,actualBearing;
 	long currentAltFt,expectedAltFt;
 	bool drawCDI;
 	int symFuselageL;
@@ -69,10 +69,10 @@ struct HSIstruct {
 void HSIinitialize(void);
 int HSIround(double d);
 void rotatePoint(int mx, int my, int *px, int *py, double angle);
-void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt, bool force, bool onlyDirection, bool validCrossTrackError);
+void HSIdraw(double directionDeg, double courseDeg, double courseDeviationMt, bool force, bool onlyDirection, bool validCrossTrackError, double bearing);
 void drawCompass(int dir, bool drawPlaneSymbol);
 void drawLabels(int dir);
-void drawCDI(double direction, double course, double cdi);
+void drawCDI(double direction, double course, double cdi, double bearing);
 void drawAirplaneSymbol(void);
 void diplayCDIvalue(double cdiMt);
 
@@ -106,7 +106,7 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.cdi_pixel_smallScale_tick=HSI.cdi_pixel_scale/3;
 	HSI.previousDir=-456;
 	HSI.actualDir=0;
-	HSI.actualMagDir=0;
+	HSI.actualBearing=0;
 	HSI.actualCourse=0;
 	HSI.actualCDI=0;
 	HSI.drawCDI=true;
@@ -131,12 +131,12 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.PxAltScale=screen.height-12;
 }
 
-void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection, bool validXTD) {
+void HSIfirstTimeDraw(double direction, double course, double cdiMt, bool onlyDirection, bool validXTD, double bearing) {
 	if(HSI.cx==-1) HSIinitialize();
 	DrawTwoPointsLine(HSI.cx-1,0,HSI.cx-1,HSI.mark_start-4,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx,0,HSI.cx,HSI.mark_start,config.colorSchema.dirMarker);
 	DrawTwoPointsLine(HSI.cx+1,0,HSI.cx+1,HSI.mark_start-4,config.colorSchema.dirMarker);
-	HSIdraw(direction,course,cdiMt,true,onlyDirection,validXTD);
+	HSIdraw(direction,course,cdiMt,true,onlyDirection,validXTD,bearing);
 	DrawTwoPointsLine(screen.height,6,screen.height,screen.height-6,config.colorSchema.altScale); //the line of the altitude scale
 }
 
@@ -191,9 +191,7 @@ void drawCompass(int dir, bool drawPlaneSymbol) { //works with direction as inte
 }
 
 void drawLabels(int dir) { //also here direction as integer
-	int indexLabel;
-	short i;
-	for(i=0,indexLabel=dir;i<12;indexLabel+=30,i++) {
+	for(int i=0,indexLabel=dir;i<12;indexLabel+=30,i++) {
 		if(indexLabel>359) indexLabel-=360;
 		double angle=Deg2Rad(indexLabel);
 		int pix=HSI.cx; //locate the label
@@ -203,10 +201,11 @@ void drawLabels(int dir) { //also here direction as integer
 	}
 }
 
-void drawCDI(double direction, double course, double cdi) { //here we can use double
+void drawCDI(double direction, double course, double cdi, double bearing) {
 	if(course<0||course>360) return;
 	HSI.actualCourse=course;
 	HSI.actualCDI=cdi;
+	HSI.actualBearing=bearing;
 	double angle=course-direction;
 	if(angle<0) angle+=360;
 	angle=Deg2Rad(angle);
@@ -311,6 +310,23 @@ void drawCDI(double direction, double course, double cdi) { //here we can use do
 				cdiColor=config.colorSchema.caution;
 			} else dev=-(int)(round((HSI.cdi_pixel_scale*cdi)/HSI.bigCDIscale));
 		}
+		double alpha=bearing-direction; //calculate angle for bearing indicator
+		if(alpha<0) alpha+=360;
+		alpha=Deg2Rad(alpha);
+		pex=HSI.cx; //first side of the arrow
+		pey=HSI.major_mark; //FIXME: here the dimensions must be arranged
+		pix=HSI.cx-HSI.arrow_side;
+		piy=HSI.arrow_end;
+		rotatePoint(HSI.cx,HSI.cy,&pex,&pey,alpha);
+		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,alpha);
+		DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.bearing);
+		pex=HSI.cx; //other side of the arrow central
+		pey=HSI.major_mark;
+		pix=HSI.cx+HSI.arrow_side;
+		piy=HSI.arrow_end;
+		rotatePoint(HSI.cx,HSI.cy,&pex,&pey,alpha);
+		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,alpha);
+		DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.bearing);
 	}
 	pex=HSI.cx+dev-1; //CDI left
 	pey=HSI.cdi_border+2;
@@ -367,7 +383,7 @@ void diplayCDIvalue(double cdiMt) {
 	}
 }
 
-void HSIdraw(double direction, double course, double cdiMt, bool force, bool onlyDirection, bool validXTD) {
+void HSIdraw(double direction, double course, double cdiMt, bool force, bool onlyDirection, bool validXTD, double bearing) {
 	if(direction<0||direction>360) return;
 	int dir=360-HSIround(direction);
 	HSI.actualDir=direction;
@@ -375,12 +391,12 @@ void HSIdraw(double direction, double course, double cdiMt, bool force, bool onl
 	if(!onlyDirection) { //a route is present need to draw also CDI
 		if(dir!=HSI.previousDir || force) { //need to update all the compass
 			drawCompass(dir,false);
-			drawCDI(direction,course,cdiMt);
+			drawCDI(direction,course,cdiMt,bearing);
 		} else {
 			if(course!=HSI.actualCourse || cdiMt!=HSI.actualCDI || force) { //just redraw internal CDI
 				FillCircle(HSI.cx,HSI.cy,HSI.cir,config.colorSchema.background); //clear the internal part of the compass
 				drawLabels(dir);
-				drawCDI(direction,course,cdiMt);
+				drawCDI(direction,course,cdiMt,bearing);
 			} //else no need to repaint the HSI
 		}
 		//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
@@ -391,30 +407,29 @@ void HSIdraw(double direction, double course, double cdiMt, bool force, bool onl
 	FBrenderFlush();
 }
 
-void HSIupdateDir(double direction,double magneticDirection) {
+void HSIupdateDir(double direction) {
 	if(direction<0||direction>360) return;
 	int dir=360-(int)round(direction);
 	if(dir!=HSI.previousDir) { //need to update all the compass
 		drawCompass(dir,false);
-		drawCDI(direction,HSI.actualCourse,HSI.actualCDI);
+		drawCDI(direction,HSI.actualCourse,HSI.actualCDI,HSI.actualBearing);
 	} //else no need to repaint the HSI
 	HSI.actualDir=direction;
-	HSI.actualMagDir=magneticDirection;
 	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",direction);
 	//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",magneticDirection);
 	diplayCDIvalue(HSI.actualCDI);
 	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",HSI.actualCourse);
 }
 
-void HSIupdateCDI(double course, double cdi, bool validXTD) {
-	if(course!=HSI.actualCourse||cdi!=HSI.actualCDI) {
+void HSIupdateCDI(double course, double courseDeviation, bool validXTD, double bearing) {
+	if(course!=HSI.actualCourse||courseDeviation!=HSI.actualCDI) {
 		FillCircle(HSI.cx,HSI.cy,HSI.cir,config.colorSchema.background); //clear the internal part of the compass
 		drawLabels(HSI.previousDir);
 		HSI.drawCDI=validXTD;
-		drawCDI(HSI.actualDir,course,cdi);
+		drawCDI(HSI.actualDir,course,courseDeviation,bearing);
 		FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",HSI.actualDir);
 		//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
-		diplayCDIvalue(cdi);
+		diplayCDIvalue(courseDeviation);
 		FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",course);
 	} //else no need to repaint the HSI
 }

@@ -278,7 +278,7 @@ void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, fl
 				if(isVarToEast) gps.magneticTrack=newTrueTrack-magneticVar;
 				else gps.magneticTrack=newTrueTrack+magneticVar;
 			}
-			if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateDir(newTrueTrack,gps.magneticTrack);
+			if(getMainStatus()==MAIN_DISPLAY_HSI) HSIupdateDir(newTrueTrack);
 			if(NMEAparser.dirTimestamp!=0 && gps.speedKmh>10) {
 				float deltaT;
 				if(timestamp>NMEAparser.dirTimestamp) deltaT=timestamp-NMEAparser.dirTimestamp;

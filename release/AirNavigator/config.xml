@@ -32,6 +32,7 @@
 	routeIndicator="0F00"
 	cdi="FF00"
 	cdiScale="FFFF"
+	bearing="F0F0"
 	altScale="FFFF"
 	vsi="FFFF"
 	altMarker="FFFF"
