@@ -35,6 +35,7 @@ struct HSIstruct {
 	int cir; //clear internal radius
 	int minor_mark;
 	int arrow_end;
+	int bea_arrow_end;
 	const int arrow_side;
 	int cdi_border;
 	int cdi_end;
@@ -74,6 +75,8 @@ void drawCompass(int dir, bool drawPlaneSymbol);
 void drawLabels(int dir);
 void drawCDI(double direction, double course, double cdi, double bearing);
 void drawAirplaneSymbol(void);
+void displayTRKvalue(double track);
+void displayDTKandBRGvalues(double desiredTrack, double bearing);
 void diplayCDIvalue(double cdiMt);
 
 static struct HSIstruct HSI = {
@@ -88,7 +91,7 @@ static struct HSIstruct HSI = {
 	.smallCDIscale=557 //Narrow (zoomed) CDI scale: 0.3 nautical miles (557 m)
 };
 
-void HSIinitialize() { //depending on the screen size calculate all dimensions
+void HSIinitialize() { //TODO: depending on the screen size calculate all dimensions
 	HSI.cx=screen.height/2; //aligned on the left
 	HSI.cy=screen.height/2; //half height
 	HSI.re=HSI.cy-HSI.mark_start+1; //external radius
@@ -99,6 +102,7 @@ void HSIinitialize() { //depending on the screen size calculate all dimensions
 	HSI.cir=HSI.ri+11; //clear internal radius used to clear the CDI but not the external compass
 	HSI.minor_mark=HSI.mark_start+12;
 	HSI.arrow_end=HSI.major_mark+18;
+	HSI.bea_arrow_end=HSI.major_mark+8;
 	HSI.cdi_border=HSI.major_mark+31; //ri-ri*sen(45°)=31
 	HSI.cdi_end=screen.height-HSI.cdi_border;
 	HSI.cdi_pixel_scale=75; //ri*sen(45°)=75
@@ -204,8 +208,6 @@ void drawLabels(int dir) { //also here direction as integer
 void drawCDI(double direction, double course, double cdi, double bearing) {
 	if(course<0||course>360) return;
 	HSI.actualCourse=course;
-	HSI.actualCDI=cdi;
-	HSI.actualBearing=bearing;
 	double angle=course-direction;
 	if(angle<0) angle+=360;
 	angle=Deg2Rad(angle);
@@ -282,6 +284,8 @@ void drawCDI(double direction, double course, double cdi, double bearing) {
 	int dev=0; //deviation in pixel
 	unsigned short cdiColor=config.colorSchema.routeIndicator; //same color of course direction arrow in case we don have to draw the CDI
 	if(HSI.drawCDI) { //Draw CDI only when we are flying a on predefined courseline leg otherwise just draw the course direction arrow
+		HSI.actualCDI=cdi;
+		HSI.actualBearing=bearing;
 		cdiColor=config.colorSchema.cdi; //set default color for CDI
 		if(abs(cdi)<HSI.smallCDIscale) { //use small scale
 			for(int i=-3;i<4;i++) { //ticks of the small CDI scale
@@ -314,16 +318,16 @@ void drawCDI(double direction, double course, double cdi, double bearing) {
 		if(alpha<0) alpha+=360;
 		alpha=Deg2Rad(alpha);
 		pex=HSI.cx; //first side of the arrow
-		pey=HSI.major_mark; //FIXME: here the dimensions must be arranged
+		pey=HSI.minor_mark;
 		pix=HSI.cx-HSI.arrow_side;
-		piy=HSI.arrow_end;
+		piy=HSI.bea_arrow_end;
 		rotatePoint(HSI.cx,HSI.cy,&pex,&pey,alpha);
 		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,alpha);
 		DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.bearing);
 		pex=HSI.cx; //other side of the arrow central
-		pey=HSI.major_mark;
+		pey=HSI.minor_mark;
 		pix=HSI.cx+HSI.arrow_side;
-		piy=HSI.arrow_end;
+		piy=HSI.bea_arrow_end;
 		rotatePoint(HSI.cx,HSI.cy,&pex,&pey,alpha);
 		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,alpha);
 		DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.bearing);
@@ -364,23 +368,35 @@ void drawAirplaneSymbol(void) {
 	DrawTwoPointsLine(HSI.symTailL,HSI.symTailD,HSI.symTailR,HSI.symTailD,config.colorSchema.airplaneSymbol);
 }
 
+void displayTRKvalue(double track) {
+	FBrenderBlitText(3,3,config.colorSchema.dirMarker,config.colorSchema.background,false,"TRK %03d",(int)round(track));
+}
+
+void displayDTKandBRGvalues(double desiredTrack, double bearing) {
+	FBrenderBlitText(3,14,config.colorSchema.routeIndicator,config.colorSchema.background,false,"DTK %03d",(int)round(desiredTrack));
+	if(HSI.drawCDI) FBrenderBlitText(3,25,config.colorSchema.bearing,config.colorSchema.background,0,"BRG %03d",(int)round(bearing));
+	else FBrenderBlitText(3,25,config.colorSchema.bearing,config.colorSchema.background,0,"       ");
+}
+
 void diplayCDIvalue(double cdiMt) {
-	double cdi=fabs(cdiMt);
-	switch(config.trackErrUnit) {
-		case FT:
-			cdi=m2Ft(cdi);
-			if(cdi>=MILE_FT) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f Mi",cdi/MILE_FT); //Display in miles
-			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0f Ft ",fabs(cdi));
-			break;
-		case NM:
-			FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f NM",m2Nm(cdi));
-			break;
-		case MT:
-		default:
-			if(cdi>=1000) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%6.2f Km",cdi/1000); //Display in Km
-			else FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"%5.0fm   ",fabs(cdi));
-			/* no break */
-	}
+	if(HSI.drawCDI) { //if we have a valid course deviation error
+		cdiMt=fabs(cdiMt);
+		switch(config.trackErrUnit) {
+			case FT:
+				cdiMt=m2Ft(cdiMt);
+				if(cdiMt>=MILE_FT) FBrenderBlitText(5,screen.height-14,config.colorSchema.cdi,config.colorSchema.background,false,"XTK %6.2f Mi",cdiMt/MILE_FT); //Display in miles
+				else FBrenderBlitText(3,screen.height-9,config.colorSchema.cdi,config.colorSchema.background,false,"XTK %5.0f Ft ",cdiMt);
+				break;
+			case NM:
+				FBrenderBlitText(3,screen.height-9,config.colorSchema.cdi,config.colorSchema.background,false,"XTK %6.2f NM",m2Nm(cdiMt));
+				break;
+			case MT:
+			default:
+				if(cdiMt>=1000) FBrenderBlitText(3,screen.height-10,config.colorSchema.cdi,config.colorSchema.background,false,"XTK %6.2f Km",cdiMt/1000); //Display in Km
+				else FBrenderBlitText(3,screen.height-10,config.colorSchema.cdi,config.colorSchema.background,false,"XTK %5.0fm   ",cdiMt);
+				/* no break */
+		}
+	} else FBrenderBlitText(3,screen.height-9,config.colorSchema.cdi,config.colorSchema.background,false,"             ");
 }
 
 void HSIdraw(double direction, double course, double cdiMt, bool force, bool onlyDirection, bool validXTD, double bearing) {
@@ -399,11 +415,10 @@ void HSIdraw(double direction, double course, double cdiMt, bool force, bool onl
 				drawCDI(direction,course,cdiMt,bearing);
 			} //else no need to repaint the HSI
 		}
-		//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
+		displayDTKandBRGvalues(course,bearing);
 		diplayCDIvalue(cdiMt);
-		FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",course);
 	} else drawCompass(dir,true); //just draw the compass without CDI but with the airplane symbol
-	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",direction);
+	displayTRKvalue(direction);
 	FBrenderFlush();
 }
 
@@ -415,10 +430,9 @@ void HSIupdateDir(double direction) {
 		drawCDI(direction,HSI.actualCourse,HSI.actualCDI,HSI.actualBearing);
 	} //else no need to repaint the HSI
 	HSI.actualDir=direction;
-	FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",direction);
-	//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",magneticDirection);
+	displayTRKvalue(direction);
+	displayDTKandBRGvalues(HSI.actualCourse,HSI.actualBearing);
 	diplayCDIvalue(HSI.actualCDI);
-	FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",HSI.actualCourse);
 }
 
 void HSIupdateCDI(double course, double courseDeviation, bool validXTD, double bearing) {
@@ -427,10 +441,9 @@ void HSIupdateCDI(double course, double courseDeviation, bool validXTD, double b
 		drawLabels(HSI.previousDir);
 		HSI.drawCDI=validXTD;
 		drawCDI(HSI.actualDir,course,courseDeviation,bearing);
-		FBrenderBlitText(5,5,config.colorSchema.dirMarker,config.colorSchema.background,false,"%06.2f",HSI.actualDir);
-		//FBrenderBlitText(cx-12,cy-40,config.colorSchema.magneticDir,config.colorSchema.background,0,"%06.2f",actualMagDir);
+		displayTRKvalue(HSI.actualDir);
+		displayDTKandBRGvalues(course,bearing);
 		diplayCDIvalue(courseDeviation);
-		FBrenderBlitText(5,20,config.colorSchema.routeIndicator,config.colorSchema.background,false,"%06.2f",course);
 	} //else no need to repaint the HSI
 }
 

@@ -386,8 +386,9 @@ Version 0.3.0
 	Added airplane symbol at the center of HSI
 
 Version 0.3.1
-	Course Deviation Indicator scale sensitivity switched automatically
-	Course Deviation Indicator and his scale are displayed only when needed (when flying a predefined route leg)
+	Course Deviation Indicator scale sensitivity switched automatically between 5 and 0.3 NM
+	Course Deviation Indicator and his scale are displayed only when needed (only when flying on predefined route leg)
+	Bearing to next way point also displayed in the HSI
 
 
 CONTACTS
