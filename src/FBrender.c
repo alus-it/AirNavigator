@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 11/12/2013
+// Last change : 22/1/2014
 // Description : FrameBuffer renderer
 //============================================================================
 
@@ -399,8 +399,49 @@ void DrawButton(int x, int y, bool active, const char *label, ...) {
 	FillRect(x,y,x+180,y+30,active?config.colorSchema.buttonEnabled:config.colorSchema.buttonDisabled);
 	FBrenderBlitText(x+10,y+10,active?config.colorSchema.buttonLabelEnabled:config.colorSchema.buttonLabelDisabled,active?config.colorSchema.buttonEnabled:config.colorSchema.buttonDisabled,!active,label);
 }
+/*
+void FillTriangle(const int ax, const int ay, const int bx, const int by, const int cx, const int cy, const unsigned short color) {
+	//TODO: check for special cases, for example orizotal lines with m=0
+	int c[3][2]={{ax,ay},{bx,by},{cx,cy}};
+	int t=0,i;
+	for(i=1;i<3;i++) if(c[i][1]<c[t][1]) t=i; //find the top
+	int l = t<2 ? t+1 : 0; //left is not the top
+	for(i=0;i<3;i++) if(i!=t) if(c[i][0]<c[l][0]) l=i; //find the left
+	int r=-1;
+	for(i=0;i<3 && r==-1;i++) if(i!=t && i!=l) r=i; //find the right
+	double tlm=(double)(c[t][1]-c[l][1])/(double)(c[t][0]-c[l][0]);
+	double tlq=c[l][1]-tlm*c[l][0];
+	double trm=(double)(c[t][1]-c[r][1])/(double)(c[t][0]-c[r][0]);
+	double trq=c[r][1]-trm*c[r][0];
+	double lrm=(double)(c[l][1]-c[r][1])/(double)(c[l][0]-c[r][0]);
+	double lrq=c[r][1]-lrm*c[r][0];
+	int j,s,e;
+	if(c[l][1]<c[r][1]) { //left is higher than right
+		for(j=c[t][1];j<c[l][1];j++) {
+			s=(int)round((j-tlq)/tlm);
+			e=(int)round((j-trq)/trm);
+			for(i=s;j<e;i++) FBrenderPutPixel(i,j,color);
+		}
+		for(j=c[l][1];j<c[r][1];j++) {
+			s=(int)round((j-lrq)/lrm);
+			e=(int)round((j-trq)/trm);
+			for(i=s;j<e;i++) FBrenderPutPixel(i,j,color);
+		}
+	} else { //right is higher than left
+		for(j=c[t][1];j<c[r][1];j++) {
+			s=(int)round((j-tlq)/tlm);
+			e=(int)round((j-trq)/trm);
+			for(i=s;j<e;i++) FBrenderPutPixel(i,j,color);
+		}
+		for(j=c[r][1];j<c[l][1];j++) {
+			s=(int)round((j-trq)/trm);
+			e=(int)round((j-lrq)/lrm);
+			for(i=s;j<e;i++) FBrenderPutPixel(i,j,color);
+		}
+	}
+}*/
 
-//TODO: to be implemented and tested...
+//TODO: to be finished and tested...
 /*void FillQuadrangle(int ax, int ay, int bx, int by, int cx, int cy, int dx, int dy, unsigned short color) {
 	int coord[4][2]={{ax,ay},{bx,by},{cx,cy},{dx,dy}};
 	int n[2]={0,screen.height};

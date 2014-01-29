@@ -35,8 +35,10 @@ struct HSIstruct {
 	int cir; //clear internal radius
 	int minor_mark;
 	int arrow_end;
+	int arrow_side;
+	int bea_arrow_top;
 	int bea_arrow_end;
-	const int arrow_side;
+	int bea_arrow_side;
 	int cdi_border;
 	int cdi_end;
 	int cdi_pixel_scale;
@@ -102,7 +104,9 @@ void HSIinitialize() { //TODO: depending on the screen size calculate all dimens
 	HSI.cir=HSI.ri+11; //clear internal radius used to clear the CDI but not the external compass
 	HSI.minor_mark=HSI.mark_start+12;
 	HSI.arrow_end=HSI.major_mark+18;
-	HSI.bea_arrow_end=HSI.major_mark+8;
+	HSI.bea_arrow_top=HSI.major_mark+5;
+	HSI.bea_arrow_end=HSI.arrow_end+5;
+	HSI.bea_arrow_side=HSI.arrow_side-3;
 	HSI.cdi_border=HSI.major_mark+31; //ri-ri*sen(45°)=31
 	HSI.cdi_end=screen.height-HSI.cdi_border;
 	HSI.cdi_pixel_scale=75; //ri*sen(45°)=75
@@ -232,6 +236,20 @@ void drawCDI(double direction, double course, double cdi, double bearing) {
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.routeIndicator);
+
+	//TODO: Draw better the arrow using the new FillTriangle() function
+	/*int topX=HSI.cx;
+	int topY=HSI.major_mark;
+	int leftX=HSI.cx-HSI.arrow_side;
+	int leftY=HSI.arrow_end;
+	int rightX=HSI.cx+HSI.arrow_side;
+	int rightY=HSI.arrow_end;
+	rotatePoint(HSI.cx,HSI.cy,&topX,&topY,angle);
+	rotatePoint(HSI.cx,HSI.cy,&leftX,&leftY,angle);
+	rotatePoint(HSI.cx,HSI.cy,&rightX,&rightY,angle);
+	FillTriangle(topX,topY,leftX,leftY,rightX,rightY, config.colorSchema.routeIndicator);*/
+
+	//Actual (ugly) part to draw the arrow:
 	pex=HSI.cx; //first side of the arrow central
 	pey=HSI.major_mark;
 	pix=HSI.cx-HSI.arrow_side;
@@ -260,6 +278,7 @@ void drawCDI(double direction, double course, double cdi, double bearing) {
 	rotatePoint(HSI.cx,HSI.cy,&pex,&pey,angle);
 	rotatePoint(HSI.cx,HSI.cy,&pix,&piy,angle);
 	DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.routeIndicator);
+
 	pex=HSI.cx-1; //other side of the course indicator left
 	pey=HSI.major_mark;
 	pix=HSI.cx-1;
@@ -317,16 +336,16 @@ void drawCDI(double direction, double course, double cdi, double bearing) {
 		double alpha=bearing-direction; //calculate angle for bearing indicator
 		if(alpha<0) alpha+=360;
 		alpha=Deg2Rad(alpha);
-		pex=HSI.cx; //first side of the arrow
-		pey=HSI.minor_mark;
-		pix=HSI.cx-HSI.arrow_side;
+		pex=HSI.cx; //first side of the arrow (bearing indicator)
+		pey=HSI.bea_arrow_top;
+		pix=HSI.cx-HSI.bea_arrow_side;
 		piy=HSI.bea_arrow_end;
 		rotatePoint(HSI.cx,HSI.cy,&pex,&pey,alpha);
 		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,alpha);
 		DrawTwoPointsLine(pex,pey,pix,piy,config.colorSchema.bearing);
 		pex=HSI.cx; //other side of the arrow central
-		pey=HSI.minor_mark;
-		pix=HSI.cx+HSI.arrow_side;
+		pey=HSI.bea_arrow_top;
+		pix=HSI.cx+HSI.bea_arrow_side;
 		piy=HSI.bea_arrow_end;
 		rotatePoint(HSI.cx,HSI.cy,&pex,&pey,alpha);
 		rotatePoint(HSI.cx,HSI.cy,&pix,&piy,alpha);
