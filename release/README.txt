@@ -389,6 +389,9 @@ Version 0.3.1
 	Course Deviation Indicator scale sensitivity switched automatically between 5 and 0.3 NM
 	Course Deviation Indicator and his scale are displayed only when needed (only when flying on predefined route leg)
 	Bearing to next way point also displayed in the HSI
+	
+Verasion 0.3.2
+	TODO: work in progress...
 
 
 CONTACTS
