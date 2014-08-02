@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 20/1/2014
+// Last change : 2/8/2014
 // Description : Navigation manager
 //============================================================================
 
@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <math.h>
 #include <pthread.h>
 #include <libroxml/roxml.h>
@@ -26,7 +25,7 @@
 #include "GPSreceiver.h"
 #include "FBrender.h"
 #include "HSI.h"
-#include "Common.h"
+#include "Ephemerides.h"
 
 
 typedef struct wp {
@@ -54,7 +53,6 @@ struct NavigatorStruct {
 	wayPoint dept, currWP, dest;
 	char *routeLogPath;
 	FILE *routeLog;
-	double sunZenith; //here in rad
 	double atd, trackErr, bearing;
 	double WPreaminDist,WPaverageSpeed,WPremaingTime;
 	double TotRemainDist,TotAverageSpeed,TotArrivalTime;
@@ -78,7 +76,6 @@ static struct NavigatorStruct Navigator = {
 void NavConfigure(void) {
 	int oldStatus=Navigator.status;
 	Navigator.status=NAV_STATUS_NAV_BUSY;
-	Navigator.sunZenith=Deg2Rad(config.sunZenith); //rad
 	Navigator.prevWpAvgSpeed=config.cruiseSpeed;
 	Navigator.prevTotAvgSpeed=config.cruiseSpeed;
 	if(oldStatus==NAV_STATUS_NOT_INIT) Navigator.status=NAV_STATUS_NO_ROUTE_SET;
@@ -96,6 +93,7 @@ short NavCalculateRoute(void) {
 	Navigator.totalDistKm=0;
 	Navigator.prevWPsTotDist=0;
 	Navigator.dest=Navigator.currWP;
+	calcFlightPlanEphemerides(Navigator.dest->latitude,Navigator.dest->longitude,false);
 	if(Navigator.numWayPoints>1) {
 		Navigator.currWP=Navigator.dept->next;
 		do {
@@ -143,12 +141,10 @@ short NavCalculateRoute(void) {
 		Navigator.TotAverageSpeed=config.cruiseSpeed;
 		double fuelNeeded=config.fuelConsumption*totalTimeHours;
 		fprintf(Navigator.routeLog,"TOTAL fuel needed: %.2f liters\n\n",fuelNeeded);
-		checkDaytime(false);
+		calcFlightPlanEphemerides(Navigator.dept->latitude,Navigator.dept->longitude,true);
 		Navigator.currWP=Navigator.dept->next;
-	} else { //Navigator.numWayPoints==1
+	} else //Navigator.numWayPoints==1
 		fprintf(Navigator.routeLog,"* Route with only one waypoint: %s\n",Navigator.currWP->name);
-		checkDaytime(true);
-	}
 	if(Navigator.routeLog!=NULL) fclose(Navigator.routeLog); //Close the route log file when not needed
 	Navigator.status=NAV_STATUS_TO_START_NAV;
 	return 1;
@@ -606,61 +602,6 @@ void NavSkipCurrentWayPoint(void) {
 		if(Navigator.currWP!=Navigator.dest) Navigator.status=NAV_STATUS_NAV_TO_WPT;
 		else Navigator.status=NAV_STATUS_NAV_TO_DST;
 	}
-}
-
-short checkDaytime(bool calcOnlyDest) {
-	short retVal=1;
-	double riseTime,setTime;
-	struct tm time_str;
-	long timestamp=time(NULL); //get current time
-	time_str=*localtime(&timestamp); //to obtain day, month, year, hour and minute
-	int year=time_str.tm_year+1900; //year
-	int month=time_str.tm_mon+1; //month
-	int day=time_str.tm_mday; //day
-	int hour=time_str.tm_hour; //hour
-	int min=time_str.tm_min; //minute
-	double arrTimeDecimal=-1;
-	int rHour,rMin,sHour,sMin;
-	float rSec,sSec;
-	if(!calcOnlyDest) {
-		fprintf(Navigator.routeLog,"Check daytime on: %d/%02d/%d %2d:%02d\n",day,month,year,hour,min);
-		calcSunriseSunset(Navigator.dept->latitude,Navigator.dept->longitude,day,month,year,Navigator.sunZenith,+1,&riseTime,&setTime);
-		if(riseTime==-1){
-			fprintf(Navigator.routeLog,"WARNING: The sun never rises on the departure location (on the specified date).\n");
-			retVal=0;
-		}
-		double depTimeDecimal=hour+min*SIXTYTH;
-		if(depTimeDecimal<riseTime || depTimeDecimal>setTime) {
-			fprintf(Navigator.routeLog,"WARNING: Departure at this time will be in the night.\n");
-			retVal=0;
-		}
-		convertDecimal2DegMinSec(riseTime,&rHour,&rMin,&rSec);
-		convertDecimal2DegMinSec(setTime,&sHour,&sMin,&sSec);
-		fprintf(Navigator.routeLog,"Departure location Sunrise: %2d:%02d, Sunset: %2d:%02d \n",rHour,rMin,sHour,sMin);
-		arrTimeDecimal=depTimeDecimal+Navigator.totalDistKm/config.cruiseSpeed;
-		if(arrTimeDecimal>24) {
-			timestamp+=arrTimeDecimal*3600;
-			time_str=*localtime(&timestamp); //to obtain day, month, year, hour and minute
-			year=time_str.tm_year+1900; //year
-			month=time_str.tm_mon+1; //month
-			day=time_str.tm_mday; //day
-		}
-	}
-	calcSunriseSunset(Navigator.dest->latitude,Navigator.dest->longitude,day,month,year,Navigator.sunZenith,+1,&riseTime,&setTime);
-	if(riseTime==-1){
-		fprintf(Navigator.routeLog,"WARNING: The sun never rises on the arrival location (on the specified date).\n");
-		retVal=0;
-	}
-	if(!calcOnlyDest) {
-		if(arrTimeDecimal<riseTime || arrTimeDecimal>setTime) {
-			fprintf(Navigator.routeLog,"WARNING: Arrival at this time will be in the night.\n");
-			retVal=0;
-		} else retVal=-1; //we don't know the estimated time of arrival yet if we are working only with the Navigator.destination
-	}
-	convertDecimal2DegMinSec(riseTime,&rHour,&rMin,&rSec);
-	convertDecimal2DegMinSec(setTime,&sHour,&sMin,&sSec);
-	fprintf(Navigator.routeLog,"Arrival location Sunrise: %2d:%02d, Sunset: %2d:%02d \n\n\n",rHour,rMin,sHour,sMin);
-	return retVal;
 }
 
 enum navigatorStatus NavGetStatus(void) {

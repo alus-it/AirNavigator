@@ -179,6 +179,9 @@ int main(int argc, char** argv) {
 				NavRedrawNavInfo();
 				FBrenderFlush();
 				break;
+			case MAIN_DISPLAY_SUNRISE_SUNSET:
+				//TODO: ...
+				break;
 			default:
 				break;
 		} //end of display switch
@@ -258,6 +261,9 @@ int main(int argc, char** argv) {
 					free(mainData.bottomBarMsg);
 					mainData.bottomBarMsg=NULL;
 				}
+				break;
+			case MAIN_DISPLAY_SUNRISE_SUNSET:
+				//TODO: ...
 				break;
 			default:
 				doExit=true;

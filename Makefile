@@ -6,7 +6,7 @@
 # Copyright : (C) 2010-2014 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 31/1/2014
+# Last change : 2/8/2014
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -42,6 +42,7 @@ CFILES =            \
 	BlackBox.c      \
 	Common.c        \
 	Configuration.c \
+	Ephemerides.c   \
 	FBrender.c      \
 	Geoidal.c       \
 	GPSreceiver.c   \
@@ -110,7 +111,7 @@ $(BIN)SiRFparser.o: $(SRC)SiRFparser.c $(SRC)SiRFparser.h $(SRC)GPSreceiver.h $(
 	@echo Compiling: $<
 	@$(CC) $(CFLAGS) $< -o $@
 
-$(BIN)Navigator.o: $(SRC)Navigator.c $(SRC)Navigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Common.h $(LIBSRC)libroxml/roxml.h
+$(BIN)Navigator.o: $(SRC)Navigator.c $(SRC)Navigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Ephemerides.h $(SRC)Common.h $(LIBSRC)libroxml/roxml.h
 	@echo Compiling: $<
 	@$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
 
@@ -126,7 +127,7 @@ $(BIN)FBrender.o: $(SRC)FBrender.c $(SRC)FBrender.h $(SRC)Navigator.h $(SRC)AirC
 	@echo Compiling: $<
 	@$(CC) $(CFLAGS) -DLINUX_TARGET -I $(INC) $< -o $@
 
-$(BIN)Configuration.o: $(SRC)Configuration.c $(SRC)Configuration.h $(SRC)Common.h $(SRC)FBrender.h $(LIBSRC)libroxml/roxml.h
+$(BIN)Configuration.o: $(SRC)Configuration.c $(SRC)Configuration.h $(SRC)Common.h $(SRC)AirCalc.h $(SRC)FBrender.h $(LIBSRC)libroxml/roxml.h
 	@echo Compiling: $<
 	@$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
 
@@ -137,6 +138,10 @@ $(BIN)Geoidal.o: $(SRC)Geoidal.c $(SRC)Geoidal.h $(SRC)Common.h
 $(BIN)TSreader.o: $(SRC)TSreader.c $(SRC)TSreader.h $(SRC)Common.h
 	@echo Compiling: $<
 	@$(CC) $(CFLAGS) -I $(INC) $< -o $@
+
+$(BIN)Ephemerides.o: $(SRC)Ephemerides.c $(SRC)Ephemerides.h $(SRC)AirCalc.h $(SRC)Common.h
+	@echo Compiling: $<
+	@$(CC) $(CFLAGS) $< -o $@
 
 $(BIN)AirCalc.o: $(SRC)AirCalc.c $(SRC)AirCalc.h $(SRC)Common.h
 	@echo Compiling: $<

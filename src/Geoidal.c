@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include "Geoidal.h"
-#include "Common.h"
 
 #define GEOID_H 19
 #define GEOID_W 37

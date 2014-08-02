@@ -25,7 +25,6 @@
 //#include <sys/ioctl.h>
 //#include <barcelona/Barc_gps.h>
 #include "GPSreceiver.h"
-#include "Common.h"
 #include "Configuration.h"
 #include "AirCalc.h"
 #include "Geoidal.h"
@@ -290,6 +289,9 @@ char updateDate(int newDay, int newMonth, int newYear) {
 		gps.year=newYear;
 		if(gps.year<2000) gps.year+=2000;
 		//if(getMainStatus()==MAIN_DISPLAY_HSI) PrintDate(gps.day,gps.month,gps.year);
+		if(getMainStatus()==MAIN_DISPLAY_SUNRISE_SUNSET) {
+			//TODO: ....
+		}
 		return 1;
 	}
 	return 0;
@@ -304,6 +306,8 @@ void updateTime(float timestamp, int newHour, int newMin, float newSec, bool tim
 		if(getMainStatus()==MAIN_DISPLAY_HSI) {
 			PrintTime(gps.hour,gps.minute,gps.second,timeWithNoFix);
 			if(timeWithNoFix) FBrenderFlush();
+		} else if(getMainStatus()==MAIN_DISPLAY_SUNRISE_SUNSET) {
+			//TODO: ....
 		}
 	}
 }

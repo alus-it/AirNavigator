@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/11/2013
+// Last change : 2/8/2014
 // Description : Header of AirCalc.c
 //============================================================================
 
@@ -21,11 +21,6 @@
 #define SIXTYTH 0.01666666666666666667 // 1/60
 #define MILE_FT 5280 //1 Mile = 5280 Ft (1760 Yards)
 
-enum sunriseSunsetCases { //Sunrise/sunset algorithm return values
-	SUN_RISES_AND_SETS,
-	SUN_NEVER_RISES,    //The sun never rises on this location (on the specified date)
-	SUN_NEVER_SETS      //The sun never sets on this location (on the specified date)
-};
 
 double Km2Nm(double valueKm);
 double Nm2Km(double valueNm);
@@ -61,7 +56,6 @@ double calcGreatCircleFinalCourse(double lat1, double lon1, double lat2, double 
 bool calcIntermediatePoint(double lat1, double lon1, double lat2, double lon2, double atd, double d, double *latI, double *lonI);
 bool isAngleBetween(double low, double angle, double hi);
 double calcGCCrossTrackError(double lat1, double lon1, double lon2, double latX, double lonX, double course12, double *atd);
-int calcSunriseSunset(double lat, double lon, int day, int month, int year, double zenith, int localOffset, double *riseTime, double *setTime);
 void convertDecimal2DegMin(double dec, int *deg, double *min);
 void convertDecimal2DegMinSec(double dec, int *deg, int *min, float *sec);
 void convertRad2DegMinSec(double rad, int *deg, int *min, float *sec);

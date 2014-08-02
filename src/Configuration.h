@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 20/1/2014
+// Last change : 2/8/2014
 // Description : Header of Config with the shared config data struct
 //============================================================================
 
@@ -62,6 +62,7 @@ struct configuration {
 	double takeOffdiffAlt; //meters
 	double trackErrorTolearnce, deptDistTolerance; //meters
 	double sunZenith; //deg
+	int timeZone; //local time offset from UTC time in hours
 	double recordTimeInterval; //sec
 	double recordMinDist; //meters
 	char *GPSdevName;

@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 30/11/2013
+// Last change : 2/8/2014
 // Description : Collection of functions for air navigation calculation
 //============================================================================
 
@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "AirCalc.h"
-#include "Common.h"
 
 //Internal AirCalc calculation defines
 #define EARTH_RADIUS_KM 6371
@@ -236,49 +235,6 @@ double calcGCCrossTrackError(double lat1, double lon1, double lon2, double latX,
 	//For very short distances
 	// *atd=asin(sqrt(pow(sin(dist1X),2)-pow(sin(xtd),2))/cos(xtd));
 	return xtd;
-}
-
-int calcSunriseSunset(double lat, double lon, int day, int month, int year, double zenith, int localOffset, double *riseTime, double *setTime) {
-	int retVal=SUN_RISES_AND_SETS;
-	lon=-lon; //Beacuse here longitudes to E are to be considered as positive
-	double N=floor(275*month/9)-(floor((month+9)/12)*(1+floor((year-4*floor(year/4)+2)/3)))+day-30;
-	double lngHour=Rad2Deg(lon)/15;
-	double localT=-1;
-	short i=0;
-	for(i=0;i<2;i++) {
-		double t;
-		if(i==0) t=N+((6-lngHour)/24);  //Rising
-		else t=N+((18-lngHour)/24); //Setting
-		double M=0.9856*t-3.289;
-		double L=M+(1.916*sin(Deg2Rad(M)))+(0.020*sin(Deg2Rad(2*M)))+282.634;
-		if(L<0) L+=360;
-		else if(L>360) L-=360;
-		double RA=Rad2Deg(absAngle(atan(0.91764*tan(Deg2Rad(L)))));
-		double Lquadrant=(floor(L/90))*90;
-		double RAquadrant=(floor(RA/90))*90;
-		RA+=Lquadrant-RAquadrant;
-		RA=RA/15;
-		double sinDec=0.39782*sin(Deg2Rad(L));
-		double cosDec=cos(asin(sinDec));
-		double cosH=(cos(zenith)-(sinDec*sin(lat)))/(cosDec*cos(lat));
-		if(cosH>=-1 && cosH<=1) { //to avoid cases where the sun never rises or never sets
-			double H;
-			if(i==0) H=360-Rad2Deg(acos(cosH)); //rising
-			else H=Rad2Deg(acos(cosH)); //setting
-			H=H/15;
-			double T=H+RA-(0.06571*t)-6.622;
-			double UT=T-lngHour;
-			localT=UT+localOffset;
-			if(localT<0) localT+=24;
-			else if(localT>24) localT-=24;
-		} else {
-			if(i==0) retVal=SUN_NEVER_RISES;
-			else retVal=SUN_NEVER_SETS;
-		}
-		if(i==0) *riseTime=localT;
-		else *setTime=localT;
-	}
-	return retVal;
 }
 
 void convertDecimal2DegMin(double dec, int *deg, double *min) {

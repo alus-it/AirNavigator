@@ -18,7 +18,6 @@
 #include <time.h>
 #include <math.h>
 #include "BlackBox.h"
-#include "Common.h"
 #include "Configuration.h"
 #include "AirCalc.h"
 

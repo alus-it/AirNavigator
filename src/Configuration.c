@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2014 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 20/1/2014
+// Last change : 2/8/2014
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
@@ -16,6 +16,7 @@
 #include <libroxml/roxml.h>
 #include "Configuration.h"
 #include "Common.h"
+#include "AirCalc.h"
 #include "FBrender.h"
 
 struct configuration config = { //Default configuration values
@@ -29,7 +30,8 @@ struct configuration config = { //Default configuration values
 	.takeOffdiffAlt=60, //meter
 	.trackErrorTolearnce=5,
 	.deptDistTolerance=1000, //meter
-	.sunZenith=96, //deg Civil Sun Zenith
+	.sunZenith=1.675516082, //Civil Sun Zenith: 96 deg = 1.675516082 rad
+	.timeZone=1, //+1 hour for most of Europe
 	.recordTimeInterval=5, //sec
 	.recordMinDist=10, //meters
 	.GPSdevName=NULL,
@@ -164,7 +166,15 @@ void loadConfig(void) { //Load configuration
 					attr=roxml_get_attr(detail,"angle",0);
 					if(attr!=NULL) {
 						text=roxml_get_content(attr,NULL,0,NULL);
-						config.sunZenith=atof(text);
+						config.sunZenith=Deg2Rad(atof(text)); //rad
+					}
+				} else printLog("WARNING: no sun zenith found, using default value.\n");
+				detail=roxml_get_chld(part,"timeZone",0);
+				if(detail!=NULL) {
+					attr=roxml_get_attr(detail,"timeOffsetHours",0);
+					if(attr!=NULL) {
+						text=roxml_get_content(attr,NULL,0,NULL);
+						config.timeZone=atoi(text); //hours
 					}
 				} else printLog("WARNING: no sun zenith found, using default value.\n");
 			} else printLog("WARNING: no navigator configuration found, using default values.\n");

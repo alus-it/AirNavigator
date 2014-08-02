@@ -208,6 +208,8 @@ bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDe
 			convertDecimal2DegMin(gps.latMinDecimal,&latMin,&latSec);
 			convertDecimal2DegMin(gps.lonMinDecimal,&lonMin,&lonSec);
 			PrintPosition(gps.latDeg,latMin,latSec,gps.isLatN,gps.lonDeg,lonMin,lonSec,gps.isLonE);
+		} else if(getMainStatus()==MAIN_DISPLAY_SUNRISE_SUNSET) {
+			//TODO: ....
 		}
 		BlackBoxRecordPos(gps.lat,gps.lon,gps.timestamp,gps.hour,gps.minute,gps.second,gps.day,gps.month,gps.year,dateChaged);
 		return true;

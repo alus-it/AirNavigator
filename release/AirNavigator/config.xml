@@ -14,10 +14,11 @@
 	<distances distance="Km" trackError="m" />
 </measureUnits>
 <navigator>
-	<!-- measure units: altitude and distances: meters, angles: degrees -->
+	<!-- measure units: altitude and distances: meters, angles: degrees, time zone: hours -->
 	<takeOff diffAlt="50" />
 	<navParameters trackErrorTolearnce="5" deptDistTolerance="1000" />
 	<sunZenith angle="96" />
+	<timeZone timeOffsetHours="+1" />
 </navigator>
 <trackRecorder>
 	<!-- measure units: interval time: seconds, minimum distance: meters -->
