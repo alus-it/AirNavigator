@@ -391,6 +391,8 @@ Version 0.3.1
 	Bearing to next way point also displayed in the HSI
 	
 Verasion 0.3.2
+	Added dedicated screen Functions to show sunrise and sunset times
+	NMEA parser performance improvements and optimization
 	TODO: work in progress...
 
 

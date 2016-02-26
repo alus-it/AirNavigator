@@ -39,12 +39,17 @@ $ sudo ln -s proc-armv proc
 This is because the TTGO processor is a SAMSUNG ELECTRONICS S3C2410 (Arm920T), 32-bit architecture (so armv, while armo is for the old 26-bit ones).
 
 
-6. Export the PATH:
+6. To cross-compile on 64 bit make sure to have installed the GNU C 32-bit shared libraries for AMD64 
 
-export PATH=/usr/local/cross/gcc-3.3.4_glibc-2.3.2/arm-linux/bin:$PATH:/usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin
+$ sudo apt-get install libc6-i386 
 
 
-7. The cross compiler is now ready!
+7. Optionally export the PATH:
+
+export PATH=$PATH:/usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin
+
+
+8. The cross compiler is now ready!
 
 
 

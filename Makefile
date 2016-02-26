@@ -3,10 +3,10 @@
 # Since : 22/4/2011
 # Author : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 # Web : http://www.alus.it/airnavigator/
-# Copyright : (C) 2010-2014 Alberto Realis-Luc
+# Copyright : (C) 2010-2015 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 2/8/2014
+# Last change : 21/2/2016
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
 
@@ -14,8 +14,11 @@
 # AirNavigator version string
 VERSION = 0.3.2
 
+# Toolchain path
+TOOLCHAIN_PATH = /usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin
+
 # Add toolchain location to the path
-export PATH := $(PATH):/usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin
+export PATH := $(TOOLCHAIN_PATH):$(PATH)
 
 # Compiler and tools
 CC = arm-linux-gcc
