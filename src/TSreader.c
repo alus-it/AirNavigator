@@ -112,7 +112,7 @@ short TSreaderStart() {
 void TSreaderClose() {
 	if(TSreader.reading==1) {
 		TSreader.reading=0;
-		pthread_kill(TSreader.thread,SIGUSR1); //send the signa to kill the thread
+		pthread_kill(TSreader.thread,SIGUSR1); //send the signal to kill the thread
 		pthread_join(TSreader.thread,NULL); //wait for thread death
 	}
 	TSreaderRelease();
