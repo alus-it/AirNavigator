@@ -161,7 +161,10 @@ void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 			updateSpeed(NMEAparser.groundSpeedKnots);
 			updateDirection(NMEAparser.trueTrack,NMEAparser.magneticVariation,NMEAparser.magneticVariationToEast,NMEAparser.newerTimestamp);
 		}
+		if(posChanged||altChanged) NavUpdatePosition(gps.lat,gps.lon,gps.realAltMt,gps.speedKmh,gps.timestamp);
 		pthread_mutex_unlock(&gps.mutex);
+		if(getMainStatus()==MAIN_DISPLAY_HSI) FBrenderFlush();
+		BlackBoxCommit();
 		NMEAparser.GGAfound=false;
 		NMEAparser.RMCfound=false;
 		NMEAparser.GSAfound=false;

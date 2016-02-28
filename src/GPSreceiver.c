@@ -293,6 +293,18 @@ void updateTime(float timestamp, int newHour, int newMin, float newSec, bool tim
 			if(timeWithNoFix) FBrenderFlush();
 		} else if(getMainStatus()==MAIN_DISPLAY_SUNRISE_SUNSET) {
 			//TODO: ....
+
+			// Arrival location
+			// Remaining time to sunset or to sunrise
+			// Sunrise time, sunset time
+
+			// Current location
+			// Remaining time to sunset or to sunrise
+			// Sunrise time, sunset time
+
+			// Departure location
+			// Remaining time to sunset or to sunrise
+			// Sunrise time, sunset time
 		}
 	}
 }

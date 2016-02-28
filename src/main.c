@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 31/1/2014
+// Last change : 28/2/2016
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -146,9 +146,9 @@ int main(int argc, char** argv) {
 	char *toLoad=NULL; //the path to the chosen GPX file to be loaded
 	int numWPloaded=0; //the number of waypoints loaded from the selected flight plan
 	while(!doExit) { //Main loop
+		FBrenderClear(0,screen.height,config.colorSchema.background);
 		switch(mainData.status) { //Depending on status display the proper screen
 			case MAIN_DISPLAY_MENU:
-				FBrenderClear(0,screen.height,config.colorSchema.background);
 				FBrenderBlitText(10,10,config.colorSchema.dirMarker,config.colorSchema.background,false,"AirNavigator v.%s",VERSION);
 				FBrenderBlitText(200,10,config.colorSchema.magneticDir,config.colorSchema.background,true,"http://www.alus.it/airnavigator");
 				DrawButton(20,50,numGPXfiles>0,"Load flight plan");
@@ -160,10 +160,8 @@ int main(int argc, char** argv) {
 				DrawButton(220,130,BlackBoxIsStarted(),BlackBoxIsPaused()?"Resume Track Recorder":"Pause Track Recorder");
 				DrawButton(220,210,true,"EXIT");
 				if(mainData.bottomBarMsg!=NULL) FBrenderBlitText(10,260,mainData.bottomBarMsgColor,config.colorSchema.background,false,"%s                                                         ",mainData.bottomBarMsg); //render confirmation msg
-				FBrenderFlush();
 				break;
 			case MAIN_DISPLAY_SELECT_ROUTE: //Display the select GPX flight plan screen
-				FBrenderClear(0,screen.height,config.colorSchema.background); //draw the main screen
 				FBrenderBlitText(20,20,config.colorSchema.dirMarker,config.colorSchema.background,0,"Select and load the desired GPX flight plan");
 				FBrenderBlitText(20,35,config.colorSchema.text,config.colorSchema.background,0,"%d GPX flight plans found.",numGPXfiles);
 				FBrenderBlitText(20,60,config.colorSchema.text,config.colorSchema.background,0,"Selected GPX flight plan:");
@@ -172,19 +170,17 @@ int main(int argc, char** argv) {
 				DrawButton(220,90,currFile->next!=NULL,"    Next >>");
 				DrawButton(220,210,currFile!=NULL,"    LOAD");
 				DrawButton(20,210,true,"Back to menu");
-				FBrenderFlush();
 			break;
-			case MAIN_DISPLAY_HSI: //Display HSI, start reading from GPS and the track recorder
-				FBrenderClear(0,screen.height,config.colorSchema.background);
+			case MAIN_DISPLAY_HSI: //Display HSI
 				NavRedrawNavInfo();
-				FBrenderFlush();
 				break;
-			case MAIN_DISPLAY_SUNRISE_SUNSET:
-				//TODO: ...
+			case MAIN_DISPLAY_SUNRISE_SUNSET: // Display ephemerides
+				NavRedrawEphemeridalInfo();
 				break;
 			default:
 				break;
 		} //end of display switch
+		FBrenderFlush();
 		TSreaderGetTouch(&lastTouch); //wait that the user touches the screen and get the coordinates of the touch
 		switch(mainData.status) { //depending on which screen we are process the input touch
 			case MAIN_DISPLAY_MENU: //here process main menu input
@@ -255,15 +251,13 @@ int main(int argc, char** argv) {
 				}
 				break;
 			case MAIN_DISPLAY_HSI: //here process the user input the HSI screen
-				mainData.status=MAIN_DISPLAY_MENU; //a touch anywhere in the HSI screen bring back to main menu
+			case MAIN_DISPLAY_SUNRISE_SUNSET: // and in the ephemeides screen
+				mainData.status=MAIN_DISPLAY_MENU; //a touch anywhere here brings back to main menu
 				if(numWPloaded>0) showMessage(config.colorSchema.ok,false,"Loaded route: %s - %d WayPoints",currFile->name,numWPloaded);
 				else { //Nothing to display
 					free(mainData.bottomBarMsg);
 					mainData.bottomBarMsg=NULL;
 				}
-				break;
-			case MAIN_DISPLAY_SUNRISE_SUNSET:
-				//TODO: ...
 				break;
 			default:
 				doExit=true;

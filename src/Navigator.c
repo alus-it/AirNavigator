@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 2/8/2014
+// Last change : 28/2/2016
 // Description : Navigation manager
 //============================================================================
 
@@ -402,6 +402,7 @@ void updateDtgEteEtaAs(double atd, float timestamp, double remainDist) {
 }
 
 void NavUpdatePosition(double lat, double lon, double altMt, double speedKmh, float timestamp) {
+	//TODO: somwhere here update ephemerides
 	switch(Navigator.status) {
 		case NAV_STATUS_NOT_INIT:
 		case NAV_STATUS_NO_ROUTE_SET:
@@ -572,6 +573,37 @@ void NavRedrawNavInfo(void) { //this is to redraw HSI screen when returning from
 		case NAV_STATUS_END_NAV:
 			PrintNavStatus(Navigator.status,"Nowhere");
 			if(Navigator.remainDist!=-1) PrintNavDTG(Navigator.remainDist);
+			break;
+		default: //unknown state, we should be never here
+			break;
+	}
+}
+
+void NavRedrawEphemeridalInfo(void) { //this is to redraw HSI screen when returning from main menu
+	//TODO: draw sunset screen ....
+	if(getMainStatus()!=MAIN_DISPLAY_SUNRISE_SUNSET) return;
+
+	//pthread_mutex_lock(&gps.mutex);
+	// get the data
+	//pthread_mutex_unlock(&gps.mutex);
+
+	// prepare the screen depending on the navigator status
+	switch(Navigator.status) {
+		case NAV_STATUS_NOT_INIT:
+		case NAV_STATUS_NO_ROUTE_SET:
+			break;
+		case NAV_STATUS_NAV_BUSY:
+			break;
+		case NAV_STATUS_TO_START_NAV:
+		case NAV_STATUS_WAIT_FIX:
+		case NAV_STATUS_NAV_TO_DPT:
+			break;
+		case NAV_STATUS_NAV_TO_WPT:
+		case NAV_STATUS_NAV_TO_DST:
+			break;
+		case NAV_STATUS_NAV_TO_SINGLE_WP:
+			break;
+		case NAV_STATUS_END_NAV:
 			break;
 		default: //unknown state, we should be never here
 			break;

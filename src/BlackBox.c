@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 8/12/2013
+// Last change : 28/2/2016
 // Description : Produces tracelogFiles as XML GPX files
 //============================================================================
 
@@ -154,7 +154,8 @@ bool BlackBoxRecordPos(double lat, double lon, float timestamp, int hour, int mi
 			}
 		} break;
 		case BBS_WAIT_OPT:
-			retval=BlackBoxCommit();
+			BlackBoxCommit();
+			retval=BlackBoxRecordPos(lat,lon,timestamp,hour,min,sec,day,month,year,dateChanged);
 			break;
 		case BBS_NOT_SET: //do nothing
 		case BBS_PAUSED: //do nothing
