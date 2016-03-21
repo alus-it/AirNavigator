@@ -6,11 +6,11 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 21/2/2016
+// Last change : 21/3/2016
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
-//#define PRINT_SENTENCES
+#define PRINT_SENTENCES
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ void NMEAparserProcessBuffer(unsigned char *buf, int redBytes) {
 							for(int j=1;j<NMEAparser.rcvdBytesOfSentence-3;j++) checksum^=NMEAparser.sentence[j];
 							if(getCRCintValue()==checksum) { //right CRC
 								NMEAparser.sentence[NMEAparser.rcvdBytesOfSentence]='\0';
-								#ifdef PRINT_SENTENCES //Print all the sentences received
+								#ifdef PRINT_SENTENCES //Print all the sentences received, if required
 								printLog("%s\n",NMEAparser.sentence);
 								#endif
 								NMEAparser.rcvdTimestamp=getCurrentTime();
@@ -180,7 +180,9 @@ int parseNMEAsentence() {
 				case 'G': //GGA
 					if(NMEAparser.sentence[5]=='A') {
 						r=parseGGA();
+						#ifdef PRINT_SENTENCES
 						printLog("Time difference: %f\n",NMEAparser.newerTimestamp-NMEAparser.rcvdTimestamp);
+						#endif
 					}
 					break;
 				case 'S': //GSA GSV
@@ -193,8 +195,10 @@ int parseNMEAsentence() {
 			if(NMEAparser.sentence[4]=='M' && NMEAparser.sentence[5]=='C') r=parseRMC();
 			break;
 	}
+	#ifdef PRINT_SENTENCES
 	if(r<0) printLog("WARNING: parsing sentence %s returned: %d\n",NMEAparser.sentence,r);
 	else if(r==2) printLog("Received unexpected sentence: %s\n",NMEAparser.sentence);
+	#endif
 	return 1;
 }
 
@@ -239,7 +243,9 @@ bool updateAltitude(float newAltitude, char altUnit, float timestamp) {
 			newAltitudeMt=Ft2m(newAltitude);
 		}
 	} else {
+		#ifdef PRINT_SENTENCES
 		printLog("ERROR: Unknown altitude unit: %c\n",altUnit);
+		#endif
 		return 0;
 	}
 	NMEAparser.altTimestamp=timestamp;
@@ -404,7 +410,9 @@ int parseGGA() {
 	parseFloat(NMEAparser.fields[11],&geoidalSeparation); //Geoidal separation
 	char geoidalUnit=NMEAparser.fields[12][0]; //Geoidal Separation unit
 	if(geoidalUnit != 'M') {
-		printLog("WARNING: Geoidal separation unit not in meters!!!"); //////////////////////////////// TEST
+		#ifdef PRINT_SENTENCES
+		printLog("WARNING: Geoidal separation unit not in meters!!!");
+		#endif
 		return 0;
 	}
 	float diffAge=0;
@@ -412,12 +420,8 @@ int parseGGA() {
 	int diffRef=-1;
 	parseInteger(NMEAparser.fields[14],&diffRef); //Differential reference station ID, the last one
 	float timestamp=timeHour*3600+timeMin*60+timeSec;
-	printLog("Timestamp: %f\n",timestamp); //TEST *************************************
-	printLog("Newer Timestamp: %f\n",NMEAparser.newerTimestamp); //TEST *************************************
-
 	if(timestamp<NMEAparser.newerTimestamp) return 0; //the sentence is old
 	if(quality!=Q_NO_FIX) {
-		printLog("Quality\n"); //TEST *************************************
 		if(timestamp>NMEAparser.newerTimestamp) { //this is a new one sentence
 			NMEAparser.newerTimestamp=timestamp;
 			NMEAparser.GGAfound=true;
@@ -441,10 +445,8 @@ int parseGGA() {
 		NMEAparser.hdop=hDilutionPrecision;
 		NMEAparser.SatsInView=numOfSatellites;
 		updateFixMode(MODE_GPS_FIX);
-		printLog("PARSING GGA EXTREEEMELUY SUCCESSFULL!!!!\n");
 		return 1;
-	} else { //there is no fix...
-		printLog("PARSING GGA SUCCESSFULL!!\n");
+	} else { //there is no fix...;
 		updateFixMode(MODE_NO_FIX); //show that there is no fix
 		if(timestamp>NMEAparser.newerTimestamp) {
 			NMEAparser.newerTimestamp=timestamp;
@@ -469,6 +471,7 @@ int parseRMC() {
 		NMEAparser.timeDay=timeDay;
 		NMEAparser.timeMonth=timeMonth;
 		NMEAparser.timeYear=timeYear;
+		NMEAparser.RMCfound=isValid;
 		NMEAparser.GGAfound=false;
 		NMEAparser.GSAfound=false;
 		updateTime(timestamp,timeHour,timeMin,timeSec,isValid); //show the time
