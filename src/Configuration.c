@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 2/8/2014
+// Last change : 21/3/2016
 // Description : Implementation of Config with the shared config data struct
 //============================================================================
 
@@ -176,7 +176,7 @@ void loadConfig(void) { //Load configuration
 						text=roxml_get_content(attr,NULL,0,NULL);
 						config.timeZone=atoi(text); //hours
 					}
-				} else printLog("WARNING: no sun zenith found, using default value.\n");
+				} else printLog("WARNING: no time zone found, using default value.\n");
 			} else printLog("WARNING: no navigator configuration found, using default values.\n");
 			part=roxml_get_chld(root,"trackRecorder",0);
 			if(part!=NULL) {
