@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 27/02/2016
+// Last change : 21/03/2016
 // Description : Reads from a NMEA serial device NMEA sentences and parse them
 //============================================================================
 
@@ -14,6 +14,7 @@
 //#define SERIAL_DEVICE //to be enabled if reading from a real serial device
 //#define PRINT_RECEIVED_DATA
 
+#include <stdio.h>////
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -202,6 +203,7 @@ void* run(void *ptr) { //listening function, it will be ran in a separate thread
 			struct timeval timeout;
 			timeout.tv_sec = 5;
 			timeout.tv_usec = 0;
+			while(read(fd,buf,NMEA_BUFFER_SIZE)>0); // flush the stream
 			while(GPSreceiver.reading) { // loop while waiting for input
 				toRead_redBytes=select(maxfd,&readfs,NULL,NULL,&timeout); //wait to read because the read is now non-blocking
 				if(GPSreceiver.reading) { // further check if we want still to read after waiting
