@@ -411,7 +411,7 @@ int parseGGA() {
 	char geoidalUnit=NMEAparser.fields[12][0]; //Geoidal Separation unit
 	if(geoidalUnit != 'M') {
 		#ifdef PRINT_SENTENCES
-		printLog("WARNING: Geoidal separation unit not in meters!!!");
+		printLog("WARNING: Geoidal separation unit not in meters!");
 		#endif
 		return 0;
 	}
@@ -561,8 +561,21 @@ int parseGSA() {
 	return 0;
 }
 
+//TODO:
+// $GPGSV,2,2,07,09,45,072,17,05,38,306,19,13,12,265,19*4E
+// returned -3
+
 int parseGSV() {
-	char *field=NMEAparser.fields[1]; //Number of GSV messages
+	if(NMEAparser.fieldId < 7) return 0;
+	int num;
+	parseInteger(NMEAparser.fields[1],&num); //Number of GSV messages
+	int seq;
+	parseInteger(NMEAparser.fields[2],&seq); //GSV message seq no.
+
+	//TODO: continue here
+
+
+	char *field=NMEAparser.fields[1];
 	if(field==NULL) {
 		NMEAparser.numOfGSVmsg=0;
 		NMEAparser.GSVmsgSeqNo=0;
