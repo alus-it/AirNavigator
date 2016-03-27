@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 21/3/2016
+// Last change : 27/3/2016
 // Description : Parses NMEA sentences from a GPS device
 //============================================================================
 
