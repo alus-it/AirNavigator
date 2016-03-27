@@ -33,8 +33,8 @@ struct EphemeridesData {
 };
 
 struct EphemeridesStruct {
-	bool departurePresent;
 	struct EphemeridesData deparure;
+	struct EphemeridesData currentPosition;
 	struct EphemeridesData destination;
 };
 

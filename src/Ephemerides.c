@@ -20,9 +20,9 @@
 #include "GPSreceiver.h"
 
 
-struct EphemeridesStruct Ephemerides = {
-	.departurePresent = false
-};
+//struct EphemeridesStruct Ephemerides = {
+	//.departurePresent = false
+//};
 
 int calcSunriseSunset(double lat, double lon, int day, int month, int year, double zenith, int localOffset, double *riseTime, double *setTime) {
 	int retVal=SUN_RISES_AND_SETS;
@@ -80,13 +80,14 @@ int calcSunriseSunsetWithInternalClockTime(double lat, double lon, double *riseT
 void calcFlightPlanEphemerides(double lat, double lon, bool isDeparture) {
 	double riseTime, setTime;
 	if(gps.fixMode>MODE_NO_FIX) {
+		//TODO: can we avoid to lock the mutex here?
 		pthread_mutex_lock(&gps.mutex);
 		calcSunriseSunset(lat,lon,gps.day,gps.month,gps.year,config.sunZenith,0,&riseTime,&setTime);
 		pthread_mutex_unlock(&gps.mutex);
 	}
 	else calcSunriseSunsetWithInternalClockTime(lat,lon,&riseTime,&setTime);
 	if(isDeparture) {
-		Ephemerides.departurePresent=true;
+		//Ephemerides.departurePresent=true;
 		convertDecimal2DegMinSec(riseTime,&Ephemerides.deparure.sunriseHour,&Ephemerides.deparure.sunriseMin,&Ephemerides.deparure.sunriseSec);
 		convertDecimal2DegMinSec(setTime,&Ephemerides.deparure.sunsetHour,&Ephemerides.deparure.sunsetMin,&Ephemerides.deparure.sunsetSec);
 	} else {
