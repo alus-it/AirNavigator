@@ -48,7 +48,6 @@ enum GPSmode {
 };
 
 enum indexSatData { //Indexes for satellite's data
-	SAT_PRN,       //satellite PRN number
 	SAT_ELEVATION, //elevation in degrees (00-90)
 	SAT_AZIMUTH,   //azimuth in degrees to true north (000-359)
 	SAT_SNR        //SNR in dB (00-99)
@@ -76,7 +75,7 @@ struct GPSdata {
 	enum GPSmode fixMode;                          //type of fix
 	int signalStrength,SNR,beaconDataRate,channel; //data about GPS signal (not used)
 	int beaconFrequency;                           //beacon frequency of GPS signal (not used)
-	int satellites[MAX_NUM_SAT][4];                //matrix of detected satellites
+	int satellites[MAX_NUM_SAT][3];                //matrix of detected satellites
 	pthread_mutex_t mutex;                         //mutex for reading and writing GPS data in this struct
 };
 

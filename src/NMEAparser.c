@@ -33,7 +33,7 @@
 struct NMEAparserStruct {
 	float altTimestamp, dirTimestamp, newerTimestamp, rcvdTimestamp;
 	bool GGAfound, RMCfound, GSAfound;
-	int numOfGSVmsg, GSVmsgSeqNo, GSVsatSeqNo, GSVtotalSatInView;
+	int numOfGSVmsg, GSVmsgSeqNo, GSVtotalSatInView;
 	int rcvdBytesOfSentence, rcvdBytesOfField, rcvdBytesOfCheksum;
 	char sentence[MAX_SENTENCE_LENGTH];
 	char fields[MAX_FIELDS][MAX_FIELD_LENGTH];
@@ -54,14 +54,14 @@ unsigned int getCRCintValue(void);
 bool updateAltitude(float newAltitude, char altUnit, float timestamp);
 void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, float timestamp);
 bool updatePosition(int newlatDeg, float newlatMin, bool newisLatN, int newlonDeg, float newlonMin, bool newisLonE, bool dateChaged);
-int parseTime(char* field, int* timeHour, int* timeMin, float* timeSec);
-int parseDate(char* field, int* dd, int* mm, int* yy);
+bool parseTime(char* field, int* timeHour, int* timeMin, float* timeSec);
+bool parseDate(char* field, int* dd, int* mm, int* yy);
 bool parseLatitude(char* firstField, char* secondField, int* latDeg, float* latMin, bool* latNorth);
 bool parseLongitude(char* firstField, char* secondField, int* lonDeg, float* lonMin, bool* lonEast);
 bool parseValid(char* field, bool* isValid);
 bool parseEastWest(char* field, bool* isEast);
-int parseInteger(char* field, int* value);
-int parseFloat(char* field, float* value);
+bool parseInteger(char* field, int* value);
+bool parseFloat(char* field, float* value);
 
 static struct NMEAparserStruct NMEAparser = {
 	.altTimestamp=0,
@@ -73,7 +73,6 @@ static struct NMEAparserStruct NMEAparser = {
 	.GSAfound=false,
 	.numOfGSVmsg=0,
 	.GSVmsgSeqNo=0,
-	.GSVsatSeqNo=0,
 	.GSVtotalSatInView=0,
 	.rcvdBytesOfSentence=0,
 	.rcvdBytesOfCheksum=-1,
@@ -316,17 +315,16 @@ void updateDirection(float newTrueTrack, float magneticVar, bool isVarToEast, fl
 	NMEAparser.dirTimestamp=timestamp;
 }
 
-int parseTime(char* field, int* timeHour, int* timeMin, float* timeSec) {
-	if(field[0]=='\0') return 0;
+bool parseTime(char* field, int* timeHour, int* timeMin, float* timeSec) {
+	if(field[0]=='\0') return false;
 	return (sscanf(field,"%2d%2d%f",timeHour,timeMin,timeSec)==3); //Hour, Minute, second hhmmss.sss
 }
 
-int parseDate(char* field, int* dd, int* mm, int* yy)
+bool parseDate(char* field, int* dd, int* mm, int* yy)
 {
-	if(field[0]=='\0') return 0;
-	if(sscanf(field,"%2d%2d%d",dd,mm,yy)!=3) return 0; //Date ddmmyy
+	if(field[0]=='\0') return false;
+	if(sscanf(field,"%2d%2d%d",dd,mm,yy)!=3) return false; //Date ddmmyy
 	return (*dd>0 && *mm>0);
-
 }
 
 bool parseLatitude(char* firstField, char* secondField, int* latDeg, float* latMin, bool* latNorth) {
@@ -376,15 +374,15 @@ bool parseEastWest(char* field, bool* isEast) {
 	}
 }
 
-int parseInteger(char* field, int* value)
+bool parseInteger(char* field, int* value)
 {
-	if(field[0]=='\0') return 0;
+	if(field[0]=='\0') return false;
 	return (sscanf(field,"%d",value)==1);
 }
 
-int parseFloat(char* field, float* value)
+bool parseFloat(char* field, float* value)
 {
-	if(field[0]=='\0') return 0;
+	if(field[0]=='\0') return false;
 	return (sscanf(field,"%f",value)==1);
 }
 
@@ -561,110 +559,41 @@ int parseGSA() {
 	return 0;
 }
 
-//TODO:
-// $GPGSV,2,2,07,09,45,072,17,05,38,306,19,13,12,265,19*4E
-// returned -3
-
 int parseGSV() {
+	int numOfGSVmsg=NMEAparser.numOfGSVmsg; //take a note of numOfGSV...
+	int GSVmsgSeqNo=NMEAparser.GSVmsgSeqNo; // ... and seq number
+	NMEAparser.numOfGSVmsg=0; // reset "a priori"
+	NMEAparser.GSVmsgSeqNo=0;
 	if(NMEAparser.fieldId < 7) return 0;
-	int num;
-	parseInteger(NMEAparser.fields[1],&num); //Number of GSV messages
-	int seq;
-	parseInteger(NMEAparser.fields[2],&seq); //GSV message seq no.
-
-	//TODO: continue here
-
-
-	char *field=NMEAparser.fields[1];
-	if(field==NULL) {
-		NMEAparser.numOfGSVmsg=0;
-		NMEAparser.GSVmsgSeqNo=0;
-		return (-1);
-	}
-	int num=0;
-	if(strlen(field)>0) sscanf(field,"%d",&num);
-	if(num==0) {
-		NMEAparser.numOfGSVmsg=0;
-		NMEAparser.GSVmsgSeqNo=0;
-		return (-1);
-	}
-	field=NMEAparser.fields[2]; //GSV message seq no.
-	if(field==NULL) {
-		NMEAparser.numOfGSVmsg=0;
-		NMEAparser.GSVmsgSeqNo=0;
-		return (-2);
-	}
-	int seqNo=0;
-	if(strlen(field)>0) sscanf(field,"%d",&seqNo);
-	if(seqNo==0) {
-		NMEAparser.numOfGSVmsg=0;
-		NMEAparser.GSVmsgSeqNo=0;
-		return (-2);
-	}
-	if(seqNo==1) { //the first one resets GSVmsgSeqNo counter
-		NMEAparser.numOfGSVmsg=0;
-		NMEAparser.GSVmsgSeqNo=0;
-	}
-	if(NMEAparser.GSVmsgSeqNo==0) { //we are expecting the first
-		NMEAparser.numOfGSVmsg=num;
-		NMEAparser.GSVmsgSeqNo=1;
-		field=NMEAparser.fields[3]; //total number of satellites in view
-		if(field==NULL) return (-3);
-		if(strlen(field)>0) sscanf(field,"%d",&NMEAparser.GSVtotalSatInView);
+	int sen,seq,sat; //Number of GSV messages, GSV message seq no, total number of satellites in view
+	if(parseInteger(NMEAparser.fields[1],&sen) && parseInteger(NMEAparser.fields[2],&seq) && parseInteger(NMEAparser.fields[3],&sat)) {
+		if(sen<=0 || seq<=0 || seq>sen || sat<0 || sat>MAX_NUM_SAT) return -2;
+	} else return -1;
+	if(seq==1) { //the first one resets GSVmsgSeqNo counter
+		numOfGSVmsg=sen;
+		GSVmsgSeqNo=1;
+		for(int i=0; i<MAX_NUM_SAT; i++) for(int j=SAT_ELEVATION; j<=SAT_SNR; j++) gps.satellites[i][j]=-1; //reset all sats
+		NMEAparser.GSVtotalSatInView=sat;
 		updateNumOfTotalSatsInView(NMEAparser.GSVtotalSatInView);
 	} else { //we are not expecting the first
-		if(num!=NMEAparser.numOfGSVmsg) {
-			NMEAparser.numOfGSVmsg=0;
-			NMEAparser.GSVmsgSeqNo=0;
-			return (-1);
-		}
-		if(seqNo!=NMEAparser.GSVmsgSeqNo+1) {
-			NMEAparser.numOfGSVmsg=0;
-			NMEAparser.GSVmsgSeqNo=0;
-			return (-2);
-		}
-		NMEAparser.GSVmsgSeqNo++;
-		field=NMEAparser.fields[4]; //total number of satellites in view
-		if(field==NULL) {
-			NMEAparser.numOfGSVmsg=0;
-			NMEAparser.GSVmsgSeqNo=0;
-			return (-3);
-		}
-		if(strlen(field)>0) sscanf(field,"%d",&num);
-		if(num!=NMEAparser.GSVtotalSatInView) {
-			NMEAparser.numOfGSVmsg=0;
-			NMEAparser.GSVmsgSeqNo=0;
-			return (-3);
-		}
+		if(sen!=numOfGSVmsg) return -3;
+		if(seq!=++GSVmsgSeqNo) return -4;
+		if(sat!=NMEAparser.GSVtotalSatInView) return -5;
 	}
 	int pos=5;
-	while(field!=NULL && NMEAparser.GSVsatSeqNo<NMEAparser.GSVtotalSatInView) {
-		field=NMEAparser.fields[pos++]; //satellite PRN number
-		if(field==NULL) break; //to exit from the sat sequence of current msg
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_PRN]);
-		else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_PRN]=-1;
-		field=NMEAparser.fields[pos++]; //elevation in degrees (00-90)
-		if(field==NULL) {
-			NMEAparser.numOfGSVmsg=0;
-			NMEAparser.GSVmsgSeqNo=0;
-			return (-5-NMEAparser.GSVsatSeqNo*4);
+	bool ok=true;
+	while(pos<=NMEAparser.fieldId && ok) {
+		int satId;
+		if(!(ok=parseInteger(NMEAparser.fields[pos++],&satId))) break;
+		if(!(ok=(satId<=0 || satId>MAX_NUM_SAT))) break;
+		satId--;
+		for(int i=SAT_ELEVATION; i<=SAT_SNR && ok && pos<=NMEAparser.fieldId; i++) {
+			if(!(ok=parseInteger(NMEAparser.fields[pos++],&gps.satellites[satId][i]))) gps.satellites[satId][i]=-1;
 		}
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_ELEVATION]);
-		else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_ELEVATION]=-1;
-		field=NMEAparser.fields[pos++]; //azimuth in degrees to 1 north (000-359)
-		if(field==NULL) {
-			NMEAparser.numOfGSVmsg=0;
-			NMEAparser.GSVmsgSeqNo=0;
-			return (-6-NMEAparser.GSVsatSeqNo*4);
-		}
-		if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_AZIMUTH]);
-		else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_AZIMUTH]=-1;
-		field=NMEAparser.fields[pos++]; //SNR in dB (00-99)
-		if(field!=NULL) {
-			if(strlen(field)>0) sscanf(field,"%d",&gps.satellites[NMEAparser.GSVsatSeqNo][SAT_SNR]);
-		} else gps.satellites[NMEAparser.GSVsatSeqNo][SAT_SNR]=-1;
-		NMEAparser.GSVsatSeqNo++;
 	}
+	if(!ok) return(-1-pos);
+	NMEAparser.numOfGSVmsg=numOfGSVmsg; //put back the right values
+	NMEAparser.GSVmsgSeqNo=GSVmsgSeqNo;
 	return 1;
 }
 
