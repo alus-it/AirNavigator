@@ -6,13 +6,9 @@
 # Copyright : (C) 2010-2015 Alberto Realis-Luc
 # License : GNU GPL v2
 # Repository : https://github.com/AirNavigator/AirNavigator.git
-# Last change : 21/2/2016
+# Last change : 19/9/2016
 # Description : Makefile of AirNavigator for TomTom devices
 # ============================================================================
-
-
-# AirNavigator version string
-VERSION = 0.3.2
 
 # Toolchain path
 TOOLCHAIN_PATH = /usr/local/cross/gcc-3.3.4_glibc-2.3.2/bin
@@ -32,6 +28,14 @@ LFLAGS = -lm -lpthread
 # Source and binary paths
 SRC = src/
 BIN = bin/
+$(shell mkdir -p $(BIN) >/dev/null)
+
+# Dependencies dir
+DEPDIR = $(BIN).d/
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+
+# Dependencies flags
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)$*.Td
 
 # Libs sources and libs headers path
 LIBSRC = libs/
@@ -64,6 +68,7 @@ DIST = release/
 
 # Libraries destination path
 LIB = $(DIST)AirNavigator/lib/
+$(shell mkdir -p $(LIB) >/dev/null)
 
 # List of libraries
 LIBFILES = libroxml.so
@@ -83,77 +88,24 @@ SYSTEMIMAGE = utility/standaloneImage/
 ### Build dependencies
 all: $(DIST)AirNavigator/AirNavigator
 
+# Link
 $(DIST)AirNavigator/AirNavigator: $(OBJS) $(LIBS)
 	@echo Linking all into: $@
 	@$(CC) $(LFLAGS) $(OBJS) -L$(LIB) -lroxml -o $@
 	@$(STRIP) $@
 
-# Create bin directory if missing
-$(OBJS): | $(BIN)
-$(BIN):
-	mkdir -p $(BIN)
+# Compile
+$(BIN)%.o: $(SRC)%.c
+$(BIN)%.o: $(SRC)%.c $(DEPDIR)%.d
+	@echo 'Compiling: $<'
+	@$(CC) $(DEPFLAGS) $(CFLAGS) -I $(INC) -I $(LIBSRC) -c $< -o $@
+	@mv -f $(DEPDIR)$*.Td $(DEPDIR)$*.d
 
-# Create lib directory if missing
-$(LIBS): | $(LIB) 
-$(LIB):
-	mkdir -p $(LIB)
+# Dependencies directory
+$(DEPDIR)%.d: ;
+.PRECIOUS: $(DEPDIR)%.d
 
-$(BIN)main.o: $(SRC)main.c $(SRC)Common.h $(SRC)Configuration.h $(SRC)FBrender.h $(SRC)TSreader.h $(SRC)GPSreceiver.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)BlackBox.h $(SRC)HSI.h $(SRC)Geoidal.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) -D'VERSION="$(VERSION)"' -I $(INC) $< -o $@
-
-$(BIN)GPSreceiver.o: $(SRC)GPSreceiver.c $(SRC)GPSreceiver.h $(SRC)NMEAparser.h $(SRC)SiRFparser.h $(SRC)Common.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)BlackBox.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) -I $(INC) $< -o $@
-
-$(BIN)NMEAparser.o: $(SRC)NMEAparser.c $(SRC)NMEAparser.h $(SRC)GPSreceiver.h $(SRC)Common.h $(SRC)AirCalc.h $(SRC)Geoidal.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Navigator.h $(SRC)BlackBox.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)SiRFparser.o: $(SRC)SiRFparser.c $(SRC)SiRFparser.h $(SRC)GPSreceiver.h $(SRC)Common.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)Navigator.o: $(SRC)Navigator.c $(SRC)Navigator.h $(SRC)Configuration.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)FBrender.h $(SRC)HSI.h $(SRC)Ephemerides.h $(SRC)Common.h $(LIBSRC)libroxml/roxml.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
-
-$(BIN)HSI.o: $(SRC)HSI.c $(SRC)HSI.h $(SRC)FBrender.h $(SRC)AirCalc.h $(SRC)Configuration.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)BlackBox.o: $(SRC)BlackBox.c $(SRC)BlackBox.h $(SRC)Common.h $(SRC)Configuration.h $(SRC)AirCalc.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)FBrender.o: $(SRC)FBrender.c $(SRC)FBrender.h $(SRC)Navigator.h $(SRC)AirCalc.h $(SRC)GPSreceiver.h $(SRC)Configuration.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) -DLINUX_TARGET -I $(INC) $< -o $@
-
-$(BIN)Configuration.o: $(SRC)Configuration.c $(SRC)Configuration.h $(SRC)Common.h $(SRC)AirCalc.h $(SRC)FBrender.h $(LIBSRC)libroxml/roxml.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) -I $(LIBSRC) $< -o $@
-
-$(BIN)Geoidal.o: $(SRC)Geoidal.c $(SRC)Geoidal.h $(SRC)Common.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)TSreader.o: $(SRC)TSreader.c $(SRC)TSreader.h $(SRC)Common.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) -I $(INC) $< -o $@
-
-$(BIN)Ephemerides.o: $(SRC)Ephemerides.c $(SRC)Ephemerides.h $(SRC)AirCalc.h $(SRC)Common.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)AirCalc.o: $(SRC)AirCalc.c $(SRC)AirCalc.h $(SRC)Common.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
-$(BIN)Common.o: $(SRC)Common.c $(SRC)Common.h
-	@echo Compiling: $<
-	@$(CC) $(CFLAGS) $< -o $@
-
+-include $(patsubst %,$(DEPDIR)%.d,$(basename $(CFILES)))
 
 ### Lib dependencies
 $(LIB)libroxml.so: $(LIBSRC)libroxml/Makefile

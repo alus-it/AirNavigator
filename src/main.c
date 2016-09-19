@@ -6,7 +6,7 @@
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git
-// Last change : 28/2/2016
+// Last change : 19/9/2016
 // Description : main function of the AirNavigator program for TomTom devices
 //============================================================================
 
@@ -28,10 +28,7 @@
 #include "BlackBox.h"
 #include "HSI.h"
 
-#ifndef VERSION
 #define VERSION "0.3.2"
-#endif
-
 
 typedef struct fileName {
 	int seqNo;             //sequence number
