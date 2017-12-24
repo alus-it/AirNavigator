@@ -21,7 +21,6 @@ In order to compile C programs to ARM executables through a Linux PC, follow the
 4. Perform then the following links:  
   `$ cd /usr/local/cross/gcc-3.3.4_glibc-2.3.2/arm-linux/sys-root/usr/include/asm`  
   `$ sudo ln -s arch-s3c2410 arch`  
-  `$ cd /usr/local/cross/gcc-3.3.4_glibc-2.3.2/arm-linux/sys-root/usr/include/asm`  
   `$ sudo ln -s proc-armv proc`  
   This is because the TTGO processor is a SAMSUNG ELECTRONICS S3C2410 (Arm920T), 32-bit architecture (so armv, while armo is for the old 26-bit ones).  
 5. To cross-compile on 64 bit make sure to have installed the GNU C 32-bit shared libraries for AMD64  
