@@ -14,8 +14,7 @@ Contributors are warmly welcome!
 Preparing the development environment
 =====================================
 
-In order to compile C programs to ARM executables through a Linux PC, follow the steps described here. Alternatively, you may consider building your own toolchain.
-
+In order to compile C programs to ARM executables through a Linux PC, follow the steps described here. Alternatively, you may consider building your own toolchain.  
 1. Start bash and verify that a C source program can be correctly compiled to a Linux executable.
 2. Download: http://www.alus.it/airnavigator/toolchain_redhat_gcc-3.3.4_glibc-2.3.2-20060131a.tar.gz
 3. Unpack the file to /usr/local/cross
@@ -35,30 +34,24 @@ In order to compile C programs to ARM executables through a Linux PC, follow the
 Compiling AirNavigator
 ======================
 
-Having the toolchain installed you can compile AirNavigator, go to his folder and type:
+Having the toolchain installed you can then compile AirNavigator, go to his folder and type:  
+  `$ make all`  
 
-$ make all
+With the command:  
+  `$ make zip`  
 
+The make process will produce automatically the two distributions zip files.  
 
-With the command:
+And with:  
+  `$ make upload`  
 
-$ make zip
-
-The make process will produce automatically the two distributions zip files.
-
-
-And with:
-
-$ make upload
-
-The make process will copy just the AirNavigator executable to your TomTom connected via USB.
-In this case the TomTom disk should be mounted under: /media/INTERNAL/
+The make process will copy just the AirNavigator executable to your TomTom connected via USB.  
+In this case the TomTom disk should be mounted under: /media/INTERNAL/  
 
 
-
-CONTACTS
+Contacts
 ========
 
-Author: Alberto Realis-Luc
-Web: http://www.alus.it/airnavigator/
-E-mail: airnavigator@alus.it
+Author: Alberto Realis-Luc  
+Web: http://www.alus.it/airnavigator/  
+E-mail: airnavigator@alus.it  
