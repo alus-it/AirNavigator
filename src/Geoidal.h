@@ -5,7 +5,7 @@
 // Web         : https://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
-// Repository  : https://github.com/AirNavigator/AirNavigator.git
+// Repository  : https://github.com/alus-it/AirNavigator.git
 // Last change : 10/2/2013
 // Description : Header file of Geoidal.c
 //============================================================================
