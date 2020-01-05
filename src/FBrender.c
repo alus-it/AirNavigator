@@ -3,7 +3,7 @@
 // Since       : 9/7/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
 // Web         : https://www.alus.it/airnavigator/
-// Copyright   : (C) 2010-2016 Alberto Realis-Luc
+// Copyright   : (C) 2010-2020 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/alus-it/AirNavigator.git
 // Last change : 22/1/2014
