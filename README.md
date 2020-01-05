@@ -3,7 +3,7 @@ AirNavigator
 
 Welcome to AirNavigator repository!  
 This is an open source HSI navigation application for TomTom devices.  
-For more informations about this project: http://www.alus.it/airnavigator  
+For more informations about this project: https://www.alus.it/airnavigator  
 
 This is the README file for developers.  
 The README file for final users is located here: ./release/README.txt  
@@ -16,7 +16,7 @@ Preparing the development environment
 
 In order to compile C programs to ARM executables through a Linux PC, follow the steps described here. Alternatively, you may consider building your own toolchain.  
 1. Start bash and verify that a C source program can be correctly compiled to a Linux executable.
-2. Download: http://www.alus.it/airnavigator/toolchain_redhat_gcc-3.3.4_glibc-2.3.2-20060131a.tar.gz
+2. Download: https://www.alus.it/airnavigator/toolchain_redhat_gcc-3.3.4_glibc-2.3.2-20060131a.tar.gz
 3. Unpack the file to /usr/local/cross
 4. Perform then the following links:  
   `$ cd /usr/local/cross/gcc-3.3.4_glibc-2.3.2/arm-linux/sys-root/usr/include/asm`  
@@ -52,5 +52,5 @@ Contacts
 ========
 
 Author: Alberto Realis-Luc  
-Web: http://www.alus.it/airnavigator/  
+Web: https://www.alus.it/airnavigator/  
 E-mail: airnavigator@alus.it  

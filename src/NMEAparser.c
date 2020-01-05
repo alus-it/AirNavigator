@@ -2,7 +2,7 @@
 // Name        : NMEAparser.c
 // Since       : 9/2/2011
 // Author      : Alberto Realis-Luc <alberto.realisluc@gmail.com>
-// Web         : http://www.alus.it/airnavigator/
+// Web         : https://www.alus.it/airnavigator/
 // Copyright   : (C) 2010-2016 Alberto Realis-Luc
 // License     : GNU GPL v2
 // Repository  : https://github.com/AirNavigator/AirNavigator.git

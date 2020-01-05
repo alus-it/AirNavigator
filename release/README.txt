@@ -398,5 +398,5 @@ Verasion 0.3.2
 
 CONTACTS
 Author: Alberto Realis-Luc
-Web: http://www.alus.it/airnavigator/
+Web: https://www.alus.it/airnavigator/
 E-mail: airnavigator@alus.it
